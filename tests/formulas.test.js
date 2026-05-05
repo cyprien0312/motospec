@@ -72,13 +72,14 @@ test('TOPO_ORDER agrees with a deps-derived topological order', () => {
 });
 
 test('Trail_Static = (Rf · sin(Rake) − O) / cos(Rake)', () => {
-  // Yamaha R6 2020 spec sheet: Rake 24°, Trail 97 mm
+  // Inputs: Rake=24°, Rf=308 mm, O=30 mm.
+  // Expected Trail = (308·sin(24°) − 30) / cos(24°) ≈ 104.291 mm (hand-computed once).
+  // Pinning to a precomputed constant — not re-derived from the formula —
+  // catches sin/cos swap, sign error, missing D2R conversion.
   const inputs = { ...defaultValues(), Rake_Static: 24, Rf: 308, O: 30 };
   const out = computeAll(inputs);
-  const r = 24 * Math.PI / 180;
-  const expected = (308 * Math.sin(r) - 30) / Math.cos(r);
-  assert.ok(Math.abs(out.Trail_Static - expected) < 1e-6,
-    `Trail_Static=${out.Trail_Static} expected≈${expected}`);
+  assert.ok(Math.abs(out.Trail_Static - 104.291) < 1e-3,
+    `Trail_Static=${out.Trail_Static}, expected ≈ 104.291`);
 });
 
 test('Trail_Static is a channel (visible on dashboard)', () => {
