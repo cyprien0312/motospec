@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MotoSPEC 公式探索器</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a212b;
+    --panel-2: #232c39;
+    --border: #2d3847;
+    --text: #e6edf3;
+    --text-dim: #8b98a7;
+    --accent: #4ea1ff;
+    --accent-hover: #7ab8ff;
+    --channel: #ff8c5a;
+    --intermediate: #c084fc;
+    --input: #4ade80;
+    --formula-bg: #0c1116;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
+    line-height: 1.6; min-height: 100vh;
+    display: grid; grid-template-columns: 280px 1fr;
+  }
+  aside {
+    background: var(--panel); border-right: 1px solid var(--border);
+    padding: 20px 16px; height: 100vh; overflow-y: auto; position: sticky; top: 0;
+  }
+  aside h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    color: var(--text-dim); text-transform: uppercase;
+    margin-bottom: 10px; margin-top: 18px;
+  }
+  aside h2:first-child { margin-top: 0; }
+  .nav-item {
+    display: block; padding: 8px 12px; border-radius: 6px;
+    cursor: pointer; color: var(--text); font-size: 14px;
+    border: 1px solid transparent; transition: all 0.15s;
+    margin-bottom: 4px;
+  }
+  .nav-item:hover { background: var(--panel-2); border-color: var(--border); }
+  .nav-item.active { background: var(--panel-2); border-color: var(--accent); }
+  .nav-item .label { color: var(--text-dim); font-size: 12px; margin-left: 6px; }
+
+  main { padding: 28px 36px; max-width: 1000px; }
+  .breadcrumbs {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--text-dim);
+  }
+  .breadcrumbs .crumb {
+    cursor: pointer; padding: 3px 8px; border-radius: 4px;
+    color: var(--accent); transition: background 0.15s;
+  }
+  .breadcrumbs .crumb:hover { background: var(--panel-2); }
+  .breadcrumbs .sep { color: var(--text-dim); }
+  .breadcrumbs .crumb.current { color: var(--text); cursor: default; }
+
+  .header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  h1 { font-size: 28px; font-weight: 600; }
+  .unit { color: var(--text-dim); font-size: 16px; font-weight: 400; }
+  .label-zh { color: var(--text-dim); font-size: 16px; font-weight: 400; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge.channel { background: rgba(255, 140, 90, 0.15); color: var(--channel); }
+  .badge.intermediate { background: rgba(192, 132, 252, 0.15); color: var(--intermediate); }
+  .badge.input { background: rgba(74, 222, 128, 0.15); color: var(--input); }
+
+  .desc {
+    color: var(--text-dim); margin-top: 12px; margin-bottom: 24px;
+    padding: 14px 18px; background: var(--panel); border-left: 3px solid var(--accent);
+    border-radius: 4px; font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 13px; font-weight: 600; letter-spacing: 1px; color: var(--text-dim);
+    text-transform: uppercase; margin-top: 28px; margin-bottom: 12px;
+  }
+  .formula-box {
+    background: var(--formula-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 24px 28px; font-size: 19px;
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    line-height: 2.2; word-spacing: 2px; overflow-x: auto;
+  }
+  .param-chip {
+    display: inline-block; padding: 2px 10px; border-radius: 5px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--accent); cursor: pointer; transition: all 0.15s;
+    font-size: 17px; font-weight: 500; margin: 2px 1px;
+  }
+  .param-chip:hover {
+    background: var(--accent); color: var(--bg); border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .param-chip.input { color: var(--input); }
+  .param-chip.input:hover { background: var(--input); color: var(--bg); border-color: var(--input); }
+  .param-chip.intermediate { color: var(--intermediate); }
+  .param-chip.intermediate:hover { background: var(--intermediate); color: var(--bg); border-color: var(--intermediate); }
+  .param-chip.channel { color: var(--channel); }
+  .param-chip.channel:hover { background: var(--channel); color: var(--bg); border-color: var(--channel); }
+
+  .deps-list { display: grid; gap: 8px; }
+  .dep-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .dep-card:hover { background: var(--panel-2); border-color: var(--accent); transform: translateX(2px); }
+  .dep-card .dep-name { font-family: "SF Mono", Monaco, monospace; color: var(--accent); font-weight: 500; }
+  .dep-card .dep-label { color: var(--text-dim); font-size: 13px; margin-left: 10px; }
+  .dep-card .dep-arrow { color: var(--text-dim); }
+
+  .info-grid {
+    display: grid; grid-template-columns: 140px 1fr; gap: 10px 20px;
+    padding: 16px 18px; background: var(--panel); border-radius: 6px;
+    border: 1px solid var(--border); font-size: 14px;
+  }
+  .info-grid dt { color: var(--text-dim); font-weight: 500; }
+  .info-grid dd { color: var(--text); }
+
+  .footnote { color: var(--text-dim); font-size: 13px; margin-top: 16px; padding: 10px 14px; background: var(--panel); border-radius: 4px; }
+
+  .bike-svg {
+    width: 100%; max-width: 760px; height: auto;
+    background: var(--formula-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    display: block; margin-bottom: 6px;
+  }
+  .diagram-note { font-size: 12px; color: var(--text-dim); margin-top: 2px; padding-left: 4px; }
+
+  /* ===== Live calculator additions ===== */
+  .live-value {
+    display: inline-block; padding: 4px 12px; border-radius: 6px;
+    background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.4);
+    color: var(--input); font-family: "SF Mono", Monaco, monospace;
+    font-size: 16px; font-weight: 600;
+  }
+  .live-value.channel { background: rgba(255,140,90,0.12); border-color: rgba(255,140,90,0.4); color: var(--channel); }
+  .live-value.intermediate { background: rgba(192,132,252,0.12); border-color: rgba(192,132,252,0.4); color: var(--intermediate); }
+
+  .input-control {
+    display: grid; grid-template-columns: 1fr 130px; gap: 16px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px;
+  }
+  .input-control input[type="range"] { width: 100%; accent-color: var(--input); }
+  .input-control input[type="number"] {
+    background: var(--formula-bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 5px; padding: 7px 10px; font-family: "SF Mono", Monaco, monospace;
+    font-size: 14px; width: 100%;
+  }
+  .input-control .range-label { display: flex; justify-content: space-between; color: var(--text-dim); font-size: 11px; margin-top: 5px; }
+
+  .dash-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .dash-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 18px; cursor: pointer; transition: all 0.15s;
+  }
+  .dash-card:hover { border-color: var(--channel); transform: translateY(-2px); }
+  .dash-card.intermediate:hover { border-color: var(--intermediate); }
+  .dash-card .dash-label { color: var(--text-dim); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .dash-card .dash-name { color: var(--text); font-size: 13px; font-family: "SF Mono", Monaco, monospace; margin-bottom: 10px; }
+  .dash-card .dash-val { color: var(--channel); font-size: 22px; font-weight: 700; font-family: "SF Mono", Monaco, monospace; }
+  .dash-card.intermediate .dash-val { color: var(--intermediate); }
+
+  .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .preset-btn {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .preset-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .preset-btn.reset { color: var(--text-dim); }
+  .preset-btn.reset:hover { background: var(--panel); color: var(--text); border-color: var(--text-dim); }
+
+  .nav-item.dashboard { background: rgba(78,161,255,0.08); border-color: rgba(78,161,255,0.3); margin-bottom: 14px; }
+  .nav-item.dashboard.active { background: rgba(78,161,255,0.15); border-color: var(--accent); }
+
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; max-height: 240px; }
+    main { padding: 20px 16px; }
+    .input-control { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h2>6 大核心通道</h2>
+  <div id="nav-channels"></div>
+  <h2>中间量</h2>
+  <div id="nav-intermediate"></div>
+  <h2>输入参数</h2>
+  <div id="nav-inputs"></div>
+</aside>
+<main>
+  <div class="breadcrumbs" id="breadcrumbs"></div>
+  <div id="content"></div>
+</main>
+
+<script>
+// ============================================================
+// 参数图：每个节点定义自身的公式与依赖
+// 公式数组中的元素：字符串 = 文本；对象 {ref: 'id'} = 可点击参数
+// ============================================================
+const P = {
+  // ===== 6 大主通道 =====
+  MotoSPEC_Rake: {
+    name: 'MotoSPEC_Rake', label: '动态后倾角', unit: 'deg', type: 'channel',
+    desc: '车辆运动中实时的转向轴前倾角度。前叉压缩、后减震伸展时车头下沉，Rake 变小。',
+    formula: [
+      {ref:'Rake_Static'}, ' − ', {ref:'Pitch'}, ' × (180 / π)'
+    ],
+    deps: ['Rake_Static', 'Pitch'],
+    note: 'arctan 算出的 Pitch 是弧度，乘 180/π 转为度数后再相减。'
+  },
+  MotoSPEC_Trail: {
+    name: 'MotoSPEC_Trail', label: '动态拖曳距', unit: 'mm', type: 'channel',
+    desc: '前轮接地点到转向轴地面交点的距离。Rake 变小时 Trail 急剧缩短，是前轮"路感"的核心来源。',
+    formula: [
+      '( ', {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'O'}, ' ) / cos(', {ref:'MotoSPEC_Rake'}, ')'
+    ],
+    deps: ['Rf', 'MotoSPEC_Rake', 'O'],
+    note: '使用动态 Rake（已转为弧度）代入。重刹时 Trail 谷底过低 → 前轮反馈模糊。'
+  },
+  MotoSPEC_SwgarmAngl: {
+    name: 'MotoSPEC_SwgarmAngl', label: '动态摇臂角度', unit: 'deg', type: 'channel',
+    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。压缩时角度变小（摇臂趋于水平）。',
+    formula: [
+      {ref:'beta_static'}, ' − ', {ref:'delta_beta'}, ' × (180 / π)'
+    ],
+    deps: ['beta_static', 'delta_beta'],
+    note: '出弯开油时若摇臂趋近水平，机械抓地力骤降，赛车会向外抛。'
+  },
+  MotoSPEC_AntSquat: {
+    name: 'MotoSPEC_AntSquat', label: '抗蹲伏百分比', unit: '%', type: 'channel',
+    desc: '加速时几何对车尾下沉的抵消程度。100% = 车尾高度不变；>100% = 车尾升起；<100% = 车尾下沉。',
+    formula: [
+      '( tan(', {ref:'theta_thrust'}, ') / tan(', {ref:'theta_cg'}, ') ) × 100'
+    ],
+    deps: ['theta_thrust', 'theta_cg'],
+    note: '出弯调校的灵魂指标。120% 把后轮压住；140% 顶死悬挂、易引发 High-side。'
+  },
+  MotoSPEC_FrontForce: {
+    name: 'MotoSPEC_FrontForce', label: '前轮垂直载荷', unit: 'N', type: 'channel',
+    desc: '前轮压在地面上的法向力。刹车时增大、加速时减小。决定前胎抓地力极限。',
+    formula: [
+      {ref:'W_F_Static'}, ' + ', {ref:'delta_W'}, ' + ', {ref:'F_Aero'}, ' × ', {ref:'C_f_aero'}
+    ],
+    deps: ['W_F_Static', 'delta_W', 'F_Aero', 'C_f_aero'],
+    note: '入弯瞬间若 FrontForce 飙升过快 → 前胎过载抱死。'
+  },
+  MotoSPEC_RearForce: {
+    name: 'MotoSPEC_RearForce', label: '后轮垂直载荷', unit: 'N', type: 'channel',
+    desc: '后轮压在地面上的法向力。加速时增大、刹车时减小。',
+    formula: [
+      {ref:'W_R_Static'}, ' − ', {ref:'delta_W'}, ' + ', {ref:'F_Aero'}, ' × ', {ref:'C_r_aero'}
+    ],
+    deps: ['W_R_Static', 'delta_W', 'F_Aero', 'C_r_aero'],
+    note: '出弯点 RearForce 突然陡降 → 后轮即将打滑。'
+  },
+
+  // ===== 中间计算量 =====
+  Pitch: {
+    name: 'Pitch', label: '底盘俯仰角', unit: 'rad', type: 'intermediate',
+    desc: '车架相对水平面的俯仰角度。前轮下沉 > 后轮下沉时为正（刹车点头）。',
+    formula: [
+      'arctan( (', {ref:'Travel_Front'}, ' − ', {ref:'Travel_Rear'}, ') / ', {ref:'WB'}, ' )'
+    ],
+    deps: ['Travel_Front', 'Travel_Rear', 'WB']
+  },
+  delta_beta: {
+    name: 'Δβ', label: '摇臂角度变化量', unit: 'rad', type: 'intermediate',
+    desc: '后轮垂直位移引起的摇臂角度变化量（弧度制）。',
+    formula: [
+      'arcsin( ', {ref:'Travel_Rear'}, ' / ', {ref:'L_SA'}, ' )'
+    ],
+    deps: ['Travel_Rear', 'L_SA']
+  },
+  theta_thrust: {
+    name: 'θ_Thrust', label: '驱动力推力角', unit: 'rad', type: 'intermediate',
+    desc: '链条拉力与摇臂线合成的瞬时推力方向。tan 值 = 链条角 tan + 摇臂角 tan。',
+    formula: [
+      'arctan( tan(', {ref:'theta_chain'}, ') + tan(', {ref:'MotoSPEC_SwgarmAngl'}, ') )'
+    ],
+    deps: ['theta_chain', 'MotoSPEC_SwgarmAngl'],
+    note: '注意：标准切线法直接对 tan 求和，再求反正切。'
+  },
+  theta_cg: {
+    name: 'θ_CG', label: '重心角', unit: 'rad', type: 'intermediate',
+    desc: '从后轮接地点看向重心的仰角。',
+    formula: [
+      'arctan( ', {ref:'H_CG'}, ' / ', {ref:'L_CG'}, ' )'
+    ],
+    deps: ['H_CG', 'L_CG']
+  },
+  delta_W: {
+    name: 'ΔW', label: '纵向载荷转移量', unit: 'N', type: 'intermediate',
+    desc: '由于纵向加速度引起的前后轮重量转移量。刹车为正（前移）、加速为负。',
+    formula: [
+      {ref:'Mass'}, ' × ', {ref:'a_x'}, ' × 9.81 × ( ', {ref:'H_CG'}, ' / ', {ref:'WB'}, ' )'
+    ],
+    deps: ['Mass', 'a_x', 'H_CG', 'WB'],
+    note: '此处 a_x 单位为 g（无量纲）；若用 m/s² 则去掉 ×9.81。'
+  },
+  F_Aero: {
+    name: 'F_Aero', label: '空气动力学下压力', unit: 'N', type: 'intermediate',
+    desc: '高速时由车身、定风翼产生的总气动下压力。',
+    formula: [
+      '½ × ', {ref:'rho'}, ' × ', {ref:'V'}, '² × ', {ref:'Cd'}, ' × ', {ref:'A'}
+    ],
+    deps: ['rho', 'V', 'Cd', 'A']
+  },
+  W_F_Static: {
+    name: 'W_F_Static', label: '前轮静态受力', unit: 'N', type: 'intermediate',
+    desc: '车辆静止时前轮承受的法向力。',
+    formula: [
+      {ref:'Mass'}, ' × 9.81 × ', {ref:'front_weight_dist'}
+    ],
+    deps: ['Mass', 'front_weight_dist']
+  },
+  W_R_Static: {
+    name: 'W_R_Static', label: '后轮静态受力', unit: 'N', type: 'intermediate',
+    desc: '车辆静止时后轮承受的法向力。',
+    formula: [
+      {ref:'Mass'}, ' × 9.81 × ', {ref:'rear_weight_dist'}
+    ],
+    deps: ['Mass', 'rear_weight_dist']
+  },
+
+  // ===== 输入参数（叶子节点）=====
+  Rake_Static: { name:'Rake_Static', label:'静态后倾角', unit:'deg', type:'input',
+    desc:'车辆静止时转向轴相对垂直方向的角度。', source:'车架几何手册或实车测量',
+    typical:'23° – 27°（运动车），27° – 32°（旅行车）' },
+  Travel_Front: { name:'Travel_Front', label:'前轮垂直行程', unit:'mm', type:'input',
+    desc:'前轮当前的下沉量。下沉为正。', source:'前叉电位计实时数据',
+    typical:'0 – 120 mm（取决于车型）' },
+  Travel_Rear: { name:'Travel_Rear', label:'后轮垂直行程', unit:'mm', type:'input',
+    desc:'后轮当前的垂直下沉量。下沉为正。需要乘 Motion Ratio 还原。', source:'后减震电位计 × Motion Ratio',
+    typical:'0 – 130 mm' },
+  WB: { name:'WB', label:'轴距 (Wheelbase)', unit:'mm', type:'input',
+    desc:'前后轮轴中心的水平距离。', source:'车架手册',
+    typical:'1340 – 1440 mm（运动车）' },
+  Rf: { name:'Rf', label:'前轮滚动半径', unit:'mm', type:'input',
+    desc:'前轮在载荷下的实际滚动半径（含轮胎形变修正）。', source:'轮胎规格 + 形变系数',
+    typical:'300 – 320 mm（17 寸轮）' },
+  O: { name:'O', label:'总偏移量 (Offset)', unit:'mm', type:'input',
+    desc:'三星台联板中心到前叉中心的距离 + 轮芯偏移。', source:'三星台规格 + 实测',
+    typical:'25 – 35 mm（你前面拍照测得约 32 mm）' },
+  beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
+    desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
+    typical:'10° – 18°' },
+  L_SA: { name:'L_SA', label:'摇臂有效长度', unit:'mm', type:'input',
+    desc:'摇臂轴心到后轮轴心的距离。', source:'车架手册',
+    typical:'550 – 600 mm' },
+  theta_chain: { name:'θ_Chain', label:'链条拉力角', unit:'deg', type:'input',
+    desc:'前小齿轮最高点 → 后大齿轮最高点连线的角度（相对水平面）。', source:'齿轮坐标 + 几何计算',
+    typical:'动态变化，通常 10° – 25°' },
+  H_CG: { name:'H_CG', label:'重心高度', unit:'mm', type:'input',
+    desc:'人车综合重心距地面的垂直高度。', source:'称重台 + 倾斜法实测',
+    typical:'600 – 700 mm（含车手）' },
+  L_CG: { name:'L_CG', label:'重心到后轴水平距离', unit:'mm', type:'input',
+    desc:'人车综合重心到后轮轴的水平距离。', source:'称重 + 几何换算',
+    typical:'700 – 800 mm' },
+  Mass: { name:'Mass', label:'人车总质量', unit:'kg', type:'input',
+    desc:'车辆 + 车手 + 装备的总质量。', source:'称重',
+    typical:'250 – 280 kg' },
+  a_x: { name:'a_x', label:'纵向加速度', unit:'g', type:'input',
+    desc:'车辆纵向加速度。规范：刹车为正、加速为负，便于直接计算前移载荷。', source:'IMU 或 GPS',
+    typical:'−0.5 g（加速）至 +1.4 g（重刹）' },
+  rho: { name:'ρ', label:'空气密度', unit:'kg/m³', type:'input',
+    desc:'当前环境的空气密度（受温度、海拔影响）。', source:'气象数据或 ISA 标准大气',
+    typical:'约 1.225 kg/m³（海平面 15°C）' },
+  V: { name:'V', label:'实时车速', unit:'m/s', type:'input',
+    desc:'车辆相对地面的速度。', source:'GPS 或轮速传感器',
+    typical:'0 – 90 m/s（约 0 – 320 km/h）' },
+  Cd: { name:'Cd', label:'阻力系数', unit:'—', type:'input',
+    desc:'车辆 + 车手综合形态的空气阻力系数（无量纲）。', source:'风洞测试或厂商规格',
+    typical:'0.30 – 0.50' },
+  A: { name:'A', label:'迎风面积', unit:'m²', type:'input',
+    desc:'车辆 + 车手在前进方向上的投影面积。', source:'实测或 CAD',
+    typical:'0.4 – 0.6 m²' },
+  C_f_aero: { name:'C_f_aero', label:'前轮气动下压力分配比例', unit:'—', type:'input',
+    desc:'空气下压力分配到前轮的比例。', source:'风洞或赛事工程经验',
+    typical:'0.3 – 0.5' },
+  C_r_aero: { name:'C_r_aero', label:'后轮气动下压力分配比例', unit:'—', type:'input',
+    desc:'空气下压力分配到后轮的比例。', source:'风洞或赛事工程经验',
+    typical:'0.5 – 0.7' },
+  front_weight_dist: { name:'front_weight_dist', label:'前轮静态重量分配', unit:'—', type:'input',
+    desc:'静止时前轮承担的总重量比例。', source:'称重台',
+    typical:'0.50 – 0.55（运动车）' },
+  rear_weight_dist: { name:'rear_weight_dist', label:'后轮静态重量分配', unit:'—', type:'input',
+    desc:'静止时后轮承担的总重量比例。= 1 − front_weight_dist。', source:'称重台',
+    typical:'0.45 – 0.50' },
+};
+
+// ============================================================
+// 几何图示：将参数标注在简化的车架线条图上
+// ============================================================
+const SC = { base:'#5a6878', ground:'#3a4555', hi:'#4ea1ff', hi2:'#ff8c5a', hi3:'#c084fc', hi4:'#4ade80' };
+const BIKE = {
+  W: 760, H: 380, groundY: 340,
+  rearAxle:  { x: 195, y: 280 },
+  frontAxle: { x: 645, y: 280 },
+  wheelR: 60,
+  swingarmPivot: { x: 340, y: 250 },
+  steeringHead: { x: 552, y: 98 },
+  rakeDeg: 27,
+  cg: { x: 410, y: 195 },
+  rearSprocketR: 25, frontSprocketR: 11,
+};
+function d2r(d){ return d * Math.PI / 180; }
+function arcD(cx, cy, r, a1, a2, sweep, large) {
+  const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+  const x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
+  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 ${large||0} ${sweep||0} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+function cgMarker(x, y, color) {
+  const c = color || SC.hi2;
+  const r = 8;
+  return `<g transform="translate(${x},${y})">
+    <circle r="${r}" fill="#0c1116" stroke="${c}" stroke-width="1.5"/>
+    <path d="M 0,-${r} A ${r} ${r} 0 0 1 ${r},0 L 0,0 Z" fill="${c}"/>
+    <path d="M 0,${r} A ${r} ${r} 0 0 1 -${r},0 L 0,0 Z" fill="${c}"/>
+  </g>`;
+}
+function bikeSVG(overlay) {
+  const b = BIKE;
+  return `<svg viewBox="0 0 ${b.W} ${b.H}" xmlns="http://www.w3.org/2000/svg" class="bike-svg">
+    <defs>
+      <marker id="ar"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="${SC.hi}"/></marker>
+      <marker id="ar-s" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 Z" fill="${SC.hi}"/></marker>
+      <marker id="ar2"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="${SC.hi2}"/></marker>
+      <marker id="ar2-s" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 Z" fill="${SC.hi2}"/></marker>
+      <marker id="ar3"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="${SC.hi3}"/></marker>
+      <marker id="ar4"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="${SC.hi4}"/></marker>
+    </defs>
+    <line x1="20" y1="${b.groundY}" x2="${b.W-20}" y2="${b.groundY}" stroke="${SC.ground}" stroke-width="2" stroke-dasharray="5,4"/>
+    <circle cx="${b.rearAxle.x}" cy="${b.rearAxle.y}" r="${b.wheelR}" fill="none" stroke="${SC.base}" stroke-width="2.5"/>
+    <circle cx="${b.rearAxle.x}" cy="${b.rearAxle.y}" r="3.5" fill="${SC.base}"/>
+    <circle cx="${b.rearAxle.x}" cy="${b.rearAxle.y}" r="${b.rearSprocketR}" fill="none" stroke="${SC.base}" stroke-width="1" opacity="0.45"/>
+    <circle cx="${b.frontAxle.x}" cy="${b.frontAxle.y}" r="${b.wheelR}" fill="none" stroke="${SC.base}" stroke-width="2.5"/>
+    <circle cx="${b.frontAxle.x}" cy="${b.frontAxle.y}" r="3.5" fill="${SC.base}"/>
+    <line x1="${b.frontAxle.x}" y1="${b.frontAxle.y}" x2="${b.steeringHead.x}" y2="${b.steeringHead.y}" stroke="${SC.base}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="${b.steeringHead.x}" y1="${b.steeringHead.y}" x2="${b.steeringHead.x-28}" y2="${b.steeringHead.y-10}" stroke="${SC.base}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="${b.steeringHead.x}" y1="${b.steeringHead.y}" x2="${b.steeringHead.x+25}" y2="${b.steeringHead.y-3}" stroke="${SC.base}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M ${b.steeringHead.x},${b.steeringHead.y} L 480,150 L 410,205 L ${b.swingarmPivot.x},${b.swingarmPivot.y}" fill="none" stroke="${SC.base}" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M 410,160 Q 460,148 510,160 L 510,200 L 410,200 Z" fill="none" stroke="${SC.base}" stroke-width="2"/>
+    <path d="M 410,180 Q 380,175 320,180 L 320,196 L 410,200 Z" fill="none" stroke="${SC.base}" stroke-width="2"/>
+    <line x1="320" y1="180" x2="285" y2="220" stroke="${SC.base}" stroke-width="2"/>
+    <path d="M ${b.steeringHead.x},${b.steeringHead.y} Q 595,150 575,210 L 540,212 L 525,168 Z" fill="none" stroke="${SC.base}" stroke-width="2" opacity="0.5"/>
+    <path d="M 410,210 L 510,200 L 525,265 L 425,270 Z" fill="none" stroke="${SC.base}" stroke-width="2"/>
+    <circle cx="${b.swingarmPivot.x}" cy="${b.swingarmPivot.y}" r="4" fill="${SC.base}"/>
+    <circle cx="${b.swingarmPivot.x}" cy="${b.swingarmPivot.y}" r="${b.frontSprocketR}" fill="none" stroke="${SC.base}" stroke-width="1" opacity="0.5"/>
+    <line x1="${b.swingarmPivot.x}" y1="${b.swingarmPivot.y}" x2="${b.rearAxle.x}" y2="${b.rearAxle.y}" stroke="${SC.base}" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="320" y1="170" x2="285" y2="265" stroke="${SC.base}" stroke-width="3"/>
+    <line x1="${b.rearAxle.x}" y1="${b.rearAxle.y - b.rearSprocketR}" x2="${b.swingarmPivot.x}" y2="${b.swingarmPivot.y - b.frontSprocketR}" stroke="${SC.base}" stroke-width="1" stroke-dasharray="3,2" opacity="0.55"/>
+    ${overlay || ''}
+  </svg>`;
+}
+
+const DIAGRAMS = {};
+
+// === Rake (静态/动态) ===
+const _rake = () => {
+  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
+  const a1 = Math.PI/2;
+  const a2 = Math.atan2(fa.y - sh.y, fa.x - sh.x);
+  return `
+    <line x1="${sh.x}" y1="${sh.y}" x2="${sh.x}" y2="${sh.y+150}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+    <line x1="${sh.x}" y1="${sh.y}" x2="${fa.x}" y2="${fa.y}" stroke="${SC.hi}" stroke-width="3"/>
+    <path d="${arcD(sh.x, sh.y, 55, a1, a2, 0, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
+    <text x="${sh.x+10}" y="${sh.y+72}" fill="${SC.hi}" font-size="17" font-style="italic" font-family="serif">θ</text>
+    <text x="${sh.x-22}" y="${sh.y+165}" fill="${SC.hi}" font-size="11" opacity="0.85">Vertical</text>
+    <text x="${(sh.x+fa.x)/2-30}" y="${(sh.y+fa.y)/2-8}" fill="${SC.hi}" font-size="11">Steering Axis</text>`;
+};
+DIAGRAMS.Rake_Static = _rake;
+DIAGRAMS.MotoSPEC_Rake = _rake;
+
+// === Trail ===
+DIAGRAMS.MotoSPEC_Trail = () => {
+  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
+  const dx = fa.x - sh.x, dy = fa.y - sh.y, len = Math.hypot(dx, dy);
+  const ux = dx/len, uy = dy/len;
+  const t = (b.groundY - sh.y) / uy;
+  const gx = sh.x + ux * t;
+  return `
+    <line x1="${sh.x}" y1="${sh.y}" x2="${gx.toFixed(1)}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+    <line x1="${fa.x}" y1="${fa.y}" x2="${fa.x}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5"/>
+    <circle cx="${fa.x}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
+    <circle cx="${gx.toFixed(1)}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
+    <line x1="${fa.x}" y1="${b.groundY+18}" x2="${gx.toFixed(1)}" y2="${b.groundY+18}" stroke="${SC.hi}" stroke-width="2.5" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
+    <text x="${(fa.x+gx)/2-13}" y="${b.groundY+34}" fill="${SC.hi}" font-size="14" font-weight="bold">Trail</text>
+    <text x="${fa.x-58}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Contact pt</text>
+    <text x="${gx-25}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Axis · Ground</text>`;
+};
+
+// === Wheelbase ===
+DIAGRAMS.WB = () => {
+  const b = BIKE;
+  return `
+    <line x1="${b.rearAxle.x}" y1="${b.rearAxle.y}" x2="${b.rearAxle.x}" y2="${b.groundY+28}" stroke="${SC.hi}" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="${b.frontAxle.x}" y1="${b.frontAxle.y}" x2="${b.frontAxle.x}" y2="${b.groundY+28}" stroke="${SC.hi}" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="${b.rearAxle.x}" y1="${b.groundY+22}" x2="${b.frontAxle.x}" y2="${b.groundY+22}" stroke="${SC.hi}" stroke-width="2.5" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
+    <text x="${(b.rearAxle.x+b.frontAxle.x)/2-32}" y="${b.groundY+40}" fill="${SC.hi}" font-size="14" font-weight="bold">Wheelbase</text>`;
+};
+
+// === Front wheel radius ===
+DIAGRAMS.Rf = () => {
+  const b = BIKE, fa = b.frontAxle;
+  return `
+    <circle cx="${fa.x}" cy="${fa.y}" r="${b.wheelR}" fill="none" stroke="${SC.hi}" stroke-width="2.5"/>
+    <line x1="${fa.x}" y1="${fa.y}" x2="${fa.x}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="${fa.x+8}" y="${(fa.y+b.groundY)/2+5}" fill="${SC.hi}" font-size="14" font-weight="bold">R_f</text>
+    <text x="${fa.x-30}" y="${b.groundY+18}" fill="${SC.hi}" font-size="10" opacity="0.75">Contact</text>`;
+};
+
+// === Offset O ===
+DIAGRAMS.O = () => {
+  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
+  const Ovis = 22;
+  const vfa = { x: fa.x - Ovis, y: fa.y };
+  const vsh = { x: sh.x - Ovis, y: sh.y };
+  return `
+    <line x1="${vfa.x}" y1="${vfa.y}" x2="${vsh.x}" y2="${vsh.y}" stroke="${SC.hi}" stroke-width="2" stroke-dasharray="6,3" opacity="0.85"/>
+    <line x1="${fa.x}" y1="${fa.y}" x2="${sh.x}" y2="${sh.y}" stroke="${SC.hi}" stroke-width="2.5"/>
+    <line x1="${vfa.x}" y1="${fa.y-30}" x2="${fa.x}" y2="${fa.y-30}" stroke="${SC.hi}" stroke-width="2" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
+    <line x1="${vfa.x}" y1="${fa.y-35}" x2="${vfa.x}" y2="${fa.y-25}" stroke="${SC.hi}" stroke-width="1" opacity="0.6"/>
+    <line x1="${fa.x}" y1="${fa.y-35}" x2="${fa.x}" y2="${fa.y-25}" stroke="${SC.hi}" stroke-width="1" opacity="0.6"/>
+    <text x="${(vfa.x+fa.x)/2-5}" y="${fa.y-38}" fill="${SC.hi}" font-size="13" font-weight="bold">O</text>
+    <text x="${vsh.x-90}" y="${vsh.y-5}" fill="${SC.hi}" font-size="10" opacity="0.85">Steering Axis</text>
+    <text x="${sh.x+8}" y="${sh.y-13}" fill="${SC.hi}" font-size="10" opacity="0.75">Fork tube</text>`;
+};
+
+// === Swingarm angle ===
+const _swing = () => {
+  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
+  const a1 = Math.PI;
+  const a2 = Math.atan2(ra.y - sp.y, ra.x - sp.x);
+  return `
+    <line x1="${sp.x}" y1="${sp.y}" x2="${sp.x-180}" y2="${sp.y}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+    <line x1="${sp.x}" y1="${sp.y}" x2="${ra.x}" y2="${ra.y}" stroke="${SC.hi}" stroke-width="3.5"/>
+    <path d="${arcD(sp.x, sp.y, 55, a1, a2, 1, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
+    <text x="${sp.x-78}" y="${sp.y+22}" fill="${SC.hi}" font-size="17" font-style="italic" font-family="serif">β</text>
+    <text x="${sp.x-180}" y="${sp.y-6}" fill="${SC.hi}" font-size="11" opacity="0.85">Horizontal</text>
+    <text x="${(sp.x+ra.x)/2-25}" y="${(sp.y+ra.y)/2+18}" fill="${SC.hi}" font-size="11">Swingarm</text>`;
+};
+DIAGRAMS.beta_static = _swing;
+DIAGRAMS.MotoSPEC_SwgarmAngl = _swing;
+DIAGRAMS.delta_beta = _swing;
+
+// === L_SA ===
+DIAGRAMS.L_SA = () => {
+  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
+  return `
+    <line x1="${sp.x}" y1="${sp.y}" x2="${ra.x}" y2="${ra.y}" stroke="${SC.hi}" stroke-width="3.5" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
+    <text x="${(sp.x+ra.x)/2-15}" y="${(sp.y+ra.y)/2-10}" fill="${SC.hi}" font-size="14" font-weight="bold">L_SA</text>
+    <circle cx="${sp.x}" cy="${sp.y}" r="5" fill="${SC.hi}"/>
+    <circle cx="${ra.x}" cy="${ra.y}" r="5" fill="${SC.hi}"/>
+    <text x="${sp.x+8}" y="${sp.y-8}" fill="${SC.hi}" font-size="10" opacity="0.85">Pivot</text>
+    <text x="${ra.x-55}" y="${ra.y-15}" fill="${SC.hi}" font-size="10" opacity="0.85">Rear axle</text>`;
+};
+
+// === theta_chain ===
+DIAGRAMS.theta_chain = () => {
+  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
+  const p1 = { x: ra.x, y: ra.y - b.rearSprocketR };
+  const p2 = { x: sp.x, y: sp.y - b.frontSprocketR };
+  const a1 = Math.PI;
+  const a2 = Math.atan2(p1.y - p2.y, p1.x - p2.x);
+  return `
+    <line x1="${p2.x}" y1="${p2.y}" x2="${p1.x}" y2="${p1.y}" stroke="${SC.hi}" stroke-width="2.5"/>
+    <line x1="${p2.x}" y1="${p2.y}" x2="${p2.x-160}" y2="${p2.y}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+    <path d="${arcD(p2.x, p2.y, 40, a1, a2, 1, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
+    <text x="${p2.x-65}" y="${p2.y+8}" fill="${SC.hi}" font-size="14" font-style="italic" font-family="serif">θ_chain</text>
+    <text x="${(p1.x+p2.x)/2-25}" y="${(p1.y+p2.y)/2-6}" fill="${SC.hi}" font-size="11">Chain pull line</text>`;
+};
+
+// === H_CG ===
+DIAGRAMS.H_CG = () => {
+  const b = BIKE, cg = b.cg;
+  return `
+    <line x1="${cg.x}" y1="${cg.y}" x2="${cg.x}" y2="${b.groundY}" stroke="${SC.hi2}" stroke-width="2.5" marker-start="url(#ar2-s)" marker-end="url(#ar2)"/>
+    <text x="${cg.x+10}" y="${(cg.y+b.groundY)/2+5}" fill="${SC.hi2}" font-size="14" font-weight="bold">H_CG</text>
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x-20}" y="${cg.y-12}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <text x="${cg.x-25}" y="${b.groundY+15}" fill="${SC.hi2}" font-size="10" opacity="0.75">Ground</text>`;
+};
+
+// === L_CG ===
+DIAGRAMS.L_CG = () => {
+  const b = BIKE, cg = b.cg, ra = b.rearAxle;
+  return `
+    <line x1="${ra.x}" y1="${cg.y}" x2="${cg.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5" marker-start="url(#ar2-s)" marker-end="url(#ar2)"/>
+    <line x1="${cg.x}" y1="${cg.y+10}" x2="${cg.x}" y2="${b.groundY}" stroke="${SC.hi2}" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.5"/>
+    <line x1="${ra.x}" y1="${ra.y}" x2="${ra.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.5"/>
+    <text x="${(ra.x+cg.x)/2-15}" y="${cg.y-8}" fill="${SC.hi2}" font-size="14" font-weight="bold">L_CG</text>
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x+12}" y="${cg.y+5}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <text x="${ra.x-50}" y="${cg.y+5}" fill="${SC.hi2}" font-size="10" opacity="0.75">Rear axle</text>`;
+};
+
+// === theta_cg ===
+DIAGRAMS.theta_cg = () => {
+  const b = BIKE, cg = b.cg, ra = b.rearAxle;
+  const rc = { x: ra.x, y: b.groundY };
+  const a1 = 0;
+  const a2 = Math.atan2(cg.y - rc.y, cg.x - rc.x);
+  return `
+    <line x1="${rc.x}" y1="${rc.y}" x2="${cg.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5"/>
+    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+220}" y2="${rc.y}" stroke="${SC.hi2}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+    <path d="${arcD(rc.x, rc.y, 60, a1, a2, 0, 0)}" fill="none" stroke="${SC.hi2}" stroke-width="2"/>
+    <text x="${rc.x+68}" y="${rc.y-12}" fill="${SC.hi2}" font-size="14" font-style="italic" font-family="serif">θ_CG</text>
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x+12}" y="${cg.y+5}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi2}"/>
+    <text x="${rc.x-60}" y="${rc.y+18}" fill="${SC.hi2}" font-size="10" opacity="0.85">Rear contact</text>`;
+};
+
+// === Pitch ===
+DIAGRAMS.Pitch = () => {
+  const b = BIKE, ra = b.rearAxle, fa = b.frontAxle;
+  const tilt = 9;
+  const refY = ra.y;
+  const dx = fa.x - ra.x;
+  const ty = ra.y + dx * Math.tan(d2r(tilt));
+  return `
+    <line x1="${ra.x}" y1="${refY}" x2="${fa.x}" y2="${refY}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+    <line x1="${ra.x}" y1="${refY}" x2="${fa.x}" y2="${ty.toFixed(1)}" stroke="${SC.hi}" stroke-width="2.5"/>
+    <path d="${arcD(ra.x, refY, 90, 0, d2r(tilt), 1, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
+    <text x="${ra.x+98}" y="${refY+22}" fill="${SC.hi}" font-size="14" font-style="italic" font-family="serif">Pitch</text>
+    <line x1="${fa.x}" y1="${refY}" x2="${fa.x}" y2="${ty.toFixed(1)}" stroke="${SC.hi}" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="${fa.x+8}" y="${(refY+ty)/2+5}" fill="${SC.hi}" font-size="11">ΔTravel</text>
+    <text x="${ra.x+5}" y="${refY-8}" fill="${SC.hi}" font-size="10" opacity="0.7">level chassis</text>
+    <text x="${ra.x+30}" y="${ty-2}" fill="${SC.hi}" font-size="10" opacity="0.85">前低后高（刹车点头）</text>`;
+};
+
+// === Travel_Front ===
+DIAGRAMS.Travel_Front = () => {
+  const b = BIKE, fa = b.frontAxle;
+  return `
+    <line x1="${fa.x-30}" y1="${fa.y-55}" x2="${fa.x-30}" y2="${fa.y-10}" stroke="${SC.hi4}" stroke-width="3" marker-end="url(#ar4)"/>
+    <line x1="${fa.x-38}" y1="${fa.y-55}" x2="${fa.x-22}" y2="${fa.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
+    <line x1="${fa.x-38}" y1="${fa.y-10}" x2="${fa.x-22}" y2="${fa.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
+    <text x="${fa.x-110}" y="${fa.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Front</text>
+    <text x="${fa.x-85}" y="${fa.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">前叉压缩量</text>`;
+};
+
+// === Travel_Rear ===
+DIAGRAMS.Travel_Rear = () => {
+  const b = BIKE, ra = b.rearAxle;
+  return `
+    <line x1="${ra.x-30}" y1="${ra.y-55}" x2="${ra.x-30}" y2="${ra.y-10}" stroke="${SC.hi4}" stroke-width="3" marker-end="url(#ar4)"/>
+    <line x1="${ra.x-38}" y1="${ra.y-55}" x2="${ra.x-22}" y2="${ra.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
+    <line x1="${ra.x-38}" y1="${ra.y-10}" x2="${ra.x-22}" y2="${ra.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
+    <text x="${ra.x-110}" y="${ra.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Rear</text>
+    <text x="${ra.x-85}" y="${ra.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">后轮下沉量</text>`;
+};
+
+// === Mass ===
+DIAGRAMS.Mass = () => {
+  const b = BIKE, cg = b.cg;
+  return `
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x+12}" y="${cg.y-10}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <line x1="${cg.x}" y1="${cg.y+12}" x2="${cg.x}" y2="${b.groundY-10}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)"/>
+    <text x="${cg.x+10}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="13" font-weight="bold">Mass × g</text>
+    <text x="${cg.x-90}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="11" opacity="0.85">人车总重作用线</text>`;
+};
+
+// === a_x ===
+DIAGRAMS.a_x = () => {
+  const b = BIKE, cg = b.cg;
+  return `
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x-25}" y="${cg.y-12}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <line x1="${cg.x+5}" y1="${cg.y-3}" x2="${cg.x+95}" y2="${cg.y-3}" stroke="${SC.hi2}" stroke-width="3" marker-end="url(#ar2)"/>
+    <text x="${cg.x+15}" y="${cg.y-10}" fill="${SC.hi2}" font-size="12" font-weight="bold">+a_x  (Brake)</text>
+    <line x1="${cg.x-5}" y1="${cg.y+13}" x2="${cg.x-95}" y2="${cg.y+13}" stroke="${SC.hi2}" stroke-width="3" marker-end="url(#ar2)" opacity="0.55"/>
+    <text x="${cg.x-92}" y="${cg.y+27}" fill="${SC.hi2}" font-size="12" opacity="0.7">−a_x  (Accel)</text>`;
+};
+
+// === delta_W ===
+DIAGRAMS.delta_W = () => {
+  const b = BIKE, cg = b.cg;
+  return `
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x-25}" y="${cg.y-12}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <line x1="${cg.x+5}" y1="${cg.y}" x2="${cg.x+85}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5" marker-end="url(#ar2)" opacity="0.85"/>
+    <text x="${cg.x+15}" y="${cg.y-8}" fill="${SC.hi2}" font-size="11">a_x (brake)</text>
+    <line x1="${b.frontAxle.x}" y1="${b.groundY-3}" x2="${b.frontAxle.x}" y2="${b.groundY-55}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)"/>
+    <text x="${b.frontAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold">+ΔW</text>
+    <line x1="${b.rearAxle.x}" y1="${b.groundY-55}" x2="${b.rearAxle.x}" y2="${b.groundY-3}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)" opacity="0.5"/>
+    <text x="${b.rearAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold" opacity="0.7">−ΔW</text>
+    <text x="${(b.rearAxle.x+b.frontAxle.x)/2-65}" y="${b.groundY+22}" fill="${SC.hi2}" font-size="11" opacity="0.85">刹车时载荷向前转移</text>`;
+};
+
+// === F_Aero ===
+DIAGRAMS.F_Aero = () => {
+  return `
+    <line x1="480" y1="100" x2="480" y2="170" stroke="${SC.hi}" stroke-width="3.5" marker-end="url(#ar)"/>
+    <text x="492" y="138" fill="${SC.hi}" font-size="14" font-weight="bold">F_Aero</text>
+    <line x1="430" y1="115" x2="430" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
+    <line x1="530" y1="115" x2="530" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
+    <text x="370" y="105" fill="${SC.hi}" font-size="11" opacity="0.85">空气流向 ↓ 高速时下压力</text>`;
+};
+
+// === V (speed) ===
+DIAGRAMS.V = () => {
+  const b = BIKE;
+  return `
+    <line x1="${b.frontAxle.x+50}" y1="135" x2="${b.frontAxle.x+150}" y2="135" stroke="${SC.hi}" stroke-width="3.5" marker-end="url(#ar)"/>
+    <text x="${b.frontAxle.x+90}" y="125" fill="${SC.hi}" font-size="16" font-weight="bold">V</text>
+    <text x="${b.frontAxle.x+50}" y="155" fill="${SC.hi}" font-size="11" opacity="0.85">行驶方向</text>`;
+};
+
+// === Force on front wheel (W_F_Static, MotoSPEC_FrontForce) ===
+const _forceFront = () => {
+  const b = BIKE;
+  return `
+    <line x1="${b.frontAxle.x}" y1="${b.groundY-2}" x2="${b.frontAxle.x}" y2="${b.groundY-65}" stroke="${SC.hi4}" stroke-width="3.5" marker-end="url(#ar4)"/>
+    <text x="${b.frontAxle.x+8}" y="${b.groundY-35}" fill="${SC.hi4}" font-size="13" font-weight="bold">F_Front</text>
+    <circle cx="${b.frontAxle.x}" cy="${b.groundY}" r="4" fill="${SC.hi4}"/>
+    <text x="${b.frontAxle.x-15}" y="${b.groundY+18}" fill="${SC.hi4}" font-size="10" opacity="0.85">Contact</text>`;
+};
+DIAGRAMS.W_F_Static = _forceFront;
+DIAGRAMS.MotoSPEC_FrontForce = _forceFront;
+
+// === Force on rear wheel (W_R_Static, MotoSPEC_RearForce) ===
+const _forceRear = () => {
+  const b = BIKE;
+  return `
+    <line x1="${b.rearAxle.x}" y1="${b.groundY-2}" x2="${b.rearAxle.x}" y2="${b.groundY-65}" stroke="${SC.hi4}" stroke-width="3.5" marker-end="url(#ar4)"/>
+    <text x="${b.rearAxle.x+8}" y="${b.groundY-35}" fill="${SC.hi4}" font-size="13" font-weight="bold">F_Rear</text>
+    <circle cx="${b.rearAxle.x}" cy="${b.groundY}" r="4" fill="${SC.hi4}"/>
+    <text x="${b.rearAxle.x-15}" y="${b.groundY+18}" fill="${SC.hi4}" font-size="10" opacity="0.85">Contact</text>`;
+};
+DIAGRAMS.W_R_Static = _forceRear;
+DIAGRAMS.MotoSPEC_RearForce = _forceRear;
+
+// === theta_thrust ===
+DIAGRAMS.theta_thrust = () => {
+  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
+  const ct1 = { x: ra.x, y: ra.y - b.rearSprocketR };
+  const ct2 = { x: sp.x, y: sp.y - b.frontSprocketR };
+  const tanChain = Math.abs((ct1.y - ct2.y) / (ct1.x - ct2.x));
+  const tanBeta = Math.abs((ra.y - sp.y) / Math.abs(sp.x - ra.x));
+  const tanThrust = tanChain + tanBeta;
+  const rc = { x: ra.x, y: b.groundY };
+  const lineLen = 280;
+  const thrustEnd = { x: rc.x + lineLen, y: rc.y - tanThrust * lineLen };
+  return `
+    <line x1="${ct1.x}" y1="${ct1.y}" x2="${ct2.x}" y2="${ct2.y}" stroke="${SC.hi3}" stroke-width="2" stroke-dasharray="5,3" opacity="0.85"/>
+    <line x1="${sp.x}" y1="${sp.y}" x2="${ra.x}" y2="${ra.y}" stroke="${SC.hi3}" stroke-width="2" stroke-dasharray="5,3" opacity="0.85"/>
+    <line x1="${rc.x}" y1="${rc.y}" x2="${thrustEnd.x.toFixed(1)}" y2="${thrustEnd.y.toFixed(1)}" stroke="${SC.hi3}" stroke-width="3"/>
+    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+lineLen}" y2="${rc.y}" stroke="${SC.hi3}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>
+    <path d="${arcD(rc.x, rc.y, 70, 0, Math.atan2(thrustEnd.y - rc.y, thrustEnd.x - rc.x), 0, 0)}" fill="none" stroke="${SC.hi3}" stroke-width="2"/>
+    <text x="${rc.x+78}" y="${rc.y-15}" fill="${SC.hi3}" font-size="13" font-style="italic" font-family="serif">θ_Thrust</text>
+    <text x="${(ct1.x+ct2.x)/2-15}" y="${(ct1.y+ct2.y)/2-8}" fill="${SC.hi3}" font-size="10" opacity="0.85">Chain</text>
+    <text x="${(sp.x+ra.x)/2-25}" y="${(sp.y+ra.y)/2+15}" fill="${SC.hi3}" font-size="10" opacity="0.85">Swingarm</text>
+    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi3}"/>`;
+};
+
+// === MotoSPEC_AntSquat ===
+DIAGRAMS.MotoSPEC_AntSquat = () => {
+  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle, cg = b.cg;
+  const ct1 = { x: ra.x, y: ra.y - b.rearSprocketR };
+  const ct2 = { x: sp.x, y: sp.y - b.frontSprocketR };
+  const tanChain = Math.abs((ct1.y - ct2.y) / (ct1.x - ct2.x));
+  const tanBeta = Math.abs((ra.y - sp.y) / Math.abs(sp.x - ra.x));
+  const tanThrust = tanChain + tanBeta;
+  const rc = { x: ra.x, y: b.groundY };
+  const lineLen = 320;
+  const thrustEnd = { x: rc.x + lineLen, y: rc.y - tanThrust * lineLen };
+  return `
+    <line x1="${rc.x}" y1="${rc.y}" x2="${cg.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5"/>
+    <line x1="${rc.x}" y1="${rc.y}" x2="${thrustEnd.x.toFixed(1)}" y2="${thrustEnd.y.toFixed(1)}" stroke="${SC.hi3}" stroke-width="2.5"/>
+    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+lineLen}" y2="${rc.y}" stroke="#888" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+    ${cgMarker(cg.x, cg.y)}
+    <text x="${cg.x+12}" y="${cg.y+5}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
+    <text x="${(rc.x+cg.x)/2-15}" y="${(rc.y+cg.y)/2+18}" fill="${SC.hi2}" font-size="13" font-style="italic" font-family="serif">θ_CG</text>
+    <text x="${rc.x+95}" y="${rc.y-32}" fill="${SC.hi3}" font-size="13" font-style="italic" font-family="serif">θ_Thrust</text>
+    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi2}"/>
+    <text x="${rc.x-65}" y="${rc.y+18}" fill="#bbb" font-size="10" opacity="0.7">Rear contact</text>
+    <text x="${rc.x+10}" y="${rc.y+34}" fill="#aaa" font-size="11" opacity="0.85">AS = tan(θ_Thrust) / tan(θ_CG) × 100%</text>`;
+};
+
+// ============================================================
+// 实时计算引擎
+// ============================================================
+const INPUT_META = {
+  Rake_Static:       { def: 24,    min: 20,    max: 35,    step: 0.1 },
+  Travel_Front:      { def: 30,    min: 0,     max: 150,   step: 1 },
+  Travel_Rear:       { def: 25,    min: 0,     max: 150,   step: 1 },
+  WB:                { def: 1400,  min: 1300,  max: 1550,  step: 1 },
+  Rf:                { def: 310,   min: 290,   max: 330,   step: 1 },
+  O:                 { def: 32,    min: 15,    max: 45,    step: 0.5 },
+  beta_static:       { def: 14,    min: 5,     max: 25,    step: 0.1 },
+  L_SA:              { def: 580,   min: 500,   max: 650,   step: 1 },
+  theta_chain:       { def: 15,    min: 0,     max: 30,    step: 0.1 },
+  H_CG:              { def: 650,   min: 500,   max: 800,   step: 1 },
+  L_CG:              { def: 750,   min: 600,   max: 900,   step: 1 },
+  Mass:              { def: 265,   min: 180,   max: 380,   step: 1 },
+  a_x:               { def: 0.5,   min: -1,    max: 1.5,   step: 0.01 },
+  rho:               { def: 1.225, min: 0.9,   max: 1.4,   step: 0.005 },
+  V:                 { def: 30,    min: 0,     max: 100,   step: 0.5 },
+  Cd:                { def: 0.4,   min: 0.2,   max: 0.7,   step: 0.01 },
+  A:                 { def: 0.5,   min: 0.3,   max: 0.8,   step: 0.01 },
+  C_f_aero:          { def: 0.4,   min: 0,     max: 1,     step: 0.01 },
+  C_r_aero:          { def: 0.6,   min: 0,     max: 1,     step: 0.01 },
+  front_weight_dist: { def: 0.52,  min: 0.30,  max: 0.70,  step: 0.005 },
+  rear_weight_dist:  { def: 0.48,  min: 0.30,  max: 0.70,  step: 0.005 },
+};
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const CALC = {
+  Pitch:         () => Math.atan((gv('Travel_Front') - gv('Travel_Rear')) / gv('WB')),
+  delta_beta:    () => Math.asin(Math.max(-1, Math.min(1, gv('Travel_Rear') / gv('L_SA')))),
+  MotoSPEC_Rake: () => gv('Rake_Static') - gv('Pitch') * R2D,
+  MotoSPEC_Trail:() => {
+    const r = gv('MotoSPEC_Rake') * D2R;
+    return (gv('Rf') * Math.sin(r) - gv('O')) / Math.cos(r);
+  },
+  MotoSPEC_SwgarmAngl: () => gv('beta_static') - gv('delta_beta') * R2D,
+  theta_thrust:  () => Math.atan(Math.tan(gv('theta_chain') * D2R) + Math.tan(gv('MotoSPEC_SwgarmAngl') * D2R)),
+  theta_cg:      () => Math.atan(gv('H_CG') / gv('L_CG')),
+  MotoSPEC_AntSquat: () => Math.tan(gv('theta_thrust')) / Math.tan(gv('theta_cg')) * 100,
+  delta_W:       () => gv('Mass') * gv('a_x') * 9.81 * (gv('H_CG') / gv('WB')),
+  F_Aero:        () => 0.5 * gv('rho') * gv('V') ** 2 * gv('Cd') * gv('A'),
+  W_F_Static:    () => gv('Mass') * 9.81 * gv('front_weight_dist'),
+  W_R_Static:    () => gv('Mass') * 9.81 * gv('rear_weight_dist'),
+  MotoSPEC_FrontForce: () => gv('W_F_Static') + gv('delta_W') + gv('F_Aero') * gv('C_f_aero'),
+  MotoSPEC_RearForce:  () => gv('W_R_Static') - gv('delta_W') + gv('F_Aero') * gv('C_r_aero'),
+};
+
+const PRESET_LIST = [
+  { name: '默认 / 直线',  vals: { a_x: 0,    V: 30, Travel_Front: 25,  Travel_Rear: 25 } },
+  { name: '重刹入弯',     vals: { a_x: 1.2,  V: 25, Travel_Front: 100, Travel_Rear: 5  } },
+  { name: '出弯全油',     vals: { a_x: -0.6, V: 35, Travel_Front: 5,   Travel_Rear: 90 } },
+  { name: '高速巡航',     vals: { a_x: 0,    V: 75, Travel_Front: 20,  Travel_Rear: 20 } },
+];
+
+const STORAGE_KEY = 'motospec_state_v1';
+function defaultValues() {
+  const v = {};
+  for (const id in INPUT_META) v[id] = INPUT_META[id].def;
+  return v;
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (s && s.values) {
+      const merged = defaultValues();
+      for (const k in s.values) if (k in merged) merged[k] = s.values[k];
+      return { values: merged };
+    }
+  } catch (e) {}
+  return null;
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+const state = loadState() || { values: defaultValues() };
+let _cache = {};
+function gv(id) {
+  if (id in _cache) return _cache[id];
+  const v = P[id].type === 'input' ? state.values[id] : CALC[id]();
+  _cache[id] = v;
+  return v;
+}
+function clearCache() { _cache = {}; }
+
+function fmtVal(id) {
+  const p = P[id], v = gv(id);
+  if (!isFinite(v)) return '—';
+  if (p.unit === 'rad') return `${v.toFixed(4)} rad (${(v * R2D).toFixed(2)}°)`;
+  const av = Math.abs(v);
+  const dec = av >= 1000 ? 0 : av >= 100 ? 1 : av >= 10 ? 2 : 3;
+  const u = p.unit === '—' ? '' : ` ${p.unit}`;
+  return `${v.toFixed(dec)}${u}`;
+}
+
+function setInputValue(id, raw) {
+  const m = INPUT_META[id];
+  let n = parseFloat(raw);
+  if (isNaN(n)) return;
+  n = Math.max(m.min, Math.min(m.max, n));
+  state.values[id] = n;
+  if (id === 'front_weight_dist') state.values.rear_weight_dist  = +(1 - n).toFixed(3);
+  if (id === 'rear_weight_dist')  state.values.front_weight_dist = +(1 - n).toFixed(3);
+  saveState();
+  clearCache();
+  syncControls(id);
+  updateLiveValues();
+}
+function syncControls(id) {
+  document.querySelectorAll(`[data-input="${id}"]`).forEach(el => {
+    if (document.activeElement !== el) el.value = state.values[id];
+  });
+  if (id === 'front_weight_dist' || id === 'rear_weight_dist') {
+    const other = id === 'front_weight_dist' ? 'rear_weight_dist' : 'front_weight_dist';
+    document.querySelectorAll(`[data-input="${other}"]`).forEach(el => { el.value = state.values[other]; });
+  }
+}
+function updateLiveValues() {
+  document.querySelectorAll('[data-live]').forEach(el => {
+    el.textContent = fmtVal(el.getAttribute('data-live'));
+  });
+}
+function applyPreset(idx) {
+  Object.assign(state.values, PRESET_LIST[idx].vals);
+  saveState(); clearCache(); render();
+}
+function resetDefaults() {
+  state.values = defaultValues();
+  saveState(); clearCache(); render();
+}
+
+// ============================================================
+// 状态：当前路径（面包屑）
+// ============================================================
+let stack = ['__dashboard'];
+
+function typeLabel(t) {
+  return ({channel: '主通道', intermediate: '中间量', input: '输入参数'})[t] || t;
+}
+
+function navigateTo(id) {
+  if (id !== '__dashboard' && !P[id]) return;
+  if (stack[stack.length - 1] === id) return;
+  const idx = stack.indexOf(id);
+  if (idx >= 0) stack = stack.slice(0, idx + 1);
+  else stack.push(id);
+  render();
+}
+
+function navigateRoot(id) {
+  if (id !== '__dashboard' && !P[id]) return;
+  stack = [id];
+  render();
+}
+
+function render() {
+  clearCache();
+  renderNav();
+  renderBreadcrumbs();
+  renderContent();
+}
+
+function renderNav() {
+  const channels = Object.keys(P).filter(k => P[k].type === 'channel');
+  const intermediates = Object.keys(P).filter(k => P[k].type === 'intermediate');
+  const inputs = Object.keys(P).filter(k => P[k].type === 'input');
+  const current = stack[stack.length - 1];
+  const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
+    <strong>📊 仪表盘</strong><span class="label">实时计算总览</span>
+  </div>`;
+  const make = (ids) => ids.map(id => {
+    const p = P[id];
+    return `<div class="nav-item ${id === current ? 'active' : ''}" onclick="navigateRoot('${id}')">
+      <strong>${escapeHtml(p.name)}</strong><span class="label">${escapeHtml(p.label)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('nav-channels').innerHTML = dashHTML + make(channels);
+  document.getElementById('nav-intermediate').innerHTML = make(intermediates);
+  document.getElementById('nav-inputs').innerHTML = make(inputs);
+}
+
+function renderBreadcrumbs() {
+  const el = document.getElementById('breadcrumbs');
+  el.innerHTML = stack.map((id, i) => {
+    const isLast = i === stack.length - 1;
+    const cls = isLast ? 'crumb current' : 'crumb';
+    const onClick = isLast ? '' : `onclick="navigateTo('${id}')"`;
+    const label = id === '__dashboard' ? '📊 仪表盘' : P[id].name;
+    return `<span class="${cls}" ${onClick}>${escapeHtml(label)}</span>` +
+      (isLast ? '' : '<span class="sep">›</span>');
+  }).join('');
+}
+
+function renderDashboard() {
+  let html = `<div class="header">
+    <h1>仪表盘</h1>
+    <span class="label-zh">实时计算 · 6 大通道</span>
+  </div>`;
+  html += `<div class="desc">所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。</div>`;
+
+  html += `<div class="section-title">场景预设</div>`;
+  html += `<div class="preset-bar">`;
+  PRESET_LIST.forEach((preset, i) => {
+    html += `<button class="preset-btn" onclick="applyPreset(${i})">${escapeHtml(preset.name)}</button>`;
+  });
+  html += `<button class="preset-btn reset" onclick="resetDefaults()">↺ 重置默认</button>`;
+  html += `</div>`;
+
+  html += `<div class="section-title">6 大主通道</div>`;
+  html += `<div class="dash-grid">`;
+  Object.keys(P).filter(k => P[k].type === 'channel').forEach(id => {
+    const p = P[id];
+    html += `<div class="dash-card" onclick="navigateRoot('${id}')">
+      <div class="dash-label">${escapeHtml(p.label)}</div>
+      <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
+      <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="section-title" style="margin-top:24px">中间量</div>`;
+  html += `<div class="dash-grid">`;
+  Object.keys(P).filter(k => P[k].type === 'intermediate').forEach(id => {
+    const p = P[id];
+    html += `<div class="dash-card intermediate" onclick="navigateRoot('${id}')">
+      <div class="dash-label">${escapeHtml(p.label)}</div>
+      <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
+      <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderContent() {
+  const id = stack[stack.length - 1];
+  if (id === '__dashboard') return renderDashboard();
+  const p = P[id];
+  let html = '';
+
+  const liveBadge = `<span class="live-value ${p.type}" data-live="${id}">${fmtVal(id)}</span>`;
+  html += `<div class="header">
+    <span class="badge ${p.type}">${typeLabel(p.type)}</span>
+    <h1>${escapeHtml(p.name)}</h1>
+    <span class="label-zh">${escapeHtml(p.label)}</span>
+    <span class="unit">[ ${escapeHtml(p.unit)} ]</span>
+    ${liveBadge}
+  </div>`;
+
+  html += `<div class="desc">${escapeHtml(p.desc)}</div>`;
+
+  if (DIAGRAMS[id]) {
+    html += `<div class="section-title">图示（参数在车架上的位置）</div>`;
+    html += bikeSVG(DIAGRAMS[id]());
+  }
+
+  if (p.type === 'input') {
+    if (INPUT_META[id]) {
+      const m = INPUT_META[id], v = state.values[id];
+      html += `<div class="section-title">实时输入（拖动调整 · 自动保存）</div>`;
+      html += `<div class="input-control">
+        <div>
+          <input type="range" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
+          <div class="range-label"><span>${m.min}</span><span>${m.max}</span></div>
+        </div>
+        <input type="number" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
+      </div>`;
+    }
+    html += `<div class="section-title">参数信息</div>`;
+    html += `<dl class="info-grid">
+      <dt>数据来源</dt><dd>${escapeHtml(p.source)}</dd>
+      <dt>典型值</dt><dd>${escapeHtml(p.typical)}</dd>
+      <dt>是否可下钻</dt><dd style="color:var(--text-dim)">否 — 需要直接输入或来自传感器</dd>
+    </dl>`;
+  } else {
+    html += `<div class="section-title">计算公式（点击任意参数下钻）</div>`;
+    html += `<div class="formula-box">
+      <strong style="color:var(--text)">${escapeHtml(p.name)}</strong> &nbsp;=&nbsp; ${renderFormula(p.formula)}
+    </div>`;
+
+    if (p.note) {
+      html += `<div class="footnote">📌 ${escapeHtml(p.note)}</div>`;
+    }
+
+    html += `<div class="section-title">依赖参数（实时值）</div>`;
+    html += `<div class="deps-list">`;
+    for (const depId of p.deps) {
+      const d = P[depId];
+      html += `<div class="dep-card" onclick="navigateTo('${depId}')">
+        <div>
+          <span class="dep-name">${escapeHtml(d.name)}</span>
+          <span class="dep-label">${escapeHtml(d.label)} · ${escapeHtml(d.unit)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="live-value ${d.type}" data-live="${depId}" style="font-size:13px;padding:3px 9px">${fmtVal(depId)}</span>
+          <span class="badge ${d.type}">${typeLabel(d.type)}</span>
+          <span class="dep-arrow">›</span>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderFormula(formula) {
+  return formula.map(seg => {
+    if (typeof seg === 'string') return escapeHtml(seg);
+    if (seg.ref && P[seg.ref]) {
+      const p = P[seg.ref];
+      return `<span class="param-chip ${p.type}" onclick="navigateTo('${seg.ref}')" title="${escapeHtml(p.label)}（点击下钻）">${escapeHtml(p.name)}</span>`;
+    }
+    return '';
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+render();
+</script>
+</body>
+</html>
