@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MotoSPEC 公式探索器</title>
+<title>MotoSPEC Formula Explorer · 公式探索器</title>
 <style>
   :root {
     --bg: #0f1419;
@@ -185,6 +185,19 @@
   .nav-item.dashboard { background: rgba(78,161,255,0.08); border-color: rgba(78,161,255,0.3); margin-bottom: 14px; }
   .nav-item.dashboard.active { background: rgba(78,161,255,0.15); border-color: var(--accent); }
 
+  .lang-bar {
+    display: flex; gap: 6px; margin-bottom: 18px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lang-btn {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 7px 0; border-radius: 5px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .lang-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .lang-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
   @media (max-width: 768px) {
     body { grid-template-columns: 1fr; }
     aside { position: static; height: auto; max-height: 240px; }
@@ -195,11 +208,15 @@
 </head>
 <body>
 <aside>
-  <h2>6 大核心通道</h2>
+  <div class="lang-bar">
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  </div>
+  <h2 data-ui="nav_channels">6 大核心通道</h2>
   <div id="nav-channels"></div>
-  <h2>中间量</h2>
+  <h2 data-ui="nav_intermediate">中间量</h2>
   <div id="nav-intermediate"></div>
-  <h2>输入参数</h2>
+  <h2 data-ui="nav_inputs">输入参数</h2>
   <div id="nav-inputs"></div>
 </aside>
 <main>
@@ -402,6 +419,119 @@ const P = {
     desc:'静止时后轮承担的总重量比例。= 1 − front_weight_dist。', source:'称重台',
     typical:'0.45 – 0.50' },
 };
+
+// ============================================================
+// English translations (parallel to P). Values shown when lang === 'en'.
+// ============================================================
+const P_EN = {
+  MotoSPEC_Rake: { label:'Dynamic Rake', desc:'The instantaneous steering-axis rake angle while the bike is moving. When the fork compresses and the rear extends, the front drops and Rake decreases.', note:'arctan returns Pitch in radians; multiply by 180/π to convert to degrees before subtracting.' },
+  MotoSPEC_Trail:{ label:'Dynamic Trail', desc:'Distance from the front contact patch to where the steering axis meets the ground. Trail collapses sharply when Rake decreases — this is the core source of front-end "feel".', note:'Use the dynamic Rake (in radians). Under heavy braking, Trail bottoming out causes vague front-end feedback.' },
+  MotoSPEC_SwgarmAngl:{ label:'Dynamic Swingarm Angle', desc:'Live angle between the swingarm and horizontal as the rear suspension compresses. Compression makes the angle smaller (more horizontal).', note:'On corner exit, an almost-horizontal swingarm collapses mechanical grip and the bike pushes wide.' },
+  MotoSPEC_AntSquat:{ label:'Anti-Squat %', desc:'Geometric resistance to rear squat under acceleration. 100% = rear ride height stays; >100% = rear lifts; <100% = rear squats.', note:'The soul metric of corner-exit setup. 120% plants the rear; 140% over-extends the shock and invites high-sides.' },
+  MotoSPEC_FrontForce:{ label:'Front Vertical Load', desc:'Normal force on the front contact patch. Rises under braking, falls under acceleration. Sets the front grip ceiling.', note:'If FrontForce spikes too fast on entry, the front overloads and locks.' },
+  MotoSPEC_RearForce:{ label:'Rear Vertical Load', desc:'Normal force on the rear contact patch. Rises under acceleration, falls under braking.', note:'A sudden drop in RearForce at the exit point means the rear is about to spin up.' },
+  Pitch:{ label:'Chassis Pitch', desc:'Pitch angle of the chassis relative to horizontal. Positive when the front sinks more than the rear (brake nose-dive).' },
+  delta_beta:{ label:'Swingarm Angle Δ', desc:'Change in swingarm angle (radians) caused by rear vertical travel.' },
+  theta_thrust:{ label:'Thrust Angle', desc:'Resultant direction of chain pull combined with the swingarm line. tan(thrust) = tan(chain) + tan(swingarm).', note:'Standard tangent method: sum the tangents first, then take arctan.' },
+  theta_cg:{ label:'CG Angle', desc:'Elevation angle from the rear contact patch up to the center of gravity.' },
+  delta_W:{ label:'Longitudinal Load Transfer', desc:'Front/rear weight shift caused by longitudinal acceleration. Positive on braking (forward shift), negative on acceleration.', note:'Here a_x is in g (dimensionless). If using m/s², drop the ×9.81.' },
+  F_Aero:{ label:'Aero Downforce', desc:'Total aerodynamic downforce produced at speed by bodywork and winglets.' },
+  W_F_Static:{ label:'Front Static Load', desc:'Normal force on the front wheel when the bike is stationary.' },
+  W_R_Static:{ label:'Rear Static Load', desc:'Normal force on the rear wheel when the bike is stationary.' },
+
+  Rake_Static: { label:'Static Rake', desc:'Steering-axis angle from vertical when the bike is at rest.', source:'Frame geometry sheet or direct measurement', typical:'23° – 27° (sport), 27° – 32° (touring)' },
+  Travel_Front: { label:'Front Wheel Travel', desc:'Current front-fork compression. Compression is positive.', source:'Fork potentiometer (live)', typical:'0 – 120 mm (model-dependent)' },
+  Travel_Rear:  { label:'Rear Wheel Travel', desc:'Current rear vertical compression. Compression is positive. Multiply shock travel by Motion Ratio.', source:'Shock potentiometer × Motion Ratio', typical:'0 – 130 mm' },
+  WB:           { label:'Wheelbase', desc:'Horizontal distance between front and rear axle centers.', source:'Frame manual', typical:'1340 – 1440 mm (sport)' },
+  Rf:           { label:'Front Rolling Radius', desc:'Loaded rolling radius of the front tire (with deformation correction).', source:'Tire spec + deformation factor', typical:'300 – 320 mm (17")' },
+  O:            { label:'Total Offset', desc:'Triple-clamp offset (steering axis to fork center) plus axle offset.', source:'Triple-clamp spec + measurement', typical:'25 – 35 mm' },
+  beta_static:  { label:'Static Swingarm Angle', desc:'Angle between the line from swingarm pivot to rear axle and horizontal at rest.', source:'Frame manual or direct measurement', typical:'10° – 18°' },
+  L_SA:         { label:'Effective Swingarm Length', desc:'Distance from the swingarm pivot to the rear axle.', source:'Frame manual', typical:'550 – 600 mm' },
+  theta_chain:  { label:'Chain Pull Angle', desc:'Angle (vs. horizontal) of the line from the top of the front sprocket to the top of the rear sprocket.', source:'Sprocket coords + geometry', typical:'Varies live, typically 10° – 25°' },
+  H_CG:         { label:'CG Height', desc:'Vertical height of the combined rider+bike center of gravity above ground.', source:'Scale + tilt-table method', typical:'600 – 700 mm (with rider)' },
+  L_CG:         { label:'CG to Rear Axle (Horiz.)', desc:'Horizontal distance from the combined CG to the rear axle.', source:'Scales + geometric conversion', typical:'700 – 800 mm' },
+  Mass:         { label:'Total Mass', desc:'Bike + rider + gear total mass.', source:'Scale', typical:'250 – 280 kg' },
+  a_x:          { label:'Longitudinal Acceleration', desc:'Longitudinal acceleration. Convention: braking positive, accelerating negative — convenient for forward load transfer.', source:'IMU or GPS', typical:'−0.5 g (accel) to +1.4 g (hard brake)' },
+  rho:          { label:'Air Density', desc:'Ambient air density (depends on temperature and altitude).', source:'Weather data or ISA standard', typical:'≈ 1.225 kg/m³ (sea level, 15 °C)' },
+  V:            { label:'Speed', desc:'Bike speed relative to ground.', source:'GPS or wheel-speed sensor', typical:'0 – 90 m/s (≈ 0 – 320 km/h)' },
+  Cd:           { label:'Drag Coefficient', desc:'Combined bike+rider drag coefficient (dimensionless).', source:'Wind tunnel or manufacturer spec', typical:'0.30 – 0.50' },
+  A:            { label:'Frontal Area', desc:'Bike+rider projected area facing the airflow.', source:'Measurement or CAD', typical:'0.4 – 0.6 m²' },
+  C_f_aero:     { label:'Front Aero Distribution', desc:'Fraction of aero downforce going to the front wheel.', source:'Wind tunnel or race-engineering experience', typical:'0.3 – 0.5' },
+  C_r_aero:     { label:'Rear Aero Distribution', desc:'Fraction of aero downforce going to the rear wheel.', source:'Wind tunnel or race-engineering experience', typical:'0.5 – 0.7' },
+  front_weight_dist:{ label:'Front Static Weight Dist.', desc:'Fraction of total weight on the front wheel at rest.', source:'Scale', typical:'0.50 – 0.55 (sport)' },
+  rear_weight_dist: { label:'Rear Static Weight Dist.',  desc:'Fraction of total weight on the rear wheel at rest. = 1 − front_weight_dist.', source:'Scale', typical:'0.45 – 0.50' },
+};
+
+// ============================================================
+// UI strings
+// ============================================================
+const UI = {
+  zh: {
+    nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
+    dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
+    dashboard_title: '仪表盘', dashboard_kicker: '实时计算 · 6 大通道',
+    dashboard_desc: '所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
+    presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
+    reset: '↺ 重置默认',
+    type_channel: '主通道', type_intermediate: '中间量', type_input: '输入参数',
+    diagram_title: '图示（参数在车架上的位置）',
+    live_input: '实时输入（拖动调整 · 自动保存）',
+    param_info: '参数信息', source: '数据来源', typical: '典型值',
+    drillable: '是否可下钻', not_drillable: '否 — 需要直接输入或来自传感器',
+    formula_title: '计算公式（点击任意参数下钻）',
+    deps_title: '依赖参数（实时值）',
+    drill_hint: '（点击下钻）',
+  },
+  en: {
+    nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
+    dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
+    dashboard_title: 'Dashboard', dashboard_kicker: 'Live calc · 6 channels',
+    dashboard_desc: 'Live values for every channel and intermediate. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
+    presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
+    reset: '↺ Reset Defaults',
+    type_channel: 'Channel', type_intermediate: 'Intermediate', type_input: 'Input',
+    diagram_title: 'Diagram (parameter on chassis)',
+    live_input: 'Live Input (drag · auto-saved)',
+    param_info: 'Parameter Info', source: 'Source', typical: 'Typical',
+    drillable: 'Drillable', not_drillable: 'No — direct input or sensor only',
+    formula_title: 'Formula (click any parameter to drill in)',
+    deps_title: 'Dependencies (live values)',
+    drill_hint: ' (click to drill in)',
+  },
+};
+
+// SVG diagram strings (per-language)
+const SVG_T = {
+  zh: {
+    nose_dive:'前低后高（刹车点头）', fork_compress:'前叉压缩量', rear_sag:'后轮下沉量',
+    weight_line:'人车总重作用线', airflow:'空气流向 ↓ 高速时下压力',
+    travel_dir:'行驶方向', load_fwd:'刹车时载荷向前转移',
+  },
+  en: {
+    nose_dive:'Nose dive (braking)', fork_compress:'Fork compression', rear_sag:'Rear sag',
+    weight_line:'Weight line (rider+bike)', airflow:'Airflow ↓ high-speed downforce',
+    travel_dir:'Travel direction', load_fwd:'Load shifts forward on braking',
+  },
+};
+
+const PRESET_NAMES_EN = ['Default / Straight', 'Hard-Brake Entry', 'Exit WOT', 'High-Speed Cruise'];
+
+const LANG_KEY = 'motospec_lang_v1';
+let lang = (function(){ try { return localStorage.getItem(LANG_KEY) || 'zh'; } catch(e){ return 'zh'; } })();
+function T(key){ return (UI[lang] && UI[lang][key]) || UI.zh[key] || key; }
+function tr(id, field){
+  if (lang === 'en' && P_EN[id] && P_EN[id][field] != null) return P_EN[id][field];
+  return P[id][field];
+}
+function svgT(key){ return (SVG_T[lang] && SVG_T[lang][key]) || SVG_T.zh[key]; }
+function presetName(i){ return lang === 'en' ? PRESET_NAMES_EN[i] : PRESET_LIST[i].name; }
+function setLang(l){
+  if (l !== 'zh' && l !== 'en') return;
+  lang = l;
+  try { localStorage.setItem(LANG_KEY, l); } catch(e){}
+  document.documentElement.lang = l === 'en' ? 'en' : 'zh-CN';
+  render();
+}
 
 // ============================================================
 // 几何图示：将参数标注在简化的车架线条图上
@@ -641,7 +771,7 @@ DIAGRAMS.Pitch = () => {
     <line x1="${fa.x}" y1="${refY}" x2="${fa.x}" y2="${ty.toFixed(1)}" stroke="${SC.hi}" stroke-width="2" marker-end="url(#ar)"/>
     <text x="${fa.x+8}" y="${(refY+ty)/2+5}" fill="${SC.hi}" font-size="11">ΔTravel</text>
     <text x="${ra.x+5}" y="${refY-8}" fill="${SC.hi}" font-size="10" opacity="0.7">level chassis</text>
-    <text x="${ra.x+30}" y="${ty-2}" fill="${SC.hi}" font-size="10" opacity="0.85">前低后高（刹车点头）</text>`;
+    <text x="${ra.x+30}" y="${ty-2}" fill="${SC.hi}" font-size="10" opacity="0.85">${svgT('nose_dive')}</text>`;
 };
 
 // === Travel_Front ===
@@ -652,7 +782,7 @@ DIAGRAMS.Travel_Front = () => {
     <line x1="${fa.x-38}" y1="${fa.y-55}" x2="${fa.x-22}" y2="${fa.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
     <line x1="${fa.x-38}" y1="${fa.y-10}" x2="${fa.x-22}" y2="${fa.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
     <text x="${fa.x-110}" y="${fa.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Front</text>
-    <text x="${fa.x-85}" y="${fa.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">前叉压缩量</text>`;
+    <text x="${fa.x-85}" y="${fa.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">${svgT('fork_compress')}</text>`;
 };
 
 // === Travel_Rear ===
@@ -663,7 +793,7 @@ DIAGRAMS.Travel_Rear = () => {
     <line x1="${ra.x-38}" y1="${ra.y-55}" x2="${ra.x-22}" y2="${ra.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
     <line x1="${ra.x-38}" y1="${ra.y-10}" x2="${ra.x-22}" y2="${ra.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
     <text x="${ra.x-110}" y="${ra.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Rear</text>
-    <text x="${ra.x-85}" y="${ra.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">后轮下沉量</text>`;
+    <text x="${ra.x-85}" y="${ra.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">${svgT('rear_sag')}</text>`;
 };
 
 // === Mass ===
@@ -674,7 +804,7 @@ DIAGRAMS.Mass = () => {
     <text x="${cg.x+12}" y="${cg.y-10}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
     <line x1="${cg.x}" y1="${cg.y+12}" x2="${cg.x}" y2="${b.groundY-10}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)"/>
     <text x="${cg.x+10}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="13" font-weight="bold">Mass × g</text>
-    <text x="${cg.x-90}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="11" opacity="0.85">人车总重作用线</text>`;
+    <text x="${cg.x-90}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="11" opacity="0.85">${svgT('weight_line')}</text>`;
 };
 
 // === a_x ===
@@ -701,7 +831,7 @@ DIAGRAMS.delta_W = () => {
     <text x="${b.frontAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold">+ΔW</text>
     <line x1="${b.rearAxle.x}" y1="${b.groundY-55}" x2="${b.rearAxle.x}" y2="${b.groundY-3}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)" opacity="0.5"/>
     <text x="${b.rearAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold" opacity="0.7">−ΔW</text>
-    <text x="${(b.rearAxle.x+b.frontAxle.x)/2-65}" y="${b.groundY+22}" fill="${SC.hi2}" font-size="11" opacity="0.85">刹车时载荷向前转移</text>`;
+    <text x="${(b.rearAxle.x+b.frontAxle.x)/2-65}" y="${b.groundY+22}" fill="${SC.hi2}" font-size="11" opacity="0.85">${svgT('load_fwd')}</text>`;
 };
 
 // === F_Aero ===
@@ -711,7 +841,7 @@ DIAGRAMS.F_Aero = () => {
     <text x="492" y="138" fill="${SC.hi}" font-size="14" font-weight="bold">F_Aero</text>
     <line x1="430" y1="115" x2="430" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
     <line x1="530" y1="115" x2="530" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
-    <text x="370" y="105" fill="${SC.hi}" font-size="11" opacity="0.85">空气流向 ↓ 高速时下压力</text>`;
+    <text x="370" y="105" fill="${SC.hi}" font-size="11" opacity="0.85">${svgT('airflow')}</text>`;
 };
 
 // === V (speed) ===
@@ -720,7 +850,7 @@ DIAGRAMS.V = () => {
   return `
     <line x1="${b.frontAxle.x+50}" y1="135" x2="${b.frontAxle.x+150}" y2="135" stroke="${SC.hi}" stroke-width="3.5" marker-end="url(#ar)"/>
     <text x="${b.frontAxle.x+90}" y="125" fill="${SC.hi}" font-size="16" font-weight="bold">V</text>
-    <text x="${b.frontAxle.x+50}" y="155" fill="${SC.hi}" font-size="11" opacity="0.85">行驶方向</text>`;
+    <text x="${b.frontAxle.x+50}" y="155" fill="${SC.hi}" font-size="11" opacity="0.85">${svgT('travel_dir')}</text>`;
 };
 
 // === Force on front wheel (W_F_Static, MotoSPEC_FrontForce) ===
@@ -929,7 +1059,7 @@ function resetDefaults() {
 let stack = ['__dashboard'];
 
 function typeLabel(t) {
-  return ({channel: '主通道', intermediate: '中间量', input: '输入参数'})[t] || t;
+  return ({channel: T('type_channel'), intermediate: T('type_intermediate'), input: T('type_input')})[t] || t;
 }
 
 function navigateTo(id) {
@@ -949,9 +1079,19 @@ function navigateRoot(id) {
 
 function render() {
   clearCache();
+  applyUIChrome();
   renderNav();
   renderBreadcrumbs();
   renderContent();
+}
+
+function applyUIChrome() {
+  document.querySelectorAll('[data-ui]').forEach(el => {
+    el.textContent = T(el.getAttribute('data-ui'));
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+  });
 }
 
 function renderNav() {
@@ -960,12 +1100,12 @@ function renderNav() {
   const inputs = Object.keys(P).filter(k => P[k].type === 'input');
   const current = stack[stack.length - 1];
   const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
-    <strong>📊 仪表盘</strong><span class="label">实时计算总览</span>
+    <strong>${escapeHtml(T('dashboard_nav'))}</strong><span class="label">${escapeHtml(T('dashboard_sub'))}</span>
   </div>`;
   const make = (ids) => ids.map(id => {
     const p = P[id];
     return `<div class="nav-item ${id === current ? 'active' : ''}" onclick="navigateRoot('${id}')">
-      <strong>${escapeHtml(p.name)}</strong><span class="label">${escapeHtml(p.label)}</span>
+      <strong>${escapeHtml(p.name)}</strong><span class="label">${escapeHtml(tr(id,'label'))}</span>
     </div>`;
   }).join('');
   document.getElementById('nav-channels').innerHTML = dashHTML + make(channels);
@@ -979,7 +1119,7 @@ function renderBreadcrumbs() {
     const isLast = i === stack.length - 1;
     const cls = isLast ? 'crumb current' : 'crumb';
     const onClick = isLast ? '' : `onclick="navigateTo('${id}')"`;
-    const label = id === '__dashboard' ? '📊 仪表盘' : P[id].name;
+    const label = id === '__dashboard' ? T('dashboard_nav') : P[id].name;
     return `<span class="${cls}" ${onClick}>${escapeHtml(label)}</span>` +
       (isLast ? '' : '<span class="sep">›</span>');
   }).join('');
@@ -987,37 +1127,37 @@ function renderBreadcrumbs() {
 
 function renderDashboard() {
   let html = `<div class="header">
-    <h1>仪表盘</h1>
-    <span class="label-zh">实时计算 · 6 大通道</span>
+    <h1>${escapeHtml(T('dashboard_title'))}</h1>
+    <span class="label-zh">${escapeHtml(T('dashboard_kicker'))}</span>
   </div>`;
-  html += `<div class="desc">所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。</div>`;
+  html += `<div class="desc">${escapeHtml(T('dashboard_desc'))}</div>`;
 
-  html += `<div class="section-title">场景预设</div>`;
+  html += `<div class="section-title">${escapeHtml(T('presets'))}</div>`;
   html += `<div class="preset-bar">`;
   PRESET_LIST.forEach((preset, i) => {
-    html += `<button class="preset-btn" onclick="applyPreset(${i})">${escapeHtml(preset.name)}</button>`;
+    html += `<button class="preset-btn" onclick="applyPreset(${i})">${escapeHtml(presetName(i))}</button>`;
   });
-  html += `<button class="preset-btn reset" onclick="resetDefaults()">↺ 重置默认</button>`;
+  html += `<button class="preset-btn reset" onclick="resetDefaults()">${escapeHtml(T('reset'))}</button>`;
   html += `</div>`;
 
-  html += `<div class="section-title">6 大主通道</div>`;
+  html += `<div class="section-title">${escapeHtml(T('main_channels'))}</div>`;
   html += `<div class="dash-grid">`;
   Object.keys(P).filter(k => P[k].type === 'channel').forEach(id => {
     const p = P[id];
     html += `<div class="dash-card" onclick="navigateRoot('${id}')">
-      <div class="dash-label">${escapeHtml(p.label)}</div>
+      <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
       <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
       <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
     </div>`;
   });
   html += `</div>`;
 
-  html += `<div class="section-title" style="margin-top:24px">中间量</div>`;
+  html += `<div class="section-title" style="margin-top:24px">${escapeHtml(T('intermediates'))}</div>`;
   html += `<div class="dash-grid">`;
   Object.keys(P).filter(k => P[k].type === 'intermediate').forEach(id => {
     const p = P[id];
     html += `<div class="dash-card intermediate" onclick="navigateRoot('${id}')">
-      <div class="dash-label">${escapeHtml(p.label)}</div>
+      <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
       <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
       <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
     </div>`;
@@ -1037,22 +1177,22 @@ function renderContent() {
   html += `<div class="header">
     <span class="badge ${p.type}">${typeLabel(p.type)}</span>
     <h1>${escapeHtml(p.name)}</h1>
-    <span class="label-zh">${escapeHtml(p.label)}</span>
+    <span class="label-zh">${escapeHtml(tr(id,'label'))}</span>
     <span class="unit">[ ${escapeHtml(p.unit)} ]</span>
     ${liveBadge}
   </div>`;
 
-  html += `<div class="desc">${escapeHtml(p.desc)}</div>`;
+  html += `<div class="desc">${escapeHtml(tr(id,'desc'))}</div>`;
 
   if (DIAGRAMS[id]) {
-    html += `<div class="section-title">图示（参数在车架上的位置）</div>`;
+    html += `<div class="section-title">${escapeHtml(T('diagram_title'))}</div>`;
     html += bikeSVG(DIAGRAMS[id]());
   }
 
   if (p.type === 'input') {
     if (INPUT_META[id]) {
       const m = INPUT_META[id], v = state.values[id];
-      html += `<div class="section-title">实时输入（拖动调整 · 自动保存）</div>`;
+      html += `<div class="section-title">${escapeHtml(T('live_input'))}</div>`;
       html += `<div class="input-control">
         <div>
           <input type="range" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
@@ -1061,30 +1201,30 @@ function renderContent() {
         <input type="number" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
       </div>`;
     }
-    html += `<div class="section-title">参数信息</div>`;
+    html += `<div class="section-title">${escapeHtml(T('param_info'))}</div>`;
     html += `<dl class="info-grid">
-      <dt>数据来源</dt><dd>${escapeHtml(p.source)}</dd>
-      <dt>典型值</dt><dd>${escapeHtml(p.typical)}</dd>
-      <dt>是否可下钻</dt><dd style="color:var(--text-dim)">否 — 需要直接输入或来自传感器</dd>
+      <dt>${escapeHtml(T('source'))}</dt><dd>${escapeHtml(tr(id,'source'))}</dd>
+      <dt>${escapeHtml(T('typical'))}</dt><dd>${escapeHtml(tr(id,'typical'))}</dd>
+      <dt>${escapeHtml(T('drillable'))}</dt><dd style="color:var(--text-dim)">${escapeHtml(T('not_drillable'))}</dd>
     </dl>`;
   } else {
-    html += `<div class="section-title">计算公式（点击任意参数下钻）</div>`;
+    html += `<div class="section-title">${escapeHtml(T('formula_title'))}</div>`;
     html += `<div class="formula-box">
       <strong style="color:var(--text)">${escapeHtml(p.name)}</strong> &nbsp;=&nbsp; ${renderFormula(p.formula)}
     </div>`;
 
     if (p.note) {
-      html += `<div class="footnote">📌 ${escapeHtml(p.note)}</div>`;
+      html += `<div class="footnote">📌 ${escapeHtml(tr(id,'note'))}</div>`;
     }
 
-    html += `<div class="section-title">依赖参数（实时值）</div>`;
+    html += `<div class="section-title">${escapeHtml(T('deps_title'))}</div>`;
     html += `<div class="deps-list">`;
     for (const depId of p.deps) {
       const d = P[depId];
       html += `<div class="dep-card" onclick="navigateTo('${depId}')">
         <div>
           <span class="dep-name">${escapeHtml(d.name)}</span>
-          <span class="dep-label">${escapeHtml(d.label)} · ${escapeHtml(d.unit)}</span>
+          <span class="dep-label">${escapeHtml(tr(depId,'label'))} · ${escapeHtml(d.unit)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span class="live-value ${d.type}" data-live="${depId}" style="font-size:13px;padding:3px 9px">${fmtVal(depId)}</span>
@@ -1104,7 +1244,7 @@ function renderFormula(formula) {
     if (typeof seg === 'string') return escapeHtml(seg);
     if (seg.ref && P[seg.ref]) {
       const p = P[seg.ref];
-      return `<span class="param-chip ${p.type}" onclick="navigateTo('${seg.ref}')" title="${escapeHtml(p.label)}（点击下钻）">${escapeHtml(p.name)}</span>`;
+      return `<span class="param-chip ${p.type}" onclick="navigateTo('${seg.ref}')" title="${escapeHtml(tr(seg.ref,'label'))}${escapeHtml(T('drill_hint'))}">${escapeHtml(p.name)}</span>`;
     }
     return '';
   }).join('');
