@@ -212,9 +212,9 @@
     <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
     <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
   </div>
-  <h2 data-ui="nav_channels">6 大核心通道</h2>
+  <h2 data-ui="nav_channels">主通道</h2>
   <div id="nav-channels"></div>
-  <h2 data-ui="nav_intermediate">中间量</h2>
+  <h2 data-ui="nav_intermediate">静态载荷</h2>
   <div id="nav-intermediate"></div>
   <h2 data-ui="nav_inputs">输入参数</h2>
   <div id="nav-inputs"></div>
@@ -264,11 +264,11 @@ const P_EN = {
 // ============================================================
 const UI = {
   zh: {
-    nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
+    nav_channels: '主通道', nav_intermediate: '静态载荷', nav_inputs: '输入参数',
     dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
-    dashboard_title: '仪表盘', dashboard_kicker: '实时计算 · 6 大通道',
-    dashboard_desc: '所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
-    presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
+    dashboard_title: '仪表盘', dashboard_kicker: '静态几何与受力',
+    dashboard_desc: '所有通道与静态载荷的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
+    presets: '场景预设', main_channels: '主通道', intermediates: '静态载荷',
     reset: '↺ 重置默认',
     type_channel: '主通道', type_intermediate: '中间量', type_input: '输入参数',
     diagram_title: '图示（参数在车架上的位置）',
@@ -280,11 +280,11 @@ const UI = {
     drill_hint: '（点击下钻）',
   },
   en: {
-    nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
+    nav_channels: 'Channels', nav_intermediate: 'Static Loads', nav_inputs: 'Inputs',
     dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
-    dashboard_title: 'Dashboard', dashboard_kicker: 'Live calc · 6 channels',
-    dashboard_desc: 'Live values for every channel and intermediate. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
-    presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
+    dashboard_title: 'Dashboard', dashboard_kicker: 'Static geometry & loads',
+    dashboard_desc: 'Live values for every channel and static load. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
+    presets: 'Scenario Presets', main_channels: 'Channels', intermediates: 'Static Loads',
     reset: '↺ Reset Defaults',
     type_channel: 'Channel', type_intermediate: 'Intermediate', type_input: 'Input',
     diagram_title: 'Diagram (parameter on chassis)',
