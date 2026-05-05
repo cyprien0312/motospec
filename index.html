@@ -441,6 +441,24 @@ DIAGRAMS.O = () => {
     <text x="${sh.x+8}" y="${sh.y-13}" fill="${SC.hi}" font-size="10" opacity="0.75">Fork tube</text>`;
 };
 
+// === Trail (static) ===
+DIAGRAMS.Trail_Static = () => {
+  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
+  const dx = fa.x - sh.x, dy = fa.y - sh.y, len = Math.hypot(dx, dy);
+  const ux = dx/len, uy = dy/len;
+  const t = (b.groundY - sh.y) / uy;
+  const gx = sh.x + ux * t;
+  return `
+    <line x1="${sh.x}" y1="${sh.y}" x2="${gx.toFixed(1)}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+    <line x1="${fa.x}" y1="${fa.y}" x2="${fa.x}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5"/>
+    <circle cx="${fa.x}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
+    <circle cx="${gx.toFixed(1)}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
+    <line x1="${fa.x}" y1="${b.groundY+18}" x2="${gx.toFixed(1)}" y2="${b.groundY+18}" stroke="${SC.hi}" stroke-width="2.5" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
+    <text x="${(fa.x+gx)/2-13}" y="${b.groundY+34}" fill="${SC.hi}" font-size="14" font-weight="bold">Trail</text>
+    <text x="${fa.x-58}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Contact pt</text>
+    <text x="${gx-25}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Axis · Ground</text>`;
+};
+
 // === Swingarm angle ===
 const _swing = () => {
   const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
