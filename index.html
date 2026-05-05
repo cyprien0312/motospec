@@ -303,7 +303,7 @@ const SVG_T = {
   },
 };
 
-const PRESET_NAMES_EN = ['Default / Straight', 'Hard-Brake Entry', 'Exit WOT', 'High-Speed Cruise'];
+const PRESET_NAMES_EN = ['Default / Sport', 'Supersport (R6-class)', 'Naked (MT-09-class)', 'Cruiser / Touring'];
 
 const LANG_KEY = 'motospec_lang_v1';
 let lang = (function(){ try { return localStorage.getItem(LANG_KEY) || 'en'; } catch(e){ return 'en'; } })();
@@ -548,10 +548,10 @@ DIAGRAMS.W_R_Static = _forceRear;
 // ============================================================
 
 const PRESET_LIST = [
-  { name: '默认 / 直线',  vals: {} },
-  { name: '重刹入弯',     vals: {} },
-  { name: '出弯全油',     vals: {} },
-  { name: '高速巡航',     vals: {} },
+  { name: '默认 / 运动', vals: { Rake_Static: 24, WB: 1380, Rf: 308, O: 30, beta_static: 14, L_SA: 580, H_CG: 650, L_CG: 750, Mass: 220, front_weight_dist: 0.52, rear_weight_dist: 0.48 } },
+  { name: '超级运动 (R6 类)', vals: { Rake_Static: 24, WB: 1375, Rf: 308, O: 30, beta_static: 13, L_SA: 575, H_CG: 630, L_CG: 730, Mass: 195, front_weight_dist: 0.53, rear_weight_dist: 0.47 } },
+  { name: '街车 (MT-09 类)', vals: { Rake_Static: 25, WB: 1430, Rf: 312, O: 33, beta_static: 15, L_SA: 595, H_CG: 660, L_CG: 760, Mass: 215, front_weight_dist: 0.50, rear_weight_dist: 0.50 } },
+  { name: '巡航 (旅行级)', vals: { Rake_Static: 30, WB: 1520, Rf: 315, O: 38, beta_static: 12, L_SA: 610, H_CG: 700, L_CG: 800, Mass: 280, front_weight_dist: 0.48, rear_weight_dist: 0.52 } },
 ];
 
 const STORAGE_KEY = 'motospec_state_v1';
