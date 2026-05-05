@@ -249,12 +249,6 @@ const P_EN = {
   H_CG:         { label:'CG Height', desc:'Vertical height of the combined rider+bike center of gravity above ground.', source:'Scale + tilt-table method', typical:'600 – 700 mm (with rider)' },
   L_CG:         { label:'CG to Rear Axle (Horiz.)', desc:'Horizontal distance from the combined CG to the rear axle.', source:'Scales + geometric conversion', typical:'700 – 800 mm' },
   Mass:         { label:'Total Mass', desc:'Bike + rider + gear total mass.', source:'Scale', typical:'250 – 280 kg' },
-  rho:          { label:'Air Density', desc:'Ambient air density (depends on temperature and altitude).', source:'Weather data or ISA standard', typical:'≈ 1.225 kg/m³ (sea level, 15 °C)' },
-  V:            { label:'Speed', desc:'Bike speed relative to ground.', source:'GPS or wheel-speed sensor', typical:'0 – 90 m/s (≈ 0 – 320 km/h)' },
-  Cd:           { label:'Drag Coefficient', desc:'Combined bike+rider drag coefficient (dimensionless).', source:'Wind tunnel or manufacturer spec', typical:'0.30 – 0.50' },
-  A:            { label:'Frontal Area', desc:'Bike+rider projected area facing the airflow.', source:'Measurement or CAD', typical:'0.4 – 0.6 m²' },
-  C_f_aero:     { label:'Front Aero Distribution', desc:'Fraction of aero downforce going to the front wheel.', source:'Wind tunnel or race-engineering experience', typical:'0.3 – 0.5' },
-  C_r_aero:     { label:'Rear Aero Distribution', desc:'Fraction of aero downforce going to the rear wheel.', source:'Wind tunnel or race-engineering experience', typical:'0.5 – 0.7' },
   front_weight_dist:{ label:'Front Static Weight Dist.', desc:'Fraction of total weight on the front wheel at rest.', source:'Scale', typical:'0.50 – 0.55 (sport)' },
   rear_weight_dist: { label:'Rear Static Weight Dist.',  desc:'Fraction of total weight on the rear wheel at rest. = 1 − front_weight_dist.', source:'Scale', typical:'0.45 – 0.50' },
 };
@@ -302,12 +296,10 @@ const SVG_T = {
   zh: {
     fork_compress:'前叉压缩量', rear_sag:'后轮下沉量',
     weight_line:'人车总重作用线',
-    travel_dir:'行驶方向',
   },
   en: {
     fork_compress:'Fork compression', rear_sag:'Rear sag',
     weight_line:'Weight line (rider+bike)',
-    travel_dir:'Travel direction',
   },
 };
 
@@ -511,15 +503,6 @@ DIAGRAMS.Mass = () => {
     <text x="${cg.x-90}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="11" opacity="0.85">${svgT('weight_line')}</text>`;
 };
 
-// === V (speed) ===
-DIAGRAMS.V = () => {
-  const b = BIKE;
-  return `
-    <line x1="${b.frontAxle.x+50}" y1="135" x2="${b.frontAxle.x+150}" y2="135" stroke="${SC.hi}" stroke-width="3.5" marker-end="url(#ar)"/>
-    <text x="${b.frontAxle.x+90}" y="125" fill="${SC.hi}" font-size="16" font-weight="bold">V</text>
-    <text x="${b.frontAxle.x+50}" y="155" fill="${SC.hi}" font-size="11" opacity="0.85">${svgT('travel_dir')}</text>`;
-};
-
 // === Force on front wheel (W_F_Static) ===
 const _forceFront = () => {
   const b = BIKE;
@@ -547,10 +530,10 @@ DIAGRAMS.W_R_Static = _forceRear;
 // ============================================================
 
 const PRESET_LIST = [
-  { name: '默认 / 直线',  vals: { V: 30 } },
-  { name: '重刹入弯',     vals: { V: 25 } },
-  { name: '出弯全油',     vals: { V: 35 } },
-  { name: '高速巡航',     vals: { V: 75 } },
+  { name: '默认 / 直线',  vals: {} },
+  { name: '重刹入弯',     vals: {} },
+  { name: '出弯全油',     vals: {} },
+  { name: '高速巡航',     vals: {} },
 ];
 
 const STORAGE_KEY = 'motospec_state_v1';

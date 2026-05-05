@@ -100,3 +100,13 @@ for (const id of REMOVED_DYNAMIC) {
     assert.equal(INPUT_META[id], undefined, `${id} still in INPUT_META`);
   });
 }
+
+const REMOVED_AERO = ['F_Aero', 'rho', 'V', 'Cd', 'A', 'C_f_aero', 'C_r_aero'];
+
+for (const id of REMOVED_AERO) {
+  test(`aero param ${id} is removed`, () => {
+    assert.equal(P[id], undefined);
+    assert.equal(CALC[id], undefined);
+    assert.equal(INPUT_META[id], undefined);
+  });
+}
