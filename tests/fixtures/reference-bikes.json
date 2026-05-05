@@ -1,0 +1,73 @@
+{
+  "bikes": [
+    {
+      "name": "Yamaha YZF-R6 (2020)",
+      "source": "Yamaha press kit geometry",
+      "note": "O derived to match published Trail at Rake/Rf",
+      "inputs": {
+        "Rake_Static": 24.0,
+        "WB": 1375,
+        "Rf": 308,
+        "O": 36.7,
+        "beta_static": 13,
+        "L_SA": 575,
+        "H_CG": 630,
+        "L_CG": 730,
+        "Mass": 195,
+        "front_weight_dist": 0.53,
+        "rear_weight_dist": 0.47
+      },
+      "expected": {
+        "spec_sheet": { "Trail_Static": 97 },
+        "motospec":   null
+      },
+      "tolerance_mm": 2
+    },
+    {
+      "name": "Honda CBR1000RR-R Fireblade SP (2024)",
+      "source": "Honda technical sheet",
+      "note": "O derived to match published Trail at Rake/Rf",
+      "inputs": {
+        "Rake_Static": 24.0,
+        "WB": 1455,
+        "Rf": 313,
+        "O": 34.1,
+        "beta_static": 14,
+        "L_SA": 590,
+        "H_CG": 650,
+        "L_CG": 760,
+        "Mass": 201,
+        "front_weight_dist": 0.53,
+        "rear_weight_dist": 0.47
+      },
+      "expected": {
+        "spec_sheet": { "Trail_Static": 102 },
+        "motospec":   null
+      },
+      "tolerance_mm": 2
+    },
+    {
+      "name": "Ducati Panigale V4 (2023)",
+      "source": "Ducati owner manual",
+      "note": "O derived to match published Trail at Rake/Rf",
+      "inputs": {
+        "Rake_Static": 24.5,
+        "WB": 1469,
+        "Rf": 312,
+        "O": 38.4,
+        "beta_static": 14,
+        "L_SA": 585,
+        "H_CG": 645,
+        "L_CG": 750,
+        "Mass": 198,
+        "front_weight_dist": 0.54,
+        "rear_weight_dist": 0.46
+      },
+      "expected": {
+        "spec_sheet": { "Trail_Static": 100 },
+        "motospec":   null
+      },
+      "tolerance_mm": 2
+    }
+  ]
+}
