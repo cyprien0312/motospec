@@ -28,6 +28,9 @@ test('every parameter has name, label, unit, type', () => {
       assert.ok(p[k], `${id}.${k} missing`);
     }
     assert.ok(['input', 'intermediate', 'channel'].includes(p.type));
+    if (p.type !== 'input') {
+      assert.ok(Array.isArray(p.deps), `${id}.deps must be an array for non-input`);
+    }
   }
 });
 
@@ -63,4 +66,7 @@ test('TOPO_ORDER agrees with a deps-derived topological order', () => {
     }
     seen.add(id);
   }
+  const nonInputIds = Object.keys(P).filter(id => P[id].type !== 'input');
+  assert.equal(TOPO_ORDER.length, nonInputIds.length);
+  for (const id of nonInputIds) assert.ok(TOPO_ORDER.includes(id), `${id} missing from TOPO_ORDER`);
 });
