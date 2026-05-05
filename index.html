@@ -237,34 +237,18 @@ const P_EN = {
     desc: 'Horizontal distance from the front contact patch to where the steering axis meets the ground. Static baseline — sets straight-line stability and steering feel.',
     note: 'Convert Rake to radians first. Larger Rake or smaller Offset both grow Trail, increasing stability at the cost of nimbleness.'
   },
-  MotoSPEC_Rake: { label:'Dynamic Rake', desc:'The instantaneous steering-axis rake angle while the bike is moving. When the fork compresses and the rear extends, the front drops and Rake decreases.', note:'arctan returns Pitch in radians; multiply by 180/π to convert to degrees before subtracting.' },
-  MotoSPEC_Trail:{ label:'Dynamic Trail', desc:'Distance from the front contact patch to where the steering axis meets the ground. Trail collapses sharply when Rake decreases — this is the core source of front-end "feel".', note:'Use the dynamic Rake (in radians). Under heavy braking, Trail bottoming out causes vague front-end feedback.' },
-  MotoSPEC_SwgarmAngl:{ label:'Dynamic Swingarm Angle', desc:'Live angle between the swingarm and horizontal as the rear suspension compresses. Compression makes the angle smaller (more horizontal).', note:'On corner exit, an almost-horizontal swingarm collapses mechanical grip and the bike pushes wide.' },
-  MotoSPEC_AntSquat:{ label:'Anti-Squat %', desc:'Geometric resistance to rear squat under acceleration. 100% = rear ride height stays; >100% = rear lifts; <100% = rear squats.', note:'The soul metric of corner-exit setup. 120% plants the rear; 140% over-extends the shock and invites high-sides.' },
-  MotoSPEC_FrontForce:{ label:'Front Vertical Load', desc:'Normal force on the front contact patch. Rises under braking, falls under acceleration. Sets the front grip ceiling.', note:'If FrontForce spikes too fast on entry, the front overloads and locks.' },
-  MotoSPEC_RearForce:{ label:'Rear Vertical Load', desc:'Normal force on the rear contact patch. Rises under acceleration, falls under braking.', note:'A sudden drop in RearForce at the exit point means the rear is about to spin up.' },
-  Pitch:{ label:'Chassis Pitch', desc:'Pitch angle of the chassis relative to horizontal. Positive when the front sinks more than the rear (brake nose-dive).' },
-  delta_beta:{ label:'Swingarm Angle Δ', desc:'Change in swingarm angle (radians) caused by rear vertical travel.' },
-  theta_thrust:{ label:'Thrust Angle', desc:'Resultant direction of chain pull combined with the swingarm line. tan(thrust) = tan(chain) + tan(swingarm).', note:'Standard tangent method: sum the tangents first, then take arctan.' },
-  theta_cg:{ label:'CG Angle', desc:'Elevation angle from the rear contact patch up to the center of gravity.' },
-  delta_W:{ label:'Longitudinal Load Transfer', desc:'Front/rear weight shift caused by longitudinal acceleration. Positive on braking (forward shift), negative on acceleration.', note:'Here a_x is in g (dimensionless). If using m/s², drop the ×9.81.' },
-  F_Aero:{ label:'Aero Downforce', desc:'Total aerodynamic downforce produced at speed by bodywork and winglets.' },
   W_F_Static:{ label:'Front Static Load', desc:'Normal force on the front wheel when the bike is stationary.' },
   W_R_Static:{ label:'Rear Static Load', desc:'Normal force on the rear wheel when the bike is stationary.' },
 
   Rake_Static: { label:'Static Rake', desc:'Steering-axis angle from vertical when the bike is at rest.', source:'Frame geometry sheet or direct measurement', typical:'23° – 27° (sport), 27° – 32° (touring)' },
-  Travel_Front: { label:'Front Wheel Travel', desc:'Current front-fork compression. Compression is positive.', source:'Fork potentiometer (live)', typical:'0 – 120 mm (model-dependent)' },
-  Travel_Rear:  { label:'Rear Wheel Travel', desc:'Current rear vertical compression. Compression is positive. Multiply shock travel by Motion Ratio.', source:'Shock potentiometer × Motion Ratio', typical:'0 – 130 mm' },
   WB:           { label:'Wheelbase', desc:'Horizontal distance between front and rear axle centers.', source:'Frame manual', typical:'1340 – 1440 mm (sport)' },
   Rf:           { label:'Front Rolling Radius', desc:'Loaded rolling radius of the front tire (with deformation correction).', source:'Tire spec + deformation factor', typical:'300 – 320 mm (17")' },
   O:            { label:'Total Offset', desc:'Triple-clamp offset (steering axis to fork center) plus axle offset.', source:'Triple-clamp spec + measurement', typical:'25 – 35 mm' },
   beta_static:  { label:'Static Swingarm Angle', desc:'Angle between the line from swingarm pivot to rear axle and horizontal at rest.', source:'Frame manual or direct measurement', typical:'10° – 18°' },
   L_SA:         { label:'Effective Swingarm Length', desc:'Distance from the swingarm pivot to the rear axle.', source:'Frame manual', typical:'550 – 600 mm' },
-  theta_chain:  { label:'Chain Pull Angle', desc:'Angle (vs. horizontal) of the line from the top of the front sprocket to the top of the rear sprocket.', source:'Sprocket coords + geometry', typical:'Varies live, typically 10° – 25°' },
   H_CG:         { label:'CG Height', desc:'Vertical height of the combined rider+bike center of gravity above ground.', source:'Scale + tilt-table method', typical:'600 – 700 mm (with rider)' },
   L_CG:         { label:'CG to Rear Axle (Horiz.)', desc:'Horizontal distance from the combined CG to the rear axle.', source:'Scales + geometric conversion', typical:'700 – 800 mm' },
   Mass:         { label:'Total Mass', desc:'Bike + rider + gear total mass.', source:'Scale', typical:'250 – 280 kg' },
-  a_x:          { label:'Longitudinal Acceleration', desc:'Longitudinal acceleration. Convention: braking positive, accelerating negative — convenient for forward load transfer.', source:'IMU or GPS', typical:'−0.5 g (accel) to +1.4 g (hard brake)' },
   rho:          { label:'Air Density', desc:'Ambient air density (depends on temperature and altitude).', source:'Weather data or ISA standard', typical:'≈ 1.225 kg/m³ (sea level, 15 °C)' },
   V:            { label:'Speed', desc:'Bike speed relative to ground.', source:'GPS or wheel-speed sensor', typical:'0 – 90 m/s (≈ 0 – 320 km/h)' },
   Cd:           { label:'Drag Coefficient', desc:'Combined bike+rider drag coefficient (dimensionless).', source:'Wind tunnel or manufacturer spec', typical:'0.30 – 0.50' },
@@ -316,14 +300,14 @@ const UI = {
 // SVG diagram strings (per-language)
 const SVG_T = {
   zh: {
-    nose_dive:'前低后高（刹车点头）', fork_compress:'前叉压缩量', rear_sag:'后轮下沉量',
-    weight_line:'人车总重作用线', airflow:'空气流向 ↓ 高速时下压力',
-    travel_dir:'行驶方向', load_fwd:'刹车时载荷向前转移',
+    fork_compress:'前叉压缩量', rear_sag:'后轮下沉量',
+    weight_line:'人车总重作用线',
+    travel_dir:'行驶方向',
   },
   en: {
-    nose_dive:'Nose dive (braking)', fork_compress:'Fork compression', rear_sag:'Rear sag',
-    weight_line:'Weight line (rider+bike)', airflow:'Airflow ↓ high-speed downforce',
-    travel_dir:'Travel direction', load_fwd:'Load shifts forward on braking',
+    fork_compress:'Fork compression', rear_sag:'Rear sag',
+    weight_line:'Weight line (rider+bike)',
+    travel_dir:'Travel direction',
   },
 };
 
@@ -427,25 +411,6 @@ const _rake = () => {
     <text x="${(sh.x+fa.x)/2-30}" y="${(sh.y+fa.y)/2-8}" fill="${SC.hi}" font-size="11">Steering Axis</text>`;
 };
 DIAGRAMS.Rake_Static = _rake;
-DIAGRAMS.MotoSPEC_Rake = _rake;
-
-// === Trail ===
-DIAGRAMS.MotoSPEC_Trail = () => {
-  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
-  const dx = fa.x - sh.x, dy = fa.y - sh.y, len = Math.hypot(dx, dy);
-  const ux = dx/len, uy = dy/len;
-  const t = (b.groundY - sh.y) / uy;
-  const gx = sh.x + ux * t;
-  return `
-    <line x1="${sh.x}" y1="${sh.y}" x2="${gx.toFixed(1)}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
-    <line x1="${fa.x}" y1="${fa.y}" x2="${fa.x}" y2="${b.groundY}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5"/>
-    <circle cx="${fa.x}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
-    <circle cx="${gx.toFixed(1)}" cy="${b.groundY}" r="3.5" fill="${SC.hi}"/>
-    <line x1="${fa.x}" y1="${b.groundY+18}" x2="${gx.toFixed(1)}" y2="${b.groundY+18}" stroke="${SC.hi}" stroke-width="2.5" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
-    <text x="${(fa.x+gx)/2-13}" y="${b.groundY+34}" fill="${SC.hi}" font-size="14" font-weight="bold">Trail</text>
-    <text x="${fa.x-58}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Contact pt</text>
-    <text x="${gx-25}" y="${b.groundY-7}" fill="${SC.hi}" font-size="10" opacity="0.75">Axis · Ground</text>`;
-};
 
 // === Wheelbase ===
 DIAGRAMS.WB = () => {
@@ -498,8 +463,6 @@ const _swing = () => {
     <text x="${(sp.x+ra.x)/2-25}" y="${(sp.y+ra.y)/2+18}" fill="${SC.hi}" font-size="11">Swingarm</text>`;
 };
 DIAGRAMS.beta_static = _swing;
-DIAGRAMS.MotoSPEC_SwgarmAngl = _swing;
-DIAGRAMS.delta_beta = _swing;
 
 // === L_SA ===
 DIAGRAMS.L_SA = () => {
@@ -511,21 +474,6 @@ DIAGRAMS.L_SA = () => {
     <circle cx="${ra.x}" cy="${ra.y}" r="5" fill="${SC.hi}"/>
     <text x="${sp.x+8}" y="${sp.y-8}" fill="${SC.hi}" font-size="10" opacity="0.85">Pivot</text>
     <text x="${ra.x-55}" y="${ra.y-15}" fill="${SC.hi}" font-size="10" opacity="0.85">Rear axle</text>`;
-};
-
-// === theta_chain ===
-DIAGRAMS.theta_chain = () => {
-  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
-  const p1 = { x: ra.x, y: ra.y - b.rearSprocketR };
-  const p2 = { x: sp.x, y: sp.y - b.frontSprocketR };
-  const a1 = Math.PI;
-  const a2 = Math.atan2(p1.y - p2.y, p1.x - p2.x);
-  return `
-    <line x1="${p2.x}" y1="${p2.y}" x2="${p1.x}" y2="${p1.y}" stroke="${SC.hi}" stroke-width="2.5"/>
-    <line x1="${p2.x}" y1="${p2.y}" x2="${p2.x-160}" y2="${p2.y}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
-    <path d="${arcD(p2.x, p2.y, 40, a1, a2, 1, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
-    <text x="${p2.x-65}" y="${p2.y+8}" fill="${SC.hi}" font-size="14" font-style="italic" font-family="serif">θ_chain</text>
-    <text x="${(p1.x+p2.x)/2-25}" y="${(p1.y+p2.y)/2-6}" fill="${SC.hi}" font-size="11">Chain pull line</text>`;
 };
 
 // === H_CG ===
@@ -552,63 +500,6 @@ DIAGRAMS.L_CG = () => {
     <text x="${ra.x-50}" y="${cg.y+5}" fill="${SC.hi2}" font-size="10" opacity="0.75">Rear axle</text>`;
 };
 
-// === theta_cg ===
-DIAGRAMS.theta_cg = () => {
-  const b = BIKE, cg = b.cg, ra = b.rearAxle;
-  const rc = { x: ra.x, y: b.groundY };
-  const a1 = 0;
-  const a2 = Math.atan2(cg.y - rc.y, cg.x - rc.x);
-  return `
-    <line x1="${rc.x}" y1="${rc.y}" x2="${cg.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5"/>
-    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+220}" y2="${rc.y}" stroke="${SC.hi2}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
-    <path d="${arcD(rc.x, rc.y, 60, a1, a2, 0, 0)}" fill="none" stroke="${SC.hi2}" stroke-width="2"/>
-    <text x="${rc.x+68}" y="${rc.y-12}" fill="${SC.hi2}" font-size="14" font-style="italic" font-family="serif">θ_CG</text>
-    ${cgMarker(cg.x, cg.y)}
-    <text x="${cg.x+12}" y="${cg.y+5}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
-    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi2}"/>
-    <text x="${rc.x-60}" y="${rc.y+18}" fill="${SC.hi2}" font-size="10" opacity="0.85">Rear contact</text>`;
-};
-
-// === Pitch ===
-DIAGRAMS.Pitch = () => {
-  const b = BIKE, ra = b.rearAxle, fa = b.frontAxle;
-  const tilt = 9;
-  const refY = ra.y;
-  const dx = fa.x - ra.x;
-  const ty = ra.y + dx * Math.tan(d2r(tilt));
-  return `
-    <line x1="${ra.x}" y1="${refY}" x2="${fa.x}" y2="${refY}" stroke="${SC.hi}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
-    <line x1="${ra.x}" y1="${refY}" x2="${fa.x}" y2="${ty.toFixed(1)}" stroke="${SC.hi}" stroke-width="2.5"/>
-    <path d="${arcD(ra.x, refY, 90, 0, d2r(tilt), 1, 0)}" fill="none" stroke="${SC.hi}" stroke-width="2"/>
-    <text x="${ra.x+98}" y="${refY+22}" fill="${SC.hi}" font-size="14" font-style="italic" font-family="serif">Pitch</text>
-    <line x1="${fa.x}" y1="${refY}" x2="${fa.x}" y2="${ty.toFixed(1)}" stroke="${SC.hi}" stroke-width="2" marker-end="url(#ar)"/>
-    <text x="${fa.x+8}" y="${(refY+ty)/2+5}" fill="${SC.hi}" font-size="11">ΔTravel</text>
-    <text x="${ra.x+5}" y="${refY-8}" fill="${SC.hi}" font-size="10" opacity="0.7">level chassis</text>
-    <text x="${ra.x+30}" y="${ty-2}" fill="${SC.hi}" font-size="10" opacity="0.85">${svgT('nose_dive')}</text>`;
-};
-
-// === Travel_Front ===
-DIAGRAMS.Travel_Front = () => {
-  const b = BIKE, fa = b.frontAxle;
-  return `
-    <line x1="${fa.x-30}" y1="${fa.y-55}" x2="${fa.x-30}" y2="${fa.y-10}" stroke="${SC.hi4}" stroke-width="3" marker-end="url(#ar4)"/>
-    <line x1="${fa.x-38}" y1="${fa.y-55}" x2="${fa.x-22}" y2="${fa.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
-    <line x1="${fa.x-38}" y1="${fa.y-10}" x2="${fa.x-22}" y2="${fa.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
-    <text x="${fa.x-110}" y="${fa.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Front</text>
-    <text x="${fa.x-85}" y="${fa.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">${svgT('fork_compress')}</text>`;
-};
-
-// === Travel_Rear ===
-DIAGRAMS.Travel_Rear = () => {
-  const b = BIKE, ra = b.rearAxle;
-  return `
-    <line x1="${ra.x-30}" y1="${ra.y-55}" x2="${ra.x-30}" y2="${ra.y-10}" stroke="${SC.hi4}" stroke-width="3" marker-end="url(#ar4)"/>
-    <line x1="${ra.x-38}" y1="${ra.y-55}" x2="${ra.x-22}" y2="${ra.y-55}" stroke="${SC.hi4}" stroke-width="1.5"/>
-    <line x1="${ra.x-38}" y1="${ra.y-10}" x2="${ra.x-22}" y2="${ra.y-10}" stroke="${SC.hi4}" stroke-width="1.5"/>
-    <text x="${ra.x-110}" y="${ra.y-30}" fill="${SC.hi4}" font-size="13" font-weight="bold">Travel_Rear</text>
-    <text x="${ra.x-85}" y="${ra.y-12}" fill="${SC.hi4}" font-size="10" opacity="0.85">${svgT('rear_sag')}</text>`;
-};
-
 // === Mass ===
 DIAGRAMS.Mass = () => {
   const b = BIKE, cg = b.cg;
@@ -620,43 +511,6 @@ DIAGRAMS.Mass = () => {
     <text x="${cg.x-90}" y="${(cg.y+b.groundY)/2+8}" fill="${SC.hi2}" font-size="11" opacity="0.85">${svgT('weight_line')}</text>`;
 };
 
-// === a_x ===
-DIAGRAMS.a_x = () => {
-  const b = BIKE, cg = b.cg;
-  return `
-    ${cgMarker(cg.x, cg.y)}
-    <text x="${cg.x-25}" y="${cg.y-12}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
-    <line x1="${cg.x+5}" y1="${cg.y-3}" x2="${cg.x+95}" y2="${cg.y-3}" stroke="${SC.hi2}" stroke-width="3" marker-end="url(#ar2)"/>
-    <text x="${cg.x+15}" y="${cg.y-10}" fill="${SC.hi2}" font-size="12" font-weight="bold">+a_x  (Brake)</text>
-    <line x1="${cg.x-5}" y1="${cg.y+13}" x2="${cg.x-95}" y2="${cg.y+13}" stroke="${SC.hi2}" stroke-width="3" marker-end="url(#ar2)" opacity="0.55"/>
-    <text x="${cg.x-92}" y="${cg.y+27}" fill="${SC.hi2}" font-size="12" opacity="0.7">−a_x  (Accel)</text>`;
-};
-
-// === delta_W ===
-DIAGRAMS.delta_W = () => {
-  const b = BIKE, cg = b.cg;
-  return `
-    ${cgMarker(cg.x, cg.y)}
-    <text x="${cg.x-25}" y="${cg.y-12}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
-    <line x1="${cg.x+5}" y1="${cg.y}" x2="${cg.x+85}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5" marker-end="url(#ar2)" opacity="0.85"/>
-    <text x="${cg.x+15}" y="${cg.y-8}" fill="${SC.hi2}" font-size="11">a_x (brake)</text>
-    <line x1="${b.frontAxle.x}" y1="${b.groundY-3}" x2="${b.frontAxle.x}" y2="${b.groundY-55}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)"/>
-    <text x="${b.frontAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold">+ΔW</text>
-    <line x1="${b.rearAxle.x}" y1="${b.groundY-55}" x2="${b.rearAxle.x}" y2="${b.groundY-3}" stroke="${SC.hi2}" stroke-width="3.5" marker-end="url(#ar2)" opacity="0.5"/>
-    <text x="${b.rearAxle.x+10}" y="${b.groundY-30}" fill="${SC.hi2}" font-size="13" font-weight="bold" opacity="0.7">−ΔW</text>
-    <text x="${(b.rearAxle.x+b.frontAxle.x)/2-65}" y="${b.groundY+22}" fill="${SC.hi2}" font-size="11" opacity="0.85">${svgT('load_fwd')}</text>`;
-};
-
-// === F_Aero ===
-DIAGRAMS.F_Aero = () => {
-  return `
-    <line x1="480" y1="100" x2="480" y2="170" stroke="${SC.hi}" stroke-width="3.5" marker-end="url(#ar)"/>
-    <text x="492" y="138" fill="${SC.hi}" font-size="14" font-weight="bold">F_Aero</text>
-    <line x1="430" y1="115" x2="430" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
-    <line x1="530" y1="115" x2="530" y2="160" stroke="${SC.hi}" stroke-width="2.5" marker-end="url(#ar)" opacity="0.55"/>
-    <text x="370" y="105" fill="${SC.hi}" font-size="11" opacity="0.85">${svgT('airflow')}</text>`;
-};
-
 // === V (speed) ===
 DIAGRAMS.V = () => {
   const b = BIKE;
@@ -666,7 +520,7 @@ DIAGRAMS.V = () => {
     <text x="${b.frontAxle.x+50}" y="155" fill="${SC.hi}" font-size="11" opacity="0.85">${svgT('travel_dir')}</text>`;
 };
 
-// === Force on front wheel (W_F_Static, MotoSPEC_FrontForce) ===
+// === Force on front wheel (W_F_Static) ===
 const _forceFront = () => {
   const b = BIKE;
   return `
@@ -676,9 +530,8 @@ const _forceFront = () => {
     <text x="${b.frontAxle.x-15}" y="${b.groundY+18}" fill="${SC.hi4}" font-size="10" opacity="0.85">Contact</text>`;
 };
 DIAGRAMS.W_F_Static = _forceFront;
-DIAGRAMS.MotoSPEC_FrontForce = _forceFront;
 
-// === Force on rear wheel (W_R_Static, MotoSPEC_RearForce) ===
+// === Force on rear wheel (W_R_Static) ===
 const _forceRear = () => {
   const b = BIKE;
   return `
@@ -688,64 +541,16 @@ const _forceRear = () => {
     <text x="${b.rearAxle.x-15}" y="${b.groundY+18}" fill="${SC.hi4}" font-size="10" opacity="0.85">Contact</text>`;
 };
 DIAGRAMS.W_R_Static = _forceRear;
-DIAGRAMS.MotoSPEC_RearForce = _forceRear;
-
-// === theta_thrust ===
-DIAGRAMS.theta_thrust = () => {
-  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
-  const ct1 = { x: ra.x, y: ra.y - b.rearSprocketR };
-  const ct2 = { x: sp.x, y: sp.y - b.frontSprocketR };
-  const tanChain = Math.abs((ct1.y - ct2.y) / (ct1.x - ct2.x));
-  const tanBeta = Math.abs((ra.y - sp.y) / Math.abs(sp.x - ra.x));
-  const tanThrust = tanChain + tanBeta;
-  const rc = { x: ra.x, y: b.groundY };
-  const lineLen = 280;
-  const thrustEnd = { x: rc.x + lineLen, y: rc.y - tanThrust * lineLen };
-  return `
-    <line x1="${ct1.x}" y1="${ct1.y}" x2="${ct2.x}" y2="${ct2.y}" stroke="${SC.hi3}" stroke-width="2" stroke-dasharray="5,3" opacity="0.85"/>
-    <line x1="${sp.x}" y1="${sp.y}" x2="${ra.x}" y2="${ra.y}" stroke="${SC.hi3}" stroke-width="2" stroke-dasharray="5,3" opacity="0.85"/>
-    <line x1="${rc.x}" y1="${rc.y}" x2="${thrustEnd.x.toFixed(1)}" y2="${thrustEnd.y.toFixed(1)}" stroke="${SC.hi3}" stroke-width="3"/>
-    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+lineLen}" y2="${rc.y}" stroke="${SC.hi3}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>
-    <path d="${arcD(rc.x, rc.y, 70, 0, Math.atan2(thrustEnd.y - rc.y, thrustEnd.x - rc.x), 0, 0)}" fill="none" stroke="${SC.hi3}" stroke-width="2"/>
-    <text x="${rc.x+78}" y="${rc.y-15}" fill="${SC.hi3}" font-size="13" font-style="italic" font-family="serif">θ_Thrust</text>
-    <text x="${(ct1.x+ct2.x)/2-15}" y="${(ct1.y+ct2.y)/2-8}" fill="${SC.hi3}" font-size="10" opacity="0.85">Chain</text>
-    <text x="${(sp.x+ra.x)/2-25}" y="${(sp.y+ra.y)/2+15}" fill="${SC.hi3}" font-size="10" opacity="0.85">Swingarm</text>
-    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi3}"/>`;
-};
-
-// === MotoSPEC_AntSquat ===
-DIAGRAMS.MotoSPEC_AntSquat = () => {
-  const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle, cg = b.cg;
-  const ct1 = { x: ra.x, y: ra.y - b.rearSprocketR };
-  const ct2 = { x: sp.x, y: sp.y - b.frontSprocketR };
-  const tanChain = Math.abs((ct1.y - ct2.y) / (ct1.x - ct2.x));
-  const tanBeta = Math.abs((ra.y - sp.y) / Math.abs(sp.x - ra.x));
-  const tanThrust = tanChain + tanBeta;
-  const rc = { x: ra.x, y: b.groundY };
-  const lineLen = 320;
-  const thrustEnd = { x: rc.x + lineLen, y: rc.y - tanThrust * lineLen };
-  return `
-    <line x1="${rc.x}" y1="${rc.y}" x2="${cg.x}" y2="${cg.y}" stroke="${SC.hi2}" stroke-width="2.5"/>
-    <line x1="${rc.x}" y1="${rc.y}" x2="${thrustEnd.x.toFixed(1)}" y2="${thrustEnd.y.toFixed(1)}" stroke="${SC.hi3}" stroke-width="2.5"/>
-    <line x1="${rc.x}" y1="${rc.y}" x2="${rc.x+lineLen}" y2="${rc.y}" stroke="#888" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-    ${cgMarker(cg.x, cg.y)}
-    <text x="${cg.x+12}" y="${cg.y+5}" fill="${SC.hi2}" font-size="11" font-weight="bold">CG</text>
-    <text x="${(rc.x+cg.x)/2-15}" y="${(rc.y+cg.y)/2+18}" fill="${SC.hi2}" font-size="13" font-style="italic" font-family="serif">θ_CG</text>
-    <text x="${rc.x+95}" y="${rc.y-32}" fill="${SC.hi3}" font-size="13" font-style="italic" font-family="serif">θ_Thrust</text>
-    <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi2}"/>
-    <text x="${rc.x-65}" y="${rc.y+18}" fill="#bbb" font-size="10" opacity="0.7">Rear contact</text>
-    <text x="${rc.x+10}" y="${rc.y+34}" fill="#aaa" font-size="11" opacity="0.85">AS = tan(θ_Thrust) / tan(θ_CG) × 100%</text>`;
-};
 
 // ============================================================
 // 实时计算引擎
 // ============================================================
 
 const PRESET_LIST = [
-  { name: '默认 / 直线',  vals: { a_x: 0,    V: 30, Travel_Front: 25,  Travel_Rear: 25 } },
-  { name: '重刹入弯',     vals: { a_x: 1.2,  V: 25, Travel_Front: 100, Travel_Rear: 5  } },
-  { name: '出弯全油',     vals: { a_x: -0.6, V: 35, Travel_Front: 5,   Travel_Rear: 90 } },
-  { name: '高速巡航',     vals: { a_x: 0,    V: 75, Travel_Front: 20,  Travel_Rear: 20 } },
+  { name: '默认 / 直线',  vals: { V: 30 } },
+  { name: '重刹入弯',     vals: { V: 25 } },
+  { name: '出弯全油',     vals: { V: 35 } },
+  { name: '高速巡航',     vals: { V: 75 } },
 ];
 
 const STORAGE_KEY = 'motospec_state_v1';

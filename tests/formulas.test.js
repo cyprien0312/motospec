@@ -85,3 +85,18 @@ test('Trail_Static = (Rf · sin(Rake) − O) / cos(Rake)', () => {
 test('Trail_Static is a channel (visible on dashboard)', () => {
   assert.equal(P.Trail_Static.type, 'channel');
 });
+
+const REMOVED_DYNAMIC = [
+  'MotoSPEC_Rake', 'MotoSPEC_Trail', 'MotoSPEC_SwgarmAngl',
+  'MotoSPEC_AntSquat', 'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
+  'Pitch', 'delta_beta', 'theta_thrust', 'theta_cg', 'delta_W', 'F_Aero',
+  'Travel_Front', 'Travel_Rear', 'theta_chain', 'a_x',
+];
+
+for (const id of REMOVED_DYNAMIC) {
+  test(`dynamic param ${id} is removed from registry`, () => {
+    assert.equal(P[id], undefined, `${id} still in P`);
+    assert.equal(CALC[id], undefined, `${id} still in CALC`);
+    assert.equal(INPUT_META[id], undefined, `${id} still in INPUT_META`);
+  });
+}
