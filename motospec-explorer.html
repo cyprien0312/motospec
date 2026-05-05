@@ -517,7 +517,7 @@ const SVG_T = {
 const PRESET_NAMES_EN = ['Default / Straight', 'Hard-Brake Entry', 'Exit WOT', 'High-Speed Cruise'];
 
 const LANG_KEY = 'motospec_lang_v1';
-let lang = (function(){ try { return localStorage.getItem(LANG_KEY) || 'zh'; } catch(e){ return 'zh'; } })();
+let lang = (function(){ try { return localStorage.getItem(LANG_KEY) || 'en'; } catch(e){ return 'en'; } })();
 function T(key){ return (UI[lang] && UI[lang][key]) || UI.zh[key] || key; }
 function tr(id, field){
   if (lang === 'en' && P_EN[id] && P_EN[id][field] != null) return P_EN[id][field];
@@ -1086,6 +1086,7 @@ function render() {
 }
 
 function applyUIChrome() {
+  document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
   document.querySelectorAll('[data-ui]').forEach(el => {
     el.textContent = T(el.getAttribute('data-ui'));
   });
