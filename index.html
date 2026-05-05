@@ -232,6 +232,11 @@ import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/
 // English translations (parallel to P). Values shown when lang === 'en'.
 // ============================================================
 const P_EN = {
+  Trail_Static: {
+    label: 'Static Trail',
+    desc: 'Horizontal distance from the front contact patch to where the steering axis meets the ground. Static baseline — sets straight-line stability and steering feel.',
+    note: 'Convert Rake to radians first. Larger Rake or smaller Offset both grow Trail, increasing stability at the cost of nimbleness.'
+  },
   MotoSPEC_Rake: { label:'Dynamic Rake', desc:'The instantaneous steering-axis rake angle while the bike is moving. When the fork compresses and the rear extends, the front drops and Rake decreases.', note:'arctan returns Pitch in radians; multiply by 180/π to convert to degrees before subtracting.' },
   MotoSPEC_Trail:{ label:'Dynamic Trail', desc:'Distance from the front contact patch to where the steering axis meets the ground. Trail collapses sharply when Rake decreases — this is the core source of front-end "feel".', note:'Use the dynamic Rake (in radians). Under heavy braking, Trail bottoming out causes vague front-end feedback.' },
   MotoSPEC_SwgarmAngl:{ label:'Dynamic Swingarm Angle', desc:'Live angle between the swingarm and horizontal as the rear suspension compresses. Compression makes the angle smaller (more horizontal).', note:'On corner exit, an almost-horizontal swingarm collapses mechanical grip and the bike pushes wide.' },

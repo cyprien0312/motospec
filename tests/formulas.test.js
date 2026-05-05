@@ -70,3 +70,17 @@ test('TOPO_ORDER agrees with a deps-derived topological order', () => {
   assert.equal(TOPO_ORDER.length, nonInputIds.length);
   for (const id of nonInputIds) assert.ok(TOPO_ORDER.includes(id), `${id} missing from TOPO_ORDER`);
 });
+
+test('Trail_Static = (Rf · sin(Rake) − O) / cos(Rake)', () => {
+  // Yamaha R6 2020 spec sheet: Rake 24°, Trail 97 mm
+  const inputs = { ...defaultValues(), Rake_Static: 24, Rf: 308, O: 30 };
+  const out = computeAll(inputs);
+  const r = 24 * Math.PI / 180;
+  const expected = (308 * Math.sin(r) - 30) / Math.cos(r);
+  assert.ok(Math.abs(out.Trail_Static - expected) < 1e-6,
+    `Trail_Static=${out.Trail_Static} expected≈${expected}`);
+});
+
+test('Trail_Static is a channel (visible on dashboard)', () => {
+  assert.equal(P.Trail_Static.type, 'channel');
+});

@@ -11,6 +11,15 @@ export const R2D = 180 / Math.PI;
 // ============================================================
 export const P = {
   // ===== 6 大主通道 =====
+  Trail_Static: {
+    name: 'Trail_Static', label: '静态拖曳距', unit: 'mm', type: 'channel',
+    desc: '前轮接地点到转向轴地面交点的水平距离。静态测量基础值，决定直行稳定性与转向反馈。',
+    formula: [
+      '( ', {ref:'Rf'}, ' × sin(', {ref:'Rake_Static'}, ') − ', {ref:'O'}, ' ) / cos(', {ref:'Rake_Static'}, ')'
+    ],
+    deps: ['Rf', 'Rake_Static', 'O'],
+    note: 'Rake 转弧度后代入。增大 Rake 或减小 Offset 都会增大 Trail，提高直行稳定性但降低转向轻巧度。'
+  },
   MotoSPEC_Rake: {
     name: 'MotoSPEC_Rake', label: '动态后倾角', unit: 'deg', type: 'channel',
     desc: '车辆运动中实时的转向轴前倾角度。前叉压缩、后减震伸展时车头下沉，Rake 变小。',
@@ -229,6 +238,10 @@ export const INPUT_META = {
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
 export const CALC = {
+  Trail_Static: v => {
+    const r = v.Rake_Static * D2R;
+    return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
+  },
   Pitch:         v => Math.atan((v.Travel_Front - v.Travel_Rear) / v.WB),
   delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.L_SA))),
   MotoSPEC_Rake: v => v.Rake_Static - v.Pitch * R2D,
@@ -250,6 +263,7 @@ export const CALC = {
 
 // Topological order: every entry's deps appear earlier in the list
 export const TOPO_ORDER = [
+  'Trail_Static',
   'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
   'MotoSPEC_SwgarmAngl', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
