@@ -258,6 +258,55 @@ table.dt .dt-preset {
   font-size: 11px;
   font-weight: 400;
 }
+
+/* Linkage Setup page */
+.linkage-page .header { margin-bottom: 6px; }
+.linkage-readout-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px; margin-bottom: 8px;
+}
+.linkage-readout {
+  background: var(--panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 10px 14px;
+}
+.linkage-readout-label { color: var(--text-dim); font-size: 12px; letter-spacing: 0.5px; }
+.linkage-readout-val { color: var(--text); font-size: 20px; font-weight: 600; margin-top: 2px; }
+.linkage-svg {
+  width: 100%; max-width: 720px; height: auto;
+  background: var(--formula-bg); border: 1px solid var(--border);
+  border-radius: 8px; display: block;
+}
+.linkage-points-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.linkage-point {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+}
+.linkage-point-label { font-weight: 600; font-size: 14px; color: var(--text); }
+.linkage-point-desc { color: var(--text-dim); font-size: 12px; margin: 4px 0 10px 0; line-height: 1.45; }
+.linkage-xy-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.linkage-xy-row label {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center;
+  font-size: 12px; color: var(--text-dim);
+}
+.linkage-xy-row input[type="number"] {
+  background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 4px; padding: 4px 6px; font-size: 13px; width: 100%;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+}
+.linkage-xy-row input[type="number"]:focus {
+  outline: none; border-color: var(--accent);
+}
+.linkage-unit { color: var(--text-dim); font-size: 11px; }
+.linkage-guide {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 14px;
+}
+.linkage-guide summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.linkage-guide ul { margin: 10px 0 4px 18px; color: var(--text-dim); font-size: 13px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -281,6 +330,7 @@ table.dt .dt-preset {
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable } from './src/data-table.js';
+import { renderLinkageSetup, LINKAGE_PLACEHOLDER } from './src/linkage-setup.js';
 
 
 // ============================================================
@@ -334,6 +384,10 @@ const UI = {
     nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
     dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
     datatable_nav: '📋 数据表', datatable_sub: '参考车型对照',
+    linkage_nav: '🔧 连杆几何', linkage_sub: '后悬挂点位测量',
+    linkage_kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
+    linkage_desc: '所有坐标以摇臂枢轴为原点 (+X 朝前、+Y 朝上、单位 mm)。',
+    linkage_reset: '↺ 恢复占位坐标',
     dashboard_title: '仪表盘', dashboard_kicker: '实时计算 · 6 大通道',
     dashboard_desc: '所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
     presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
@@ -351,6 +405,10 @@ const UI = {
     nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
     dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
     datatable_nav: '📋 Data Table', datatable_sub: 'Reference bike comparison',
+    linkage_nav: '🔧 Linkage Setup', linkage_sub: 'Rear suspension geometry',
+    linkage_kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
+    linkage_desc: 'All coords use the swingarm pivot as origin (+X forward, +Y up, mm).',
+    linkage_reset: '↺ Reset to placeholder',
     dashboard_title: 'Dashboard', dashboard_kicker: 'Live calc · 6 channels',
     dashboard_desc: 'Live values for every channel and intermediate. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
     presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
@@ -883,6 +941,12 @@ function resetDefaults() {
   state.values = defaultValues();
   saveState(); clearCache(); render();
 }
+function resetLinkagePlaceholder() {
+  for (const [k, v] of Object.entries(LINKAGE_PLACEHOLDER)) {
+    state.values[k] = v;
+  }
+  saveState(); clearCache(); render();
+}
 
 // ============================================================
 // 状态：当前路径（面包屑）
@@ -894,7 +958,7 @@ function typeLabel(t) {
 }
 
 function navigateTo(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && !P[id]) return;
   if (stack[stack.length - 1] === id) return;
   const idx = stack.indexOf(id);
   if (idx >= 0) stack = stack.slice(0, idx + 1);
@@ -903,7 +967,7 @@ function navigateTo(id) {
 }
 
 function navigateRoot(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && !P[id]) return;
   stack = [id];
   render();
 }
@@ -936,6 +1000,9 @@ function renderNav() {
   </div>
   <div class="nav-item dashboard ${current === '__datatable' ? 'active' : ''}" onclick="navigateRoot('__datatable')">
     <strong>${escapeHtml(T('datatable_nav'))}</strong><span class="label">${escapeHtml(T('datatable_sub'))}</span>
+  </div>
+  <div class="nav-item dashboard ${current === '__linkage' ? 'active' : ''}" onclick="navigateRoot('__linkage')">
+    <strong>${escapeHtml(T('linkage_nav'))}</strong><span class="label">${escapeHtml(T('linkage_sub'))}</span>
   </div>`;
   const make = (ids) => ids.map(id => {
     const p = P[id];
@@ -956,6 +1023,7 @@ function renderBreadcrumbs() {
     const onClick = isLast ? '' : `onclick="navigateTo('${id}')"`;
     const label = id === '__dashboard' ? T('dashboard_nav')
                 : id === '__datatable' ? T('datatable_nav')
+                : id === '__linkage' ? T('linkage_nav')
                 : P[id].name;
     return `<span class="${cls}" ${onClick}>${escapeHtml(label)}</span>` +
       (isLast ? '' : '<span class="sep">›</span>');
@@ -1014,6 +1082,10 @@ function renderContent() {
       values[k] = el ? Number(el.value) : INPUT_META[k].def;
     }
     document.getElementById('content').innerHTML = renderDataTable({ values, lang });
+    return;
+  }
+  if (id === '__linkage') {
+    document.getElementById('content').innerHTML = renderLinkageSetup({ values: state.values, lang });
     return;
   }
   const p = P[id];
@@ -1104,7 +1176,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder });
 
 render();
 </script>
