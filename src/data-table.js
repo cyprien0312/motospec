@@ -53,21 +53,28 @@ export const ROW_GROUPS = [
   { header: 'RESULTS', header_zh: '结果', rows: [
     { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
-    { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel' },
-    { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height' },
+    { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel', status: 'coords' },
+    { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height',           status: 'coords' },
     { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'MotoSPEC_SwgarmAngl' },
     { spec: 'AntiSquat (%)',                                        spec_zh: '抗蹲伏 (%)',          computed: 'MotoSPEC_AntSquat' },
-    { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression' },
-    { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio' },
-    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB' },
-    { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate' },
-    { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate' },
+    { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression',                status: 'coords' },
+    { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio',               status: 'coords' },
+    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB',                         status: 'static' },
+    { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate',           status: 'pending' },
+    { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate',            status: 'pending' },
     { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce' },
     { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce' },
     { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100 },
     { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100 },
   ]},
 ];
+
+// Status badge text per language. Hover tooltip explains what's missing.
+const STATUS_BADGE = {
+  pending: { en: 'PENDING',  zh: '待实现',     title_en: 'Formula not yet implemented (Phase D research)', title_zh: '公式尚未实现（待 Phase D 研究）' },
+  coords:  { en: 'NEEDS COORDS', zh: '需真实坐标', title_en: 'Needs real linkage coordinates — uses placeholder values until measured',  title_zh: '需要真实连杆坐标 — 在用户测量前使用占位值' },
+  static:  { en: 'STATIC',   zh: '静态值',     title_en: 'Currently uses static input value; dynamic computation deferred to Phase E', title_zh: '当前使用静态输入值；动态计算推迟到 Phase E' },
+};
 
 const DASH = '—';
 
@@ -197,7 +204,11 @@ export function renderDataTable(state) {
       : `${group.header} (${group.header_zh})`;
     body += `<tr class="dt-group"><th colspan="4">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
-      const label = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
+      const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
+      const badge = row.status && STATUS_BADGE[row.status]
+        ? `<span class="dt-status dt-status-${row.status}" title="${escapeHtml(STATUS_BADGE[row.status][`title_${lang}`])}">${escapeHtml(STATUS_BADGE[row.status][lang])}</span>`
+        : '';
+      const label = `${escapeHtml(baseLabel)}${badge ? ' ' + badge : ''}`;
       let cells = '';
       for (let i = 0; i < bikes.length; i++) {
         const b = bikes[i];
@@ -218,7 +229,7 @@ export function renderDataTable(state) {
           cells += readonlyCell(DASH);
         }
       }
-      body += `<tr><th class="dt-spec">${escapeHtml(label)}</th>${cells}</tr>`;
+      body += `<tr><th class="dt-spec">${label}</th>${cells}</tr>`;
     }
   }
 
