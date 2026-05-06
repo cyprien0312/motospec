@@ -76,6 +76,31 @@ test('every ROW_GROUPS row has at least one of input/computed/component/literal/
   }
 });
 
+test('H3: braking preset drives a_x and V', () => {
+  const bikes = defaultBikes();
+  const braking = bikes.find(b => b.preset === 'braking');
+  assert.ok(braking, 'expected one bike to use the braking preset');
+  assert.equal(braking.values.a_x, -0.8);
+  assert.equal(braking.values.V, 25);
+});
+
+test('H3: dynamic-load + frame-intrinsic input rows exist in ROW_GROUPS', () => {
+  const allRows = ROW_GROUPS.flatMap(g => g.rows);
+  for (const k of ['a_x', 'V', 'Cd', 'A', 'front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
+    assert.ok(allRows.some(r => r.input === k), `missing input row for ${k}`);
+  }
+});
+
+test('H3: MotoSPEC_FrontForce / RearForce rows no longer carry status: partial', () => {
+  const allRows = ROW_GROUPS.flatMap(g => g.rows);
+  const frontForce = allRows.find(r => r.computed === 'MotoSPEC_FrontForce');
+  const rearForce = allRows.find(r => r.computed === 'MotoSPEC_RearForce');
+  assert.ok(frontForce);
+  assert.ok(rearForce);
+  assert.notEqual(frontForce.status, 'partial');
+  assert.notEqual(rearForce.status, 'partial');
+});
+
 test('defaultBikes seeds three bikes with components + preset-aligned dynamic values', () => {
   const bikes = defaultBikes();
   assert.equal(bikes.length, 3);

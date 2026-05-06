@@ -1103,6 +1103,7 @@ While auditing the RESULTS column we found the page renders values for several r
 - **Linkage Setup → "Save as preset"**: the Linkage Setup page can save the current 12 linkage spec fields (mode + 5 XY pairs + Linkarm_Length) as a user-overlay entry in `CATALOGS.linkages` via `setCatalogEntry`, slugifying the user-entered name and deduping on collision. Helpers exported from `src/linkage-setup.js` (`slugifyLinkageName`, `buildLinkagePresetEntry`, `LINKAGE_SPEC_FIELDS`) so they're testable.
 - **H1 done (2026-05-06)**: `MotoSPEC_SwgarmAngl` now routes through the 4-bar linkage closure (`swingarmDeltaForShockTravel`) instead of the `asin(Travel_Rear / L_SA)` shortcut. Badge changed `APPROX` → `NEEDS COORDS` because the formula is real but reference bikes still ship placeholder linkage coords. Commit `1a18c3e`.
 - **H2 done (2026-05-06)**: `MotoSPEC_AntSquat` now routes through a dynamic chain angle (`theta_chain_dynamic`) computed from sprocket geometry (front/rear sprocket centers, tooth counts, chain pitch → upper external tangent). Static `theta_chain` input removed. Badge `APPROX` → `NEEDS COORDS` (placeholder linkage + sprocket coords). Commit `4804da7`.
+- **H3 done (2026-05-06)**: Dynamic-load and frame-intrinsic inputs are now editable per bike column. Added a `DYNAMIC LOAD` group (`a_x`, `V`, `Cd`, `A`) below `DYNAMIC READINGS`, and a new `FRAME GEOMETRY` group above `FRONT SETTINGS` for `front_weight_dist`, `rear_weight_dist`, `C_f_aero`, `C_r_aero`. `PRESET_VALUES` extended (sag/braking/mid_corner) so preset selection drives a sane load case. `PARTIAL` badge dropped from the two force rows. Commit `163e933`.
 - **jsconfig.json added (2026-05-06)**: silences TS-LSP false positives on `import … with { type: 'json' }` (Node 22 native import attributes). Commit `90f90a2`. Stale LSP warning on `tests/catalog.test.js:10,13` was verified to be a false positive — every imported symbol is actually used; left untouched.
 
 ### Task H1: Swingarm Angle through linkage (currently `APPROX`) — DONE 2026-05-06
@@ -1133,7 +1134,10 @@ Original brief follows for context:
 
 **Fix:** add a `theta_chain_dynamic` channel deriving the line from sprocket geometry; route AntiSquat through it. Drop or hide the static `theta_chain` input.
 
-### Task H3: Expose dynamic-load inputs in the data table (currently `PARTIAL`)
+### Task H3: Expose dynamic-load inputs in the data table (currently `PARTIAL`) — DONE 2026-05-06
+**Done.** New `DYNAMIC LOAD` group (`a_x`, `V`, `Cd`, `A`) added below `DYNAMIC READINGS`, and a new `FRAME GEOMETRY` group above `FRONT SETTINGS` exposes `front_weight_dist`, `rear_weight_dist`, `C_f_aero`, `C_r_aero` as editable per-bike cells. `PRESET_VALUES` (sag / braking / mid_corner) extended via spread to also set the dynamic-load keys (e.g. braking sets `a_x = -0.8`, `V = 25`). `PARTIAL` badge removed from `MotoSPEC_FrontForce` / `MotoSPEC_RearForce`. The `partial` `STATUS_BADGE` definition is left in place for future reuse.
+
+Original brief follows for context:
 `MotoSPEC_FrontForce` / `MotoSPEC_RearForce` formulas are correct, but the inputs `a_x`, `V`, `Cd`, `A`, `C_f_aero`, `C_r_aero`, `front_weight_dist`, `rear_weight_dist` are not exposed in the data table — every bike uses `defaultValues()` for them, so the displayed forces are essentially fixed-default placeholders that don't reflect the bike's actual condition.
 
 **Fix options (pick one):**
@@ -1190,8 +1194,8 @@ When a phase task lands and removes a gap, the badge should be removed in the sa
 | Wheelbase | STATIC | E1 (existing) — see H4 |
 | Front Wheel Rate | PENDING | D1 + D2 |
 | Rear Wheel Rate | PENDING | D3 |
-| Front Wheel Force | PARTIAL | **H3** (new) |
-| Rear Wheel Force | PARTIAL | **H3** |
+| Front Wheel Force | — | **H3** done |
+| Rear Wheel Force | — | **H3** done |
 | CofG % Front | STATIC | E2 (existing) — see H5 |
 | CofG % Rear | STATIC | E2 — see H5 |
 | Lean_Angle input | (no-op) | **H6** (new) or Phase F |

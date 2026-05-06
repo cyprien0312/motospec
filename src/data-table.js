@@ -12,6 +12,12 @@ import { CATALOGS } from './catalog.js';
 // remain editable number inputs. The RESULTS group is rendered as
 // computed read-only cells.
 export const ROW_GROUPS = [
+  { header: 'FRAME GEOMETRY', header_zh: '车架几何', rows: [
+    { spec: 'Front Weight Distribution',                            spec_zh: '前轮静态重量分配',    input: 'front_weight_dist' },
+    { spec: 'Rear Weight Distribution',                             spec_zh: '后轮静态重量分配',    input: 'rear_weight_dist' },
+    { spec: 'Front Aero Downforce Share',                           spec_zh: '前轮气动下压力分配',  input: 'C_f_aero' },
+    { spec: 'Rear Aero Downforce Share',                            spec_zh: '后轮气动下压力分配',  input: 'C_r_aero' },
+  ]},
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
     { spec: 'Clamp/Yoke',                                           spec_zh: '三星台',               component: 'clamp' },
     { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移 (mm)',      input: 'Yoke_Offset' },
@@ -52,6 +58,12 @@ export const ROW_GROUPS = [
     { spec: 'Rear Potentiometer (mm)',                              spec_zh: '后电位计 (mm)',       input: 'Travel_Rear' },
     { spec: 'Lean Angle (degrees)',                                 spec_zh: '倾角 (度)',           input: 'Lean_Angle', status: 'pending' },
   ]},
+  { header: 'DYNAMIC LOAD', header_zh: '动态载荷', rows: [
+    { spec: 'Longitudinal Acceleration (g)',                        spec_zh: '纵向加速度 (g)',      input: 'a_x' },
+    { spec: 'Velocity (m/s)',                                       spec_zh: '实时车速 (m/s)',      input: 'V' },
+    { spec: 'Drag Coefficient',                                     spec_zh: '阻力系数',            input: 'Cd' },
+    { spec: 'Frontal Area (m²)',                                    spec_zh: '迎风面积 (m²)',       input: 'A' },
+  ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
     { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
@@ -64,8 +76,8 @@ export const ROW_GROUPS = [
     { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB',                         status: 'static' },
     { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate',           status: 'pending' },
     { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate',            status: 'pending' },
-    { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce',        status: 'partial' },
-    { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce',         status: 'partial' },
+    { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce' },
+    { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce' },
     { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100, status: 'static' },
     { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100,  status: 'static' },
   ]},
@@ -95,10 +107,16 @@ const COMPONENT_TO_CATALOG = {
 // All component keys appearing on bike rows (for tests / introspection).
 export const COMPONENT_FIELDS = Object.keys(COMPONENT_TO_CATALOG);
 
+const DYNAMIC_LOAD_PRESETS = {
+  sag:        { a_x: 0,    V: 0,  Cd: 0.4, A: 0.45 },
+  braking:    { a_x: -0.8, V: 25, Cd: 0.4, A: 0.45 },
+  mid_corner: { a_x: 0,    V: 20, Cd: 0.4, A: 0.45 },
+};
+
 export const PRESET_VALUES = {
-  sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0  },
-  braking:    { Travel_Front: 120, Travel_Rear: 2,  Lean_Angle: 0  },
-  mid_corner: { Travel_Front: 80,  Travel_Rear: 20, Lean_Angle: 55 },
+  sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0,  ...DYNAMIC_LOAD_PRESETS.sag },
+  braking:    { Travel_Front: 120, Travel_Rear: 2,  Lean_Angle: 0,  ...DYNAMIC_LOAD_PRESETS.braking },
+  mid_corner: { Travel_Front: 80,  Travel_Rear: 20, Lean_Angle: 55, ...DYNAMIC_LOAD_PRESETS.mid_corner },
 };
 
 const PRESET_LABELS = {
