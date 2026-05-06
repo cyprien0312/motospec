@@ -1,21 +1,21 @@
 // ============================================================
-// MotoSPEC Data Table view
+// MotoSPEC Data Table view — editable per-bike profiles
 // Mirrors motospec-style-table.csv structure
 // ============================================================
 
-import { computeAll } from './formulas.js';
+import { computeAll, INPUT_META, defaultValues } from './formulas.js';
 import { REFERENCE_BIKES } from './reference-bikes.js';
 
 // Map CSV "RESULTS" row → key name used in REFERENCE_BIKES expected blocks
 // AND the corresponding computed id in P (or null if not yet computed).
 export const ROW_GROUPS = [
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
-    { spec: 'Clamp/Yoke Name',                                      spec_zh: '三星台名称',           ref: 'fork_name' },
+    { spec: 'Clamp/Yoke Name',                                      spec_zh: '三星台名称',           profile: 'clamp_yoke_name' },
     { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移 (mm)',      input: 'Yoke_Offset' },
     { spec: 'Steering Axis Angle (degrees)',                        spec_zh: '转向轴角 (度)',        literal: '0.00 deg' },
     { spec: 'Steering Axis Offset (mm)',                            spec_zh: '转向轴偏移 (mm)',      literal: '0.0 mm' },
     { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position' },
-    { spec: 'Fork Name',                                            spec_zh: '前叉名称',             ref: 'fork_name' },
+    { spec: 'Fork Name',                                            spec_zh: '前叉名称',             profile: 'fork_name' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Front_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Front_Spring_Preload' },
     { spec: 'Oil Level (mm)',                                       spec_zh: '油位 (mm)',            input: 'Front_Oil_Level' },
@@ -23,21 +23,21 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Front_Topout_Length' },
   ]},
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
-    { spec: 'Swingarm Name',                                        spec_zh: '摇臂名称',             ref: 'swingarm_name' },
+    { spec: 'Swingarm Name',                                        spec_zh: '摇臂名称',             profile: 'swingarm_name' },
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '避震Clevis车高 (mm)',  input: 'Shock_Clevis_RHA' },
-    { spec: 'Shock Name',                                           spec_zh: '避震名称',             ref: 'shock_name' },
+    { spec: 'Shock Name',                                           spec_zh: '避震名称',             profile: 'shock_name' },
     { spec: 'Shock Length (mm)',                                    spec_zh: '避震长度 (mm)',        input: 'Shock_Length' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Rear_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Rear_Spring_Preload' },
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Rear_Topout_Rate' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Rear_Topout_Length' },
-    { spec: 'Link Name',                                            spec_zh: '连杆名称',             ref: 'link_name' },
+    { spec: 'Link Name',                                            spec_zh: '连杆名称',             profile: 'link_name' },
     { spec: 'Linkarm Length (mm)',                                  spec_zh: '连杆臂长度 (mm)',      input: 'Linkarm_Length' },
   ]},
   { header: 'TIRES', header_zh: '轮胎', rows: [
-    { spec: 'Front Tire Name',                                      spec_zh: '前胎',                ref: 'front_tire' },
-    { spec: 'Rear Tire Name',                                       spec_zh: '后胎',                ref: 'rear_tire' },
+    { spec: 'Front Tire Name',                                      spec_zh: '前胎',                profile: 'front_tire' },
+    { spec: 'Rear Tire Name',                                       spec_zh: '后胎',                profile: 'rear_tire' },
   ]},
   { header: 'SPROCKETS', header_zh: '链轮', rows: [
     { spec: 'Front Sprocket',                                       spec_zh: '前链轮',              input: 'Front_Sprocket' },
@@ -45,32 +45,48 @@ export const ROW_GROUPS = [
     { spec: 'Final Ratio',                                          spec_zh: '最终传动比',          computed: 'Final_Ratio' },
   ]},
   { header: 'DYNAMIC READINGS', header_zh: '动态读数', rows: [
+    { spec: 'Preset',                                               spec_zh: '动态预设',            preset: true },
     { spec: 'Front Potentiometer (mm)',                             spec_zh: '前电位计 (mm)',       input: 'Travel_Front' },
     { spec: 'Rear Potentiometer (mm)',                              spec_zh: '后电位计 (mm)',       input: 'Travel_Rear' },
     { spec: 'Lean Angle (degrees)',                                 spec_zh: '倾角 (度)',           input: 'Lean_Angle' },
   ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
-    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake',          csvKey: 'Rake' },
-    { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail',         csvKey: 'Ground_Trail' },
-    { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel', csvKey: 'Rear_Wheel_Vertical_Travel' },
-    { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height',       csvKey: 'Rear_Ride_Height' },
-    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'MotoSPEC_SwgarmAngl',    csvKey: 'Swingarm_Angle' },
-    { spec: 'AntiSquat (%)',                                        spec_zh: '抗蹲伏 (%)',          computed: 'MotoSPEC_AntSquat',      csvKey: 'AntiSquat_Pct' },
-    { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression',            csvKey: 'Progression_Pct' },
-    { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio',           csvKey: 'Motion_Ratio' },
-    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB',                     csvKey: 'Wheelbase' },
-    { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate',       csvKey: 'Front_Wheel_Rate' },
-    { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate',        csvKey: 'Rear_Wheel_Rate' },
-    { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce',    csvKey: 'Front_Wheel_Force' },
-    { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce',     csvKey: 'Rear_Wheel_Force' },
-    { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    computed: null,                     csvKey: 'CofG_Front_Pct',
-      currentFrom: v => v.front_weight_dist * 100 },
-    { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    computed: null,                     csvKey: 'CofG_Rear_Pct',
-      currentFrom: v => v.rear_weight_dist * 100 },
+    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
+    { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
+    { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel' },
+    { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height' },
+    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'MotoSPEC_SwgarmAngl' },
+    { spec: 'AntiSquat (%)',                                        spec_zh: '抗蹲伏 (%)',          computed: 'MotoSPEC_AntSquat' },
+    { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression' },
+    { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio' },
+    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB' },
+    { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate' },
+    { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate' },
+    { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce' },
+    { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce' },
+    { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100 },
+    { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100 },
   ]},
 ];
 
 const DASH = '—';
+
+// Profile fields that get datalist-backed inputs
+export const PROFILE_FIELDS = [
+  'clamp_yoke_name', 'fork_name', 'swingarm_name', 'shock_name',
+  'link_name', 'front_tire', 'rear_tire',
+];
+
+export const PRESET_VALUES = {
+  sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0  },
+  braking:    { Travel_Front: 120, Travel_Rear: 2,  Lean_Angle: 0  },
+  mid_corner: { Travel_Front: 80,  Travel_Rear: 20, Lean_Angle: 55 },
+};
+
+const PRESET_LABELS = {
+  en: { sag: 'Sag', braking: 'Braking', mid_corner: 'Mid-Corner', custom: 'Custom' },
+  zh: { sag: '静态下沉', braking: '刹车', mid_corner: '弯中', custom: '自定义' },
+};
 
 function fmtNum(n) {
   if (n == null || !Number.isFinite(n)) return DASH;
@@ -78,83 +94,100 @@ function fmtNum(n) {
   return (Math.round(n * 100) / 100).toString();
 }
 
-function findPopulatedPreset(bike) {
-  for (const k of Object.keys(bike.expected || {})) {
-    if (bike.expected[k] != null) return k;
-  }
-  return null;
-}
-
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[c]);
 }
 
-function renderRow(row, lang, bikeCells, currentCell) {
-  const label = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
-  const cells = bikeCells.map(v => `<td>${escapeHtml(v)}</td>`).join('');
-  return `<tr><th class="dt-spec">${escapeHtml(label)}</th>${cells}<td class="dt-current">${escapeHtml(currentCell)}</td></tr>`;
+// Build initial state.bikes from REFERENCE_BIKES
+export function defaultBikes() {
+  const presetByIndex = ['sag', 'braking', 'mid_corner'];
+  return REFERENCE_BIKES.map((b, i) => {
+    const baseValues = defaultValues();
+    const values = { ...baseValues, ...(b.inputs || {}) };
+    const presetName = presetByIndex[i] || 'sag';
+    Object.assign(values, PRESET_VALUES[presetName]);
+    const profile = {
+      clamp_yoke_name: b.fork_name || '',
+      fork_name: b.fork_name || '',
+      swingarm_name: b.swingarm_name || '',
+      shock_name: b.shock_name || '',
+      link_name: b.link_name || '',
+      front_tire: b.front_tire || '',
+      rear_tire: b.rear_tire || '',
+    };
+    return {
+      id: `col-${i}`,
+      name: b.name,
+      values,
+      profile,
+      preset: presetName,
+    };
+  });
 }
 
-function bikeCellFor(row, bike, presetKey) {
-  if (row.literal != null) return row.literal;
-  if (row.ref != null) return bike[row.ref] != null && bike[row.ref] !== '' ? bike[row.ref] : DASH;
-  if (row.input != null) {
-    const v = bike.inputs?.[row.input];
-    if (v == null) {
-      // fall back to dynamic preset for travel/lean inputs
-      const fromPreset = bike.dynamic_presets?.[presetKey]?.[row.input];
-      if (fromPreset != null) return fmtNum(fromPreset);
-      return DASH;
-    }
-    return fmtNum(v);
+// Union of profile-field values across REFERENCE_BIKES, for datalist suggestions
+export function profileOptions(field) {
+  const opts = new Set();
+  for (const b of REFERENCE_BIKES) {
+    const v = b[field];
+    if (v != null && v !== '') opts.add(v);
   }
-  if (row.computed != null && row.csvKey != null) {
-    const exp = bike.expected?.[presetKey];
-    const v = exp ? exp[row.csvKey] : null;
-    return v == null ? DASH : fmtNum(v);
-  }
-  if (row.csvKey != null && row.computed === null) {
-    // CofG rows: pulled from CSV expected.csvKey
-    const exp = bike.expected?.[presetKey];
-    const v = exp ? exp[row.csvKey] : null;
-    return v == null ? DASH : fmtNum(v);
-  }
-  return DASH;
+  return [...opts];
 }
 
-function currentCellFor(row, state, out) {
-  if (row.literal != null) return row.literal;
-  if (row.ref != null) return DASH;
-  if (row.input != null) {
-    const v = state.values?.[row.input];
-    return v == null ? DASH : fmtNum(v);
-  }
-  if (row.currentFrom) {
-    return fmtNum(row.currentFrom(out));
-  }
-  if (row.computed != null) {
-    return fmtNum(out[row.computed]);
-  }
-  return DASH;
+function inputCell(bikeIdx, key, value) {
+  const m = INPUT_META[key] || {};
+  const step = m.step != null ? m.step : 'any';
+  const minAttr = m.min != null ? ` min="${m.min}"` : '';
+  const maxAttr = m.max != null ? ` max="${m.max}"` : '';
+  const v = value == null || !Number.isFinite(value) ? '' : value;
+  return `<td><input type="number" class="dt-input" value="${v}" step="${step}"${minAttr}${maxAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
+}
+
+function profileCell(bikeIdx, field, value) {
+  const listId = `dt-options-${field}`;
+  return `<td><input type="text" class="dt-input" list="${listId}" value="${escapeHtml(value || '')}" onchange="setBikeProfile(${bikeIdx}, '${field}', this.value)"></td>`;
+}
+
+function presetCell(bikeIdx, current, lang) {
+  const labels = PRESET_LABELS[lang] || PRESET_LABELS.en;
+  const opts = ['sag', 'braking', 'mid_corner', 'custom'];
+  const optionsHtml = opts.map(p => {
+    const sel = p === current ? ' selected' : '';
+    return `<option value="${p}"${sel}>${escapeHtml(labels[p])}</option>`;
+  }).join('');
+  return `<td><select class="dt-input" onchange="applyBikePreset(${bikeIdx}, this.value)">${optionsHtml}</select></td>`;
+}
+
+function readonlyCell(value) {
+  return `<td class="dt-readonly"><span>${escapeHtml(value)}</span></td>`;
+}
+
+function literalCell(text) {
+  return `<td class="dt-readonly"><span>${escapeHtml(text)}</span></td>`;
 }
 
 export function renderDataTable(state) {
   const lang = state?.lang || 'zh';
-  const values = state?.values || {};
-  const out = computeAll({ ...values });
+  const bikes = (state && Array.isArray(state.bikes) && state.bikes.length === 3)
+    ? state.bikes
+    : defaultBikes();
 
-  // Pre-compute each bike's preset key
-  const bikePresets = REFERENCE_BIKES.map(b => ({ bike: b, presetKey: findPopulatedPreset(b) }));
+  // Pre-compute outputs per bike
+  const outs = bikes.map(b => computeAll({ ...b.values }));
 
-  // Header
-  const bikeHeaders = REFERENCE_BIKES.map(b => {
-    const pk = bikePresets.find(x => x.bike === b).presetKey;
-    const presetLabel = pk ? ` <span class="dt-preset">[${pk}]</span>` : '';
-    return `<th>${escapeHtml(b.name)}${presetLabel}</th>`;
+  // Build datalists once
+  const datalists = PROFILE_FIELDS.map(f => {
+    const opts = profileOptions(f).map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+    return `<datalist id="dt-options-${f}">${opts}</datalist>`;
   }).join('');
-  const currentHeader = lang === 'en' ? 'Current' : '当前';
+
+  // Header row: editable bike-name inputs
+  const bikeHeaders = bikes.map((b, i) =>
+    `<th><input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)"></th>`
+  ).join('');
   const specHeader = lang === 'en' ? 'Parameter' : '参数';
 
   let body = '';
@@ -162,22 +195,41 @@ export function renderDataTable(state) {
     const groupLabel = lang === 'en'
       ? group.header
       : `${group.header} (${group.header_zh})`;
-    body += `<tr class="dt-group"><th colspan="5">${escapeHtml(groupLabel)}</th></tr>`;
+    body += `<tr class="dt-group"><th colspan="4">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
-      const bikeCells = bikePresets.map(({ bike, presetKey }) => bikeCellFor(row, bike, presetKey));
-      const cur = currentCellFor(row, state, out);
-      body += renderRow(row, lang, bikeCells, cur);
+      const label = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
+      let cells = '';
+      for (let i = 0; i < bikes.length; i++) {
+        const b = bikes[i];
+        const out = outs[i];
+        if (row.literal != null) {
+          cells += literalCell(row.literal);
+        } else if (row.preset) {
+          cells += presetCell(i, b.preset || 'custom', lang);
+        } else if (row.profile) {
+          cells += profileCell(i, row.profile, b.profile?.[row.profile]);
+        } else if (row.input) {
+          cells += inputCell(i, row.input, b.values?.[row.input]);
+        } else if (row.derivedFrom) {
+          cells += readonlyCell(fmtNum(row.derivedFrom(out)));
+        } else if (row.computed) {
+          cells += readonlyCell(fmtNum(out[row.computed]));
+        } else {
+          cells += readonlyCell(DASH);
+        }
+      }
+      body += `<tr><th class="dt-spec">${escapeHtml(label)}</th>${cells}</tr>`;
     }
   }
 
   return `
     <div class="dt-wrap">
+      ${datalists}
       <table class="dt">
         <thead>
           <tr>
             <th class="dt-spec">${escapeHtml(specHeader)}</th>
             ${bikeHeaders}
-            <th class="dt-current">${escapeHtml(currentHeader)}</th>
           </tr>
         </thead>
         <tbody>

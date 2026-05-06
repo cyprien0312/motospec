@@ -258,6 +258,34 @@ table.dt .dt-preset {
   font-size: 11px;
   font-weight: 400;
 }
+table.dt input.dt-input,
+table.dt select.dt-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--formula-bg, #111);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+}
+table.dt input.dt-input:focus,
+table.dt select.dt-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+table.dt input.dt-bike-name {
+  font-weight: 600;
+  color: var(--accent);
+}
+table.dt td.dt-readonly {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+table.dt td.dt-readonly span {
+  color: var(--text);
+}
 
 /* Linkage Setup page */
 .linkage-page .header { margin-bottom: 6px; }
@@ -329,7 +357,7 @@ table.dt .dt-preset {
 
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
-import { renderDataTable } from './src/data-table.js';
+import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER } from './src/linkage-setup.js';
 
 
@@ -884,14 +912,16 @@ function loadState() {
     if (s && s.values) {
       const merged = defaultValues();
       for (const k in s.values) if (k in merged) merged[k] = s.values[k];
-      return { values: merged };
+      const bikes = (Array.isArray(s.bikes) && s.bikes.length === 3) ? s.bikes : defaultBikes();
+      return { values: merged, bikes };
     }
   } catch (e) {}
   return null;
 }
 function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
 
-const state = loadState() || { values: defaultValues() };
+const state = loadState() || { values: defaultValues(), bikes: defaultBikes() };
+if (!Array.isArray(state.bikes) || state.bikes.length !== 3) state.bikes = defaultBikes();
 let _all = computeAll(state.values);
 function gv(id) { return _all[id]; }
 function clearCache() { _all = computeAll(state.values); }
@@ -922,6 +952,47 @@ function setInputValue(id, raw) {
   // (linkage-setup plots the 10 coord inputs as an SVG topology — needs full redraw).
   if (stack[stack.length - 1] === '__linkage') renderContent();
 }
+function setBikeInput(bikeIdx, key, raw) {
+  const b = state.bikes[bikeIdx];
+  if (!b) return;
+  let n = parseFloat(raw);
+  if (isNaN(n)) return;
+  const m = INPUT_META[key];
+  if (m) n = Math.max(m.min, Math.min(m.max, n));
+  b.values[key] = n;
+  if (key === 'front_weight_dist') b.values.rear_weight_dist  = +(1 - n).toFixed(3);
+  if (key === 'rear_weight_dist')  b.values.front_weight_dist = +(1 - n).toFixed(3);
+  if (['Travel_Front', 'Travel_Rear', 'Lean_Angle'].includes(key)) b.preset = 'custom';
+  saveState();
+  renderContent();
+}
+function setBikeProfile(bikeIdx, key, value) {
+  const b = state.bikes[bikeIdx];
+  if (!b) return;
+  b.profile = b.profile || {};
+  b.profile[key] = value;
+  saveState();
+  renderContent();
+}
+function setBikeName(bikeIdx, value) {
+  const b = state.bikes[bikeIdx];
+  if (!b) return;
+  b.name = value;
+  saveState();
+  renderContent();
+}
+function applyBikePreset(bikeIdx, presetName) {
+  const b = state.bikes[bikeIdx];
+  if (!b) return;
+  if (presetName === 'custom') { b.preset = 'custom'; saveState(); return; }
+  const vals = PRESET_VALUES[presetName];
+  if (!vals) return;
+  Object.assign(b.values, vals);
+  b.preset = presetName;
+  saveState();
+  renderContent();
+}
+
 function syncControls(id) {
   document.querySelectorAll(`[data-input="${id}"]`).forEach(el => {
     if (document.activeElement !== el) el.value = state.values[id];
@@ -1079,12 +1150,7 @@ function renderContent() {
   const id = stack[stack.length - 1];
   if (id === '__dashboard') return renderDashboard();
   if (id === '__datatable') {
-    const values = {};
-    for (const k in INPUT_META) {
-      const el = document.getElementById('input-' + k);
-      values[k] = el ? Number(el.value) : INPUT_META[k].def;
-    }
-    document.getElementById('content').innerHTML = renderDataTable({ values, lang });
+    document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, lang });
     return;
   }
   if (id === '__linkage') {
@@ -1179,7 +1245,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
 
 render();
 </script>
