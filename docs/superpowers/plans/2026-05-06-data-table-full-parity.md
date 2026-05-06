@@ -1090,3 +1090,93 @@ A failing row at this stage is real signal — either a formula bug or an input 
 1. Linkage coords from manufacturer literature may not exist for one or more bikes — mitigation in Task C1.
 2. Front Wheel Rate formula may not be reverse-engineerable from CSV alone — mitigation: explicit research task (D1) with three branches, including "leave as `—`".
 3. MotoSpec's `Wheelbase` and `MotionRatio` columns may use dynamic-load corrections we can't infer — mitigation: 5%/1mm tolerance bands in Phase G, document deviations, plan for Phase 2 cross-validation against MotoSpec itself.
+
+---
+
+# Phase H — Result-accuracy & input-coverage gaps (added 2026-05-06)
+
+While auditing the RESULTS column we found the page renders values for several rows whose formulas are not actually wired to the data-table inputs. Status badges were added to make this visible to users (`PARTIAL`, `APPROX`, in addition to existing `PENDING` / `NEEDS COORDS` / `STATIC`); the formulas themselves still need real fixes. Tracking each as a discrete task here.
+
+### Already done (2026-05-06)
+- **`O` is now derived**: `O = Yoke_Offset` (channel, not input). Changing the clamp / Yoke Offset in the data table updates Ground Trail. Rake correctly stays unaffected (rake is set by the steering-head angle, not yoke offset). `Wheel_Hub_Offset` was tried as a second contributor but removed because it's effectively always 0 — re-add only if a non-zero hub offset case appears.
+- **Status badges expanded** in `src/data-table.js` STATUS_BADGE: added `partial` (orange) and `approx` (purple) with bilingual tooltips. Tagged rows accordingly.
+
+### Task H1: Swingarm Angle through linkage (currently `APPROX`)
+`MotoSPEC_SwgarmAngl` uses `β_static − asin(Travel_Rear / L_SA)·R2D`, which:
+- treats `Travel_Rear` (the rear potentiometer / shock-pot reading) as if it were rear-wheel vertical travel;
+- bypasses the 4-bar linkage entirely.
+
+The same `Travel_Rear` input is consumed differently by `Rear_Wheel_Vertical_Travel` (treats it as shock displacement → linkage closure → wheel travel). The two answers disagree.
+
+**Fix:** replace with the linkage-consistent path: `Δβ = swingarmDeltaForShockTravel(cfg, Travel_Rear)`; `MotoSPEC_SwgarmAngl = β_static + Δβ` (sign convention check). Once Phase C real coords are in, pin against reference-bike `expected.Swingarm_Angle`.
+
+### Task H2: AntiSquat with dynamic chain angle (currently `APPROX`)
+`MotoSPEC_AntSquat` chains off the approximate swingarm angle (H1) and uses `theta_chain` as a static input. Real anti-squat needs:
+- correct dynamic swingarm angle (requires H1);
+- chain pull line recomputed from front-sprocket center, rear-sprocket center (which moves with the swingarm), and sprocket radii (derived from `Front_Sprocket` / `Rear_Sprocket` tooth counts + chain pitch).
+
+**Fix:** add a `theta_chain_dynamic` channel deriving the line from sprocket geometry; route AntiSquat through it. Drop or hide the static `theta_chain` input.
+
+### Task H3: Expose dynamic-load inputs in the data table (currently `PARTIAL`)
+`MotoSPEC_FrontForce` / `MotoSPEC_RearForce` formulas are correct, but the inputs `a_x`, `V`, `Cd`, `A`, `C_f_aero`, `C_r_aero`, `front_weight_dist`, `rear_weight_dist` are not exposed in the data table — every bike uses `defaultValues()` for them, so the displayed forces are essentially fixed-default placeholders that don't reflect the bike's actual condition.
+
+**Fix options (pick one):**
+1. Add a "DYNAMIC LOAD" group below DYNAMIC READINGS: editable `a_x`, `V`, `Cd`, `A`, `Lean_Angle`. Weight-distribution stays per-bike (not per-preset).
+2. Bake them into preset definitions in `PRESET_VALUES` (e.g. `braking: { a_x: 1.2, V: 30, ... }`) so a preset selection drives the load case. Lighter UI footprint but less explicit.
+
+Pin with reference-bike `expected.Front_Wheel_Force` / `Rear_Wheel_Force` after wiring.
+
+### Task H4: Dynamic Wheelbase (currently `STATIC`)
+`Wheelbase (mm)` row currently echoes the `WB` input verbatim. This is what Phase E1 was already scoped to fix (`WB_dynamic = WB_static + Δfront − Δrear` from fork compression and rear linkage). Mark the row's `STATIC` badge as a stand-in until E1 lands; remove the badge in E1.
+
+### Task H5: CofG % rows are echoes (currently `STATIC`)
+`CofG % Front` / `CofG % Rear` are `front_weight_dist × 100`. Real dynamic CG-to-axle distribution under acceleration/braking is `(W_F_Static + ΔW) / (W_F + W_R)` — which we already compute internally for the force rows. Phase E2 already covers this; keep the badge until E2 lands.
+
+### Task H6: `Lean_Angle` input is unused
+The data-table preset `mid_corner` sets `Lean_Angle: 55`, the input is registered (`P.Lean_Angle`, `INPUT_META.Lean_Angle`), but **no CALC reads it**. It is a no-op. Either:
+- wire it to Phase F (Trail-under-lean / Wheelbase-under-lean) immediately and lift Phase F's "deferred" status, or
+- mark the input row as `PENDING` until Phase F runs to avoid the misleading impression that lean affects the displayed results.
+
+### Task H7: Hidden bike-intrinsic geometry not editable
+`Rake_Static`, `beta_static`, `L_SA`, `theta_chain`, `H_CG`, `L_CG`, `Mass`, `front_weight_dist`, `rear_weight_dist` are bike-intrinsic and live only in `reference-bikes.js` `geometry`/`environment` blocks. The data table neither shows nor edits them, but they drive Rake, Trail, force, swingarm-angle, anti-squat, etc.
+
+**Fix:** add a collapsed "FRAME GEOMETRY" group above FRONT SETTINGS that surfaces these inputs as editable cells (defaulted from the bike's reference data, but overridable per column). This is the simplest way for a user to model "what if I steepen the rake" or "what if my pillion adds 30 kg".
+
+---
+
+## Status badge legend (current state)
+
+| Badge | Meaning |
+|---|---|
+| (none) | Real formula, all relevant inputs editable in table |
+| `STATIC` (gray) | Echoes a static input — does not respond to dynamic compression/load |
+| `NEEDS COORDS` (yellow) | Formula is real; defaults to placeholder linkage coordinates |
+| `PARTIAL` (orange) | Formula real, but some inputs use hidden defaults the user can't change here |
+| `APPROX` (purple) | Simplified geometry that bypasses the full linkage / driveline model |
+| `PENDING` (red) | Not implemented — returns `NaN` |
+
+When a phase task lands and removes a gap, the badge should be removed in the same commit.
+
+---
+
+## Coverage table — current vs. plan-target
+
+| Row | Current badge | Resolved by |
+|---|---|---|
+| Rake | — | ✓ done |
+| Ground Trail | — | ✓ done (Yoke_Offset wired) |
+| Rear Wheel Vertical Travel | NEEDS COORDS | C1 (real coords) |
+| Rear Ride Height Reference | NEEDS COORDS | C1 |
+| Swingarm Angle | APPROX | **H1** (new) |
+| AntiSquat | APPROX | **H2** (new) |
+| Progression | NEEDS COORDS | C1 |
+| Motion Ratio | NEEDS COORDS | C1 |
+| Wheelbase | STATIC | E1 (existing) — see H4 |
+| Front Wheel Rate | PENDING | D1 + D2 |
+| Rear Wheel Rate | PENDING | D3 |
+| Front Wheel Force | PARTIAL | **H3** (new) |
+| Rear Wheel Force | PARTIAL | **H3** |
+| CofG % Front | STATIC | E2 (existing) — see H5 |
+| CofG % Rear | STATIC | E2 — see H5 |
+| Lean_Angle input | (no-op) | **H6** (new) or Phase F |
+| Frame geometry inputs | hidden | **H7** (new) |
