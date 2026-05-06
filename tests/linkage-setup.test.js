@@ -36,5 +36,8 @@ test('linkage-setup: page contains an SVG', () => {
 
 test('linkage-setup: page renders in english when state.lang === "en"', () => {
   const html = renderLinkageSetup({ values: defaultValues(), lang: 'en' });
-  assert.match(html, /Frame Rocker Pivot/);
+  // "Rocker Pivot" appears in both the linked-mode label
+  // ("Frame Rocker Pivot") and the pro-link label
+  // ("Rocker Pivot (on swingarm)"), so this assertion is mode-agnostic.
+  assert.match(html, /Rocker Pivot/);
 });

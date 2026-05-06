@@ -360,16 +360,17 @@ export const INPUT_META = {
   Linkarm_Length:       { def: 92,    min: 0,     max: 180,   step: 0.1 },
   Front_Sprocket:       { def: 16,    min: 12,    max: 20,    step: 1 },
   Rear_Sprocket:        { def: 42,    min: 35,    max: 55,    step: 1 },
-  Frame_Rocker_Pivot_X: { def: -50,   min: -400,  max: 400,   step: 1 },
-  Frame_Rocker_Pivot_Y: { def: 80,    min: -500,  max: 500,   step: 1 },
-  Rocker_To_Shock_X:    { def: -65,   min: -400,  max: 400,   step: 1 },
-  Rocker_To_Shock_Y:    { def: 100,   min: -500,  max: 500,   step: 1 },
-  Rocker_To_Drag_X:     { def: -45,   min: -400,  max: 400,   step: 1 },
-  Rocker_To_Drag_Y:     { def: 60,    min: -500,  max: 500,   step: 1 },
-  Drag_To_Swingarm_X:   { def: 40,    min: -400,  max: 400,   step: 1 },
-  Drag_To_Swingarm_Y:   { def: -10,   min: -500,  max: 500,   step: 1 },
-  Frame_Shock_Top_X:    { def: -200,  min: -400,  max: 400,   step: 1 },
-  Frame_Shock_Top_Y:    { def: 300,   min: -500,  max: 500,   step: 1 },
+  // Defaults below match the Pro-Link placeholder (default linkage mode).
+  Frame_Rocker_Pivot_X: { def: -200, min: -400,  max: 400,   step: 1 },
+  Frame_Rocker_Pivot_Y: { def: -50,  min: -500,  max: 500,   step: 1 },
+  Rocker_To_Shock_X:    { def: -130, min: -400,  max: 400,   step: 1 },
+  Rocker_To_Shock_Y:    { def: -60,  min: -500,  max: 500,   step: 1 },
+  Rocker_To_Drag_X:     { def: -190, min: -400,  max: 400,   step: 1 },
+  Rocker_To_Drag_Y:     { def: -90,  min: -500,  max: 500,   step: 1 },
+  Drag_To_Swingarm_X:   { def: -20,  min: -400,  max: 400,   step: 1 },
+  Drag_To_Swingarm_Y:   { def: -20,  min: -500,  max: 500,   step: 1 },
+  Frame_Shock_Top_X:    { def: -120, min: -400,  max: 400,   step: 1 },
+  Frame_Shock_Top_Y:    { def: 50,   min: -500,  max: 500,   step: 1 },
   Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 0.5 },
 };
 
@@ -423,6 +424,9 @@ export const TOPO_ORDER = [
 export function defaultValues() {
   const v = {};
   for (const id in INPUT_META) v[id] = INPUT_META[id].def;
+  // Linkage_Mode is non-numeric so it doesn't live in INPUT_META; default
+  // to Pro-Link, which matches the linkage-coord defaults above.
+  v.Linkage_Mode = 'pro-link';
   return v;
 }
 
