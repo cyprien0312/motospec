@@ -326,6 +326,17 @@ table.dt td.dt-readonly span {
   background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 8px; display: block;
 }
+.linkage-chart-wrap { margin: 8px 0 14px 0; }
+.linkage-chart {
+  width: 100%; max-width: 720px; height: auto;
+  background: var(--formula-bg); border: 1px solid var(--border);
+  border-radius: 8px; display: block;
+}
+.linkage-chart-empty {
+  background: var(--formula-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 18px; color: var(--text-dim);
+  font-size: 13px; text-align: center;
+}
 .linkage-points-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
@@ -1026,6 +1037,7 @@ function patchLinkageView() {
   };
   swap('.linkage-svg');
   swap('.linkage-readout-strip');
+  swap('.linkage-chart-wrap');
 }
 function setBikeInput(bikeIdx, key, raw) {
   const b = state.bikes[bikeIdx];

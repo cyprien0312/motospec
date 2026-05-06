@@ -6,6 +6,7 @@
 // ============================================================
 
 import { computeAll, INPUT_META } from './formulas.js';
+import { motionRatio } from './linkage.js';
 
 // 5 linkage points the user measures on a real bike. Origin is the
 // swingarm pivot bolt; +X forward (toward the front wheel), +Y up.
@@ -119,6 +120,7 @@ const UI = {
     kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
     desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。图示按右侧视图绘制——车头朝左、+X 在屏幕上向左。占位坐标只为让公式有数值；实测后图示与运动比才有意义。',
     readouts: '实时读数（Live Readouts）',
+    chart_title: '运动比曲线',
     points_title: '5 个连杆测量点',
     diagram_title: '连杆拓扑图（侧视）',
     guide_title: '测量指南',
@@ -143,6 +145,7 @@ const UI = {
     kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
     desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The diagram is a right-side view — bike faces left, so +X-forward points left on screen. Placeholder coords just keep the formulas numerical; the diagram and motion ratio only become meaningful once you enter real measurements.',
     readouts: 'Live Readouts',
+    chart_title: 'Motion Ratio Curve',
     points_title: '5 Linkage Measurement Points',
     diagram_title: 'Linkage Topology (Side View)',
     guide_title: 'Measurement Guide',
@@ -166,6 +169,95 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
+}
+
+// Sweep swingarm delta from 0° (full extension) to a representative full-bump
+// angle and compute motion ratio at each step. Returns {samples:[{deg,mr}…],
+// min, max} so the renderer can pick axis bounds.
+function sampleMotionRatio(values, fullBumpDeg = 25, samples = 25) {
+  const cfg = { ...values };
+  const swingarmLength = values.Swingarm_Length || 580;
+  const beta_static = values.beta_static || 14;
+  const out = [];
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < samples; i++) {
+    const deg = (i / (samples - 1)) * fullBumpDeg;
+    const mr = motionRatio(cfg, deg, swingarmLength, beta_static);
+    if (Number.isFinite(mr)) {
+      out.push({ deg, mr });
+      if (mr < lo) lo = mr;
+      if (mr > hi) hi = mr;
+    }
+  }
+  return { samples: out, min: lo, max: hi };
+}
+
+function renderMotionRatioChart(values, lang) {
+  const W = 560, H = 200;
+  const padL = 44, padR = 12, padT = 10, padB = 28;
+  const data = sampleMotionRatio(values);
+  if (data.samples.length < 2 || !Number.isFinite(data.min) || !Number.isFinite(data.max)) {
+    return `<div class="linkage-chart-empty">${lang === 'en' ? 'No motion-ratio data — check coords.' : '无运动比数据 — 请检查坐标。'}</div>`;
+  }
+  const xMin = 0, xMax = data.samples[data.samples.length - 1].deg;
+  // Pad y range a touch so the line doesn't sit on the edges.
+  const span = Math.max(data.max - data.min, 0.05);
+  const yMin = data.min - span * 0.15;
+  const yMax = data.max + span * 0.15;
+
+  const sx = (deg) => padL + (deg - xMin) / (xMax - xMin) * (W - padL - padR);
+  const sy = (mr)  => padT + (1 - (mr - yMin) / (yMax - yMin)) * (H - padT - padB);
+
+  // Grid + axis labels
+  const yTicks = 4, xTicks = 5;
+  let grid = '';
+  for (let i = 0; i <= yTicks; i++) {
+    const v = yMin + (i / yTicks) * (yMax - yMin);
+    const y = sy(v);
+    grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#2a3340" stroke-width="1"/>`;
+    grid += `<text x="${padL - 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+  for (let i = 0; i <= xTicks; i++) {
+    const v = xMin + (i / xTicks) * (xMax - xMin);
+    const x = sx(v);
+    grid += `<line x1="${x}" y1="${H - padB}" x2="${x}" y2="${H - padB + 3}" stroke="#5a6878" stroke-width="1"/>`;
+    grid += `<text x="${x}" y="${H - padB + 16}" fill="#5a6878" font-size="10" text-anchor="middle">${v.toFixed(0)}°</text>`;
+  }
+
+  // Axis titles
+  const xTitle = lang === 'en' ? 'Swingarm Travel (°)' : '摇臂行程 (°)';
+  const yTitle = lang === 'en' ? 'Motion Ratio (wheel/shock)' : '运动比 (轮/避震)';
+  const axisTitles = `
+    <text x="${(W + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
+    <text x="14" y="${(H + padT - padB) / 2}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600"
+          transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitle)}</text>
+  `;
+
+  // Line + filled area
+  const points = data.samples.map(p => `${sx(p.deg).toFixed(1)},${sy(p.mr).toFixed(1)}`).join(' ');
+  const area = `M ${sx(data.samples[0].deg)},${H - padB} L ${data.samples.map(p => `${sx(p.deg).toFixed(1)},${sy(p.mr).toFixed(1)}`).join(' L ')} L ${sx(data.samples[data.samples.length-1].deg)},${H - padB} Z`;
+
+  // Marker at static (deg=0)
+  const x0 = sx(data.samples[0].deg), y0 = sy(data.samples[0].mr);
+
+  // Progression annotation
+  const prog = (data.max - data.min) / (data.min || 1) * 100;
+  const progText = lang === 'en'
+    ? `Progression: ${prog.toFixed(1)}%   |   MR @ static: ${data.samples[0].mr.toFixed(3)}`
+    : `渐进性：${prog.toFixed(1)}%   |   静态运动比：${data.samples[0].mr.toFixed(3)}`;
+
+  return `
+    <svg class="linkage-chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Motion ratio curve">
+      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #0f141b)"/>
+      ${grid}
+      <path d="${area}" fill="rgba(78,161,255,0.16)" stroke="none"/>
+      <polyline points="${points}" fill="none" stroke="#4ea1ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x0.toFixed(1)}" cy="${y0.toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1.5"/>
+      <text x="${x0 + 8}" y="${y0 - 6}" fill="#fbbf24" font-size="10" font-weight="700">static</text>
+      ${axisTitles}
+      <text x="${W - padR - 4}" y="${padT + 12}" fill="#cbd5e1" font-size="11" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
+    </svg>
+  `;
 }
 
 function fmtReadout(out, key, unit) {
@@ -451,6 +543,7 @@ export function renderLinkageSetup(state) {
 
       <div class="section-title">${escapeHtml(str.readouts)}</div>
       <div class="linkage-readout-strip">${readoutHTML}</div>
+      <div class="linkage-chart-wrap">${renderMotionRatioChart(values, lang)}</div>
 
       <div class="section-title">${escapeHtml(str.diagram_title)}</div>
       ${renderTopologySVG(values, mode)}
