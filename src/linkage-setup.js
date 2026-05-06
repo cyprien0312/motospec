@@ -14,9 +14,15 @@ import { motionRatio } from './linkage.js';
 // Two of the five points have a different physical meaning in Pro-Link
 // mode (rocker rides on the swingarm instead of the frame). The mode-
 // dependent labels are stored in `*_pro` keys and selected at render time.
+//
+// The `anchor` field controls how polar (length + angle) inputs are
+// interpreted: 'swingarm' means the L/θ pair is from the swingarm pivot;
+// 'rocker' means the pair is from the rocker pivot (so e.g. "rocker arm
+// to shock" reads as a true arm length on the rocker triangle).
 export const LINKAGE_POINTS = [
   {
     key: 'frame_rocker_pivot',
+    anchor: 'swingarm',
     label_zh: '摇臂枢轴在车架上的位置',
     label_en: 'Frame Rocker Pivot',
     label_pro_zh: '摇臂枢轴（在平叉上）',
@@ -29,6 +35,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'rocker_to_shock',
+    anchor: 'rocker',
     label_zh: '摇臂上避震连接点',
     label_en: 'Rocker-to-Shock',
     xKey: 'Rocker_To_Shock_X', yKey: 'Rocker_To_Shock_Y',
@@ -37,6 +44,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'rocker_to_drag',
+    anchor: 'rocker',
     label_zh: '摇臂上拉杆连接点',
     label_en: 'Rocker-to-Drag',
     xKey: 'Rocker_To_Drag_X', yKey: 'Rocker_To_Drag_Y',
@@ -45,6 +53,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'drag_to_swingarm',
+    anchor: 'swingarm',
     label_zh: '拉杆与摇臂连接点',
     label_en: 'Drag-to-Swingarm',
     label_pro_zh: '拉杆与车架固定端',
@@ -57,6 +66,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'frame_shock_top',
+    anchor: 'swingarm',
     label_zh: '车架上避震顶部固定点',
     label_en: 'Frame Shock Top',
     xKey: 'Frame_Shock_Top_X', yKey: 'Frame_Shock_Top_Y',
@@ -137,6 +147,16 @@ const UI = {
     mode_pro:    'Pro-Link',
     mode_desc_linked: '摇臂三角块固定在车架上，平叉通过一根活动拉杆去拨动它。',
     mode_desc_pro:    '摇臂骑在平叉上、随平叉一起运动；车架底部伸出一根固定拉杆，平叉抬起时把它绊住、迫使其旋转。',
+    style_title:     '输入方式',
+    style_xy:        'X / Y 坐标',
+    style_polar:     '长度 + 角度',
+    style_desc_xy:    '每个点用 (X, Y) 两个偏移值表示，单位 mm，原点为摇臂枢轴。适合从 CAD 或图纸上读数。',
+    style_desc_polar: '每个点用长度 (mm) + 角度 (° 相对 +X 轴，逆时针为正) 表示。实车实测时更友好——摇臂臂长直接卡尺量、连杆长度量出来即可。',
+    length_label:    '长度',
+    angle_label:     '角度',
+    angle_units:     '°',
+    anchor_swingarm_zh: '相对摇臂枢轴',
+    anchor_rocker_zh:   '相对摇臂转点',
   },
   en: {
     nav: '🔧 Linkage Setup',
@@ -161,6 +181,16 @@ const UI = {
     mode_pro:    'Pro-Link',
     mode_desc_linked: 'Rocker triangle is fixed to the frame; the swingarm drives it through a moving drag/pull link.',
     mode_desc_pro:    'Rocker rides on the swingarm and moves with it; a frame-anchored tie rod "trips" the rocker as the swingarm rises, forcing it to rotate.',
+    style_title:     'Input Style',
+    style_xy:        'X / Y coordinates',
+    style_polar:     'Length + angle',
+    style_desc_xy:    'Type each point as a pair of (X, Y) offsets in mm from the swingarm pivot. Easier when you have a CAD/2D drawing.',
+    style_desc_polar: 'Type each point as a length (mm) and an angle (° above the +X axis, measured CCW). Easier when you measure a real bike with calipers and a protractor — rocker arm = caliper length, etc.',
+    length_label:    'Length',
+    angle_label:     'Angle',
+    angle_units:     '°',
+    anchor_swingarm_en: 'from swingarm pivot',
+    anchor_rocker_en:   'from rocker pivot',
     y_label: 'Y (up/down)',
   },
 };
@@ -457,7 +487,19 @@ function renderTopologySVG(values, mode = 'linked') {
   `;
 }
 
-function renderInputPair(p, values, lang, str, mode) {
+// Convert (dx, dy) → (length, angle°). Inverse: fromPolar.
+function toPolar(dx, dy) {
+  return { L: Math.hypot(dx, dy), th: Math.atan2(dy, dx) * 180 / Math.PI };
+}
+
+function originForAnchor(anchor, values) {
+  if (anchor === 'rocker') {
+    return { x: values.Frame_Rocker_Pivot_X || 0, y: values.Frame_Rocker_Pivot_Y || 0 };
+  }
+  return { x: 0, y: 0 };
+}
+
+function renderInputPair(p, values, lang, str, mode, style) {
   const pro = mode === 'pro-link';
   const label = pro
     ? (lang === 'en' ? (p.label_pro_en || p.label_en) : (p.label_pro_zh || p.label_zh))
@@ -465,6 +507,44 @@ function renderInputPair(p, values, lang, str, mode) {
   const desc  = pro
     ? (lang === 'en' ? (p.desc_pro_en  || p.desc_en)  : (p.desc_pro_zh  || p.desc_zh))
     : (lang === 'en' ? p.desc_en  : p.desc_zh);
+
+  if (style === 'polar') {
+    const anchor = p.anchor || 'swingarm';
+    const o = originForAnchor(anchor, values);
+    const dx = (values[p.xKey] ?? 0) - o.x;
+    const dy = (values[p.yKey] ?? 0) - o.y;
+    const { L, th } = toPolar(dx, dy);
+    const anchorTxt = anchor === 'rocker'
+      ? (lang === 'en' ? str.anchor_rocker_en : str.anchor_rocker_zh)
+      : (lang === 'en' ? str.anchor_swingarm_en : str.anchor_swingarm_zh);
+    return `
+      <div class="linkage-point">
+        <div class="linkage-point-label">${escapeHtml(label)}
+          <span class="linkage-anchor-tag">${escapeHtml(anchorTxt)}</span>
+        </div>
+        <div class="linkage-point-desc">${escapeHtml(desc)}</div>
+        <div class="linkage-xy-row">
+          <label>
+            <span>${escapeHtml(str.length_label)}</span>
+            <input type="number" data-polar="${p.key}.L"
+                   min="0" max="800" step="0.5"
+                   value="${L.toFixed(2)}"
+                   oninput="setLinkagePolar('${p.key}','L',this.value)"/>
+            <span class="linkage-unit">${escapeHtml(str.units)}</span>
+          </label>
+          <label>
+            <span>${escapeHtml(str.angle_label)}</span>
+            <input type="number" data-polar="${p.key}.th"
+                   min="-180" max="180" step="0.5"
+                   value="${th.toFixed(2)}"
+                   oninput="setLinkagePolar('${p.key}','th',this.value)"/>
+            <span class="linkage-unit">${escapeHtml(str.angle_units)}</span>
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
   const xMeta = INPUT_META[p.xKey] || { min: -400, max: 400, step: 1 };
   const yMeta = INPUT_META[p.yKey] || { min: -400, max: 400, step: 1 };
   const xVal = values[p.xKey];
@@ -515,8 +595,9 @@ export function renderLinkageSetup(state) {
     </div>
   `).join('');
 
-  const mode = values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
-  const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str, mode)).join('');
+  const mode  = values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
+  const style = values.Linkage_Input_Style === 'polar' ? 'polar' : 'cartesian';
+  const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str, mode, style)).join('');
 
   const modeToggle = `
     <div class="linkage-mode-card">
@@ -531,6 +612,19 @@ export function renderLinkageSetup(state) {
     </div>
   `;
 
+  const styleToggle = `
+    <div class="linkage-mode-card">
+      <div class="linkage-mode-title">${escapeHtml(str.style_title)}</div>
+      <div class="linkage-mode-row">
+        <button class="linkage-mode-btn ${style === 'cartesian' ? 'active' : ''}"
+                onclick="setLinkageInputStyle('cartesian')">${escapeHtml(str.style_xy)}</button>
+        <button class="linkage-mode-btn ${style === 'polar'     ? 'active' : ''}"
+                onclick="setLinkageInputStyle('polar')">${escapeHtml(str.style_polar)}</button>
+      </div>
+      <div class="linkage-mode-desc">${escapeHtml(style === 'polar' ? str.style_desc_polar : str.style_desc_xy)}</div>
+    </div>
+  `;
+
   return `
     <div class="linkage-page">
       <div class="header">
@@ -540,6 +634,7 @@ export function renderLinkageSetup(state) {
       <div class="desc">${escapeHtml(str.desc)}</div>
 
       ${modeToggle}
+      ${styleToggle}
 
       <div class="section-title">${escapeHtml(str.readouts)}</div>
       <div class="linkage-readout-strip">${readoutHTML}</div>

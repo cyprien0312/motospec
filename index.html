@@ -391,6 +391,12 @@ table.dt td.dt-readonly span {
   border-color: var(--accent);
 }
 .linkage-mode-desc { color: var(--text-dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.linkage-anchor-tag {
+  display: inline-block; margin-left: 8px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.4px;
+  color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 3px; padding: 1px 6px;
+}
 </style>
 </head>
 <body>
@@ -414,7 +420,7 @@ table.dt td.dt-readonly span {
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
-import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder } from './src/linkage-setup.js';
+import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS } from './src/linkage-setup.js';
 
 
 // ============================================================
@@ -1009,6 +1015,68 @@ function setInputValue(id, raw) {
   // re-render the page off-DOM, then swap only the SVG and the live-readouts strip.
   if (stack[stack.length - 1] === '__linkage') patchLinkageView();
 }
+function setLinkageInputStyle(style) {
+  if (style !== 'cartesian' && style !== 'polar') return;
+  state.values.Linkage_Input_Style = style;
+  saveState();
+  renderContent(); // toggle re-renders all input cards
+}
+// Polar input setter: user enters length L (mm) or angle θ (°) for one of the
+// 5 linkage points. We convert to (X, Y) — relative to the appropriate origin
+// (swingarm pivot, or rocker pivot for arm-anchored points) — and write it
+// back. When the rocker pivot itself moves we cascade the rocker-anchored
+// points so their arm vectors stay constant.
+function setLinkagePolar(pointKey, axis, raw) {
+  const v = parseFloat(raw);
+  if (!Number.isFinite(v)) return;
+  const p = LINKAGE_POINTS.find(pp => pp.key === pointKey);
+  if (!p) return;
+  const anchor = p.anchor || 'swingarm';
+  const ox = anchor === 'rocker' ? state.values.Frame_Rocker_Pivot_X : 0;
+  const oy = anchor === 'rocker' ? state.values.Frame_Rocker_Pivot_Y : 0;
+  const dx = state.values[p.xKey] - ox;
+  const dy = state.values[p.yKey] - oy;
+  let L  = Math.hypot(dx, dy);
+  let th = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (axis === 'L')  L  = Math.max(0, v);
+  if (axis === 'th') th = v;
+  const r = th * Math.PI / 180;
+  const newDx = L * Math.cos(r);
+  const newDy = L * Math.sin(r);
+
+  if (pointKey === 'frame_rocker_pivot') {
+    // Capture rocker-anchored offsets BEFORE moving the rocker, so arm
+    // lengths/angles are preserved when the pivot translates.
+    const offsets = {};
+    for (const pp of LINKAGE_POINTS) {
+      if (pp.anchor === 'rocker') {
+        offsets[pp.key] = {
+          dx: state.values[pp.xKey] - state.values.Frame_Rocker_Pivot_X,
+          dy: state.values[pp.yKey] - state.values.Frame_Rocker_Pivot_Y,
+        };
+      }
+    }
+    state.values.Frame_Rocker_Pivot_X = clampMeta('Frame_Rocker_Pivot_X', newDx);
+    state.values.Frame_Rocker_Pivot_Y = clampMeta('Frame_Rocker_Pivot_Y', newDy);
+    for (const pp of LINKAGE_POINTS) {
+      if (pp.anchor === 'rocker') {
+        state.values[pp.xKey] = clampMeta(pp.xKey, state.values.Frame_Rocker_Pivot_X + offsets[pp.key].dx);
+        state.values[pp.yKey] = clampMeta(pp.yKey, state.values.Frame_Rocker_Pivot_Y + offsets[pp.key].dy);
+      }
+    }
+  } else {
+    state.values[p.xKey] = clampMeta(p.xKey, ox + newDx);
+    state.values[p.yKey] = clampMeta(p.yKey, oy + newDy);
+  }
+  saveState();
+  clearCache();
+  if (stack[stack.length - 1] === '__linkage') patchLinkageView();
+}
+function clampMeta(id, n) {
+  const m = INPUT_META[id];
+  if (!m) return n;
+  return Math.max(m.min, Math.min(m.max, n));
+}
 function setLinkageMode(mode) {
   if (mode !== 'linked' && mode !== 'pro-link') return;
   const prev = state.values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
@@ -1333,7 +1401,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkagePolar, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
 
 render();
 </script>
