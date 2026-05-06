@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { P, INPUT_META, CALC, TOPO_ORDER, defaultValues, computeAll } from '../src/formulas.js';
+import { REFERENCE_BIKES } from '../src/reference-bikes.js';
 
 test('every non-input parameter has a CALC function', () => {
   for (const id in P) {
@@ -124,4 +125,13 @@ for (const id of NEW_COMPUTED) {
     assert.equal(typeof CALC[id], 'function');
   });
 }
+
+test('Final_Ratio matches CSV for each reference bike', () => {
+  for (const b of REFERENCE_BIKES) {
+    const out = computeAll({ ...defaultValues(), ...b.inputs });
+    const expected = b.inputs.Rear_Sprocket / b.inputs.Front_Sprocket;
+    assert.ok(Math.abs(out.Final_Ratio - expected) < 1e-9,
+      `${b.id}: got ${out.Final_Ratio}, expected ${expected}`);
+  }
+});
 

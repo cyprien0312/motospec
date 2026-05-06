@@ -1,0 +1,57 @@
+参数 (Parameter),1 Yamaha R7 2022,2 Suzuki GSX-8R 2024,3 Aprilia RS 660 Factory 2025
+FRONT SETTINGS (前部设置),,,
+Clamp/Yoke Name,Stock,,
+Yoke Offset (mm),35,30,28
+Steering Axis Angle (degrees),0.00 deg,0.00 deg,0.00 deg
+Steering Axis Offset (mm),0.0 mm,0.0 mm,0.0 mm
+Fork Position (mm),5,0,10
+Fork Name,FGK242,Showa,FL 23030
+Damping Setting (REFERENCE ONLY),,,
+Comp / Reb Clicks (REFERENCE ONLY),,,
+Spring Rate (N/mm) or Front Multi-Rate Spring Selection,9.0 / 9.0,8.5 / 8.5,9.5 / 9.5
+Spring Preload L/R (mm),10.0 / 10.0,10.0 / 10.0,5.0 / 5.0
+Oil Level L/R (mm) or Oil Volume (cc),170.0 / 170.0,180.0 / 180.0,125.0 / 125.0
+Topout Spring Rate L/R (N/mm),4.0 / 4.0,4.0 / 4.0,3.5 / 3.5
+Topout Spring Effective Length L/R (mm),40.0 / 40.0,40.0 / 40.0,40.0 / 40.0
+REAR SETTINGS (后部设置),,,
+Swingarm Name,Yamaha R7 20...,Suzuki GSX-8F...,Aprilia RS 660...
+Swingarm Length (mm),533,586.4,546.3
+Shock Clevis Ride Height Adjustment (mm),0,0,0
+Shock Name,YA 589,Showa,AP660
+Shock Length (mm),310,309.6,309
+Damping Setting (REFERENCE ONLY),,,
+Comp / Reb Clicks (REFERENCE ONLY),,,
+Spring Rate (N/mm) or Rear Multi-Rate Spring Selection,110,135,160
+Spring Preload (mm),14,15,7
+Topout Spring Rate (N/mm),188,188,0
+Topout Spring Effective Length (mm),8,8,0
+"Swingarm Pivot (positive to rear / positive up, mm)",0.0 / 0.0,0.0 / 0.0,0.0 / 0.0
+Link Name,R7,STOCK,
+Linkarm Length (mm),92,128.9,0
+TIRES (轮胎),,,
+Front Tire Name,Pir SBK 120/70,Pir SBK 120/70,Pir SBK 120/70
+Rear Tire Name,Pir SBK 180/60,Pir SBK 180/60,Pir SBK 180/60
+SPROCKETS (链轮),,,
+Front / Rear,16 / 42,17 / 47,17 / 43
+Final Ratio,2.625,2.765,2.529
+DYNAMIC READINGS (动态读数),,,
+Preset Name,Sag,Braking,Mid-Corner
+Front Potentiometer (mm),30,120,80
+Rear Potentiometer (mm),10,2,20
+Lean Angle (degrees),0,0,55
+RESULTS (结果),,,
+Rake (degrees),24.27,21.09,21.13
+Ground Trail (mm),97.8,84.3,76.7
+Rear Wheel Vertical Travel (mm),25.2,5.3,52
+Rear Ride Height Reference (mm),-77.6,-63.4,-46.3
+"Swingarm Angle (to ground, degrees)",-8.37,-6.21,-4.86
+AntiSquat : Percent,109.2,98.8,88.3
+Progression : Full Shock Travel (%),16.9,34,5.2
+Motion Ratio : Wheel/Shock,2.488,2.672,2.584
+Wheelbase (mm),1403.5,1430.9,1360.7
+Front Wheel Rate (N/mm),33.74,28.96,31.85
+Rear Wheel Rate (N/mm),18.97,45.91,24.61
+Front Wheel Force (N),754.9,2801.6,2087.8
+Rear Wheel Force (N),1151.3,469.2,1781.3
+CofG % Front,44.6,53.6,52.4
+CofG % Rear,55.4,46.4,47.6
