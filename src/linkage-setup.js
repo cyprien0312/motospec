@@ -697,10 +697,10 @@ export function renderLinkageSetup(state) {
       <div class="linkage-mode-row">
         <button class="linkage-mode-btn ${style === 'cartesian' ? 'active' : ''}"
                 onclick="setLinkageInputStyle('cartesian')">${escapeHtml(str.style_xy)}</button>
-        <button class="linkage-mode-btn ${style === 'polar'     ? 'active' : ''}"
-                onclick="setLinkageInputStyle('polar')">${escapeHtml(str.style_polar)}</button>
+        <button class="linkage-mode-btn ${style === 'length'     ? 'active' : ''}"
+                onclick="setLinkageInputStyle('length')">${escapeHtml(str.style_polar)}</button>
       </div>
-      <div class="linkage-mode-desc">${escapeHtml(style === 'polar' ? str.style_desc_polar : str.style_desc_xy)}</div>
+      <div class="linkage-mode-desc">${escapeHtml(style === 'length' ? str.style_desc_polar : str.style_desc_xy)}</div>
     </div>
   `;
 
