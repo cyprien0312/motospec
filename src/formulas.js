@@ -2,6 +2,11 @@
 // MotoSPEC formula registry (pure module — no DOM, no i18n)
 // ============================================================
 
+import {
+  motionRatio, progression,
+  rearVerticalTravel, rearRideHeight,
+} from './linkage.js';
+
 export const D2R = Math.PI / 180;
 export const R2D = 180 / Math.PI;
 
@@ -394,10 +399,10 @@ export const CALC = {
 
   // Phase A: real CALC for Final_Ratio; rest are stubs returning NaN until Phase C
   Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
-  Motion_Ratio:              v => NaN,
-  Progression:               v => NaN,
-  Rear_Ride_Height:          v => NaN,
-  Rear_Wheel_Vertical_Travel:v => NaN,
+  Motion_Ratio:              v => motionRatio(v, 0, v.Swingarm_Length, v.beta_static),
+  Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
+  Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
+  Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
   Rear_Wheel_Rate:           v => NaN,
   Front_Wheel_Rate:          v => NaN,
 };

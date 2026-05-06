@@ -36,8 +36,7 @@ test('every parameter has name, label, unit, type', () => {
 });
 
 const KNOWN_STUB_NAN = new Set([
-  'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
-  'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
+  'Rear_Wheel_Rate', 'Front_Wheel_Rate',
 ]);
 test('computeAll on defaults returns finite values for all non-stub params', () => {
   const out = computeAll(defaultValues());
@@ -124,6 +123,56 @@ for (const id of NEW_COMPUTED) {
     assert.notEqual(P[id].type, 'input');
     assert.equal(typeof CALC[id], 'function');
   });
+}
+
+// Phase C: numeric pin tests against reference bikes — guarded by hasRealCoords.
+// Placeholder coords are skipped (see docs/research/linkage-coords.md).
+const PLACEHOLDER_COORDS = {
+  Frame_Rocker_Pivot_X: -50, Frame_Rocker_Pivot_Y: 80,
+  Rocker_To_Shock_X: -65,    Rocker_To_Shock_Y: 100,
+  Rocker_To_Drag_X: -45,     Rocker_To_Drag_Y: 60,
+  Drag_To_Swingarm_X: 40,    Drag_To_Swingarm_Y: -10,
+  Frame_Shock_Top_X: -200,   Frame_Shock_Top_Y: 300,
+};
+function hasRealCoords(b) {
+  return Object.entries(PLACEHOLDER_COORDS).some(([k, v]) => b.inputs[k] !== v);
+}
+
+for (const b of REFERENCE_BIKES) {
+  const populated = Object.entries(b.expected).find(([_, v]) => v != null);
+  if (!populated) continue;
+  const [presetName, exp] = populated;
+
+  if (!hasRealCoords(b)) {
+    test(`MotionRatio: ${b.id} (${presetName}) — SKIPPED (placeholder linkage coords)`, { skip: true }, () => {});
+    test(`Rear_Travel: ${b.id} (${presetName}) — SKIPPED (placeholder linkage coords)`, { skip: true }, () => {});
+    test(`Rear_RHR: ${b.id} (${presetName}) — SKIPPED (placeholder linkage coords)`, { skip: true }, () => {});
+    continue;
+  }
+  if (exp.Motion_Ratio != null) {
+    test(`MotionRatio: ${b.id} (${presetName}) within 5%`, () => {
+      const inputs = { ...b.inputs, ...b.dynamic_presets[presetName] };
+      const out = computeAll(inputs);
+      const tol = exp.Motion_Ratio * 0.05;
+      assert.ok(Math.abs(out.Motion_Ratio - exp.Motion_Ratio) < tol,
+        `got ${out.Motion_Ratio}, expected ${exp.Motion_Ratio} ± ${tol}`);
+    });
+  }
+  if (exp.Rear_Wheel_Vertical_Travel != null) {
+    test(`Rear_Travel: ${b.id} (${presetName}) within 5%`, () => {
+      const inputs = { ...b.inputs, ...b.dynamic_presets[presetName] };
+      const out = computeAll(inputs);
+      const tol = Math.max(2, exp.Rear_Wheel_Vertical_Travel * 0.05);
+      assert.ok(Math.abs(out.Rear_Wheel_Vertical_Travel - exp.Rear_Wheel_Vertical_Travel) < tol);
+    });
+  }
+  if (exp.Rear_Ride_Height != null) {
+    test(`Rear_RHR: ${b.id} (${presetName}) within 5 mm`, () => {
+      const inputs = { ...b.inputs, ...b.dynamic_presets[presetName] };
+      const out = computeAll(inputs);
+      assert.ok(Math.abs(out.Rear_Ride_Height - exp.Rear_Ride_Height) < 5);
+    });
+  }
 }
 
 test('Final_Ratio matches CSV for each reference bike', () => {
