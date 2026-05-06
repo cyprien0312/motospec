@@ -38,14 +38,14 @@ test('numeric input rows render <input type="number"> cells per bike', () => {
   assert.equal(matches.length, 3);
 });
 
-test('profile rows render <input> with datalist (text dropdowns)', () => {
+test('component rows render <select> wired to setBikeComponent', () => {
   const html = render();
-  // each profile field has a datalist
-  for (const f of ['fork_name', 'shock_name', 'swingarm_name', 'link_name', 'front_tire', 'rear_tire', 'clamp_yoke_name']) {
-    assert.match(html, new RegExp(`id="dt-options-${f}"`));
+  for (const c of ['clamp', 'fork', 'shock', 'swingarm', 'linkage', 'front_tire', 'rear_tire']) {
+    assert.match(html, new RegExp(`onchange="setBikeComponent\\(\\d+, '${c}'`),
+      `missing component select for ${c}`);
   }
-  // and at least one input wired to setBikeProfile for fork_name
-  assert.match(html, /onchange="setBikeProfile\(\d+, 'fork_name'/);
+  // datalists are gone — no more text-input profile cells
+  assert.doesNotMatch(html, /id="dt-options-/);
 });
 
 test('DYNAMIC READINGS section contains a preset selector per bike column', () => {
@@ -68,22 +68,25 @@ test('NaN computed cells render as em-dash', () => {
   assert.match(html, /—/);
 });
 
-test('every ROW_GROUPS row has at least one of input/computed/profile/literal/preset/derivedFrom', () => {
+test('every ROW_GROUPS row has at least one of input/computed/component/literal/preset/derivedFrom', () => {
   for (const g of ROW_GROUPS) for (const r of g.rows) {
-    const has = r.input != null || r.computed != null || r.profile != null
+    const has = r.input != null || r.computed != null || r.component != null
              || r.literal != null || r.preset != null || r.derivedFrom != null;
     assert.ok(has, `row "${r.spec}" has no value source`);
   }
 });
 
-test('defaultBikes seeds three profiles with preset-aligned dynamic values', () => {
+test('defaultBikes seeds three bikes with components + preset-aligned dynamic values', () => {
   const bikes = defaultBikes();
   assert.equal(bikes.length, 3);
   for (const b of bikes) {
     assert.ok(b.id);
     assert.ok(b.name);
     assert.ok(b.values);
-    assert.ok(b.profile);
+    assert.ok(b.components, 'bike must carry component refs');
+    for (const k of ['fork', 'shock', 'swingarm', 'linkage', 'clamp', 'front_tire', 'rear_tire']) {
+      assert.ok(b.components[k], `bike ${b.name} missing component ref ${k}`);
+    }
     assert.ok(['sag', 'braking', 'mid_corner', 'custom'].includes(b.preset));
     const expected = PRESET_VALUES[b.preset];
     if (expected) {

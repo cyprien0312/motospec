@@ -164,9 +164,11 @@ export const P = {
   Rf: { name:'Rf', label:'前轮滚动半径', unit:'mm', type:'input',
     desc:'前轮在载荷下的实际滚动半径（含轮胎形变修正）。', source:'轮胎规格 + 形变系数',
     typical:'300 – 320 mm（17 寸轮）' },
-  O: { name:'O', label:'总偏移量 (Offset)', unit:'mm', type:'input',
-    desc:'三星台联板中心到前叉中心的距离 + 轮芯偏移。', source:'三星台规格 + 实测',
-    typical:'25 – 35 mm' },
+  O: { name:'O', label:'总偏移量 (Offset)', unit:'mm', type:'channel',
+    desc:'转向轴到前轮接地中心的垂直偏移量。等同于三星台偏移（轮芯偏移按 0 处理）。',
+    formula: [ {ref:'Yoke_Offset'} ],
+    deps: ['Yoke_Offset'],
+    note: '三星台偏移改变 → O 改变 → Trail 改变；Rake 不受影响（Rake 由车架转向头管角度决定）。' },
   beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
     desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
     typical:'10° – 18°' },
@@ -325,7 +327,6 @@ export const INPUT_META = {
   Travel_Rear:       { def: 25,    min: 0,     max: 150,   step: 1 },
   WB:                { def: 1400,  min: 1300,  max: 1550,  step: 1 },
   Rf:                { def: 310,   min: 290,   max: 330,   step: 1 },
-  O:                 { def: 32,    min: 15,    max: 45,    step: 0.5 },
   beta_static:       { def: 14,    min: 5,     max: 25,    step: 0.1 },
   L_SA:              { def: 580,   min: 500,   max: 650,   step: 1 },
   theta_chain:       { def: 15,    min: 0,     max: 30,    step: 0.1 },
@@ -376,6 +377,7 @@ export const INPUT_META = {
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
 export const CALC = {
+  O:             v => v.Yoke_Offset,
   Trail_Static: v => {
     const r = v.Rake_Static * D2R;
     return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
@@ -410,6 +412,7 @@ export const CALC = {
 
 // Topological order: every entry's deps appear earlier in the list
 export const TOPO_ORDER = [
+  'O',
   'Trail_Static',
   'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
   'MotoSPEC_SwgarmAngl', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',

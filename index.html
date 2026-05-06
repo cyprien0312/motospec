@@ -308,6 +308,47 @@ table.dt td.dt-readonly span {
 .dt-status-coords  { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
 .dt-status-static  { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
 
+/* ==== Catalog editor ==== */
+.cat-wrap { max-width: 100%; }
+.cat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; flex-wrap: wrap; }
+.cat-header h1 { font-size: 22px; }
+.cat-actions { display: flex; gap: 6px; }
+.cat-help { color: var(--text-dim); font-size: 12px; margin-bottom: 12px; }
+.cat-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.cat-tab {
+  background: transparent; color: var(--text-dim); border: 0;
+  padding: 8px 14px; cursor: pointer; font-size: 13px;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.cat-tab:hover { color: var(--text); }
+.cat-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+table.cat-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.cat-table th, table.cat-table td { padding: 4px 6px; border: 1px solid var(--border); text-align: left; }
+table.cat-table th { background: var(--panel-2); font-weight: 600; font-size: 11px; color: var(--text-dim); }
+table.cat-table td.cat-id code { color: var(--accent); font-size: 11px; }
+table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
+.cat-input {
+  width: 100%; min-width: 80px; padding: 4px 6px;
+  background: var(--formula-bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 3px; font-size: 12px;
+  font-family: inherit;
+}
+.cat-input:focus { outline: none; border-color: var(--accent); }
+.cat-btn {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+}
+.cat-btn:hover { background: var(--border); }
+.cat-btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.cat-btn-primary:hover { background: var(--accent-hover); }
+.cat-btn-danger { color: #f87171; border-color: rgba(239,68,68,0.4); padding: 2px 8px; }
+.cat-btn-danger:hover { background: rgba(239,68,68,0.15); }
+.cat-btn-warn { color: #fbbf24; border-color: rgba(251,191,36,0.4); }
+.cat-btn-warn:hover { background: rgba(251,191,36,0.1); }
+
 /* Linkage Setup page */
 .linkage-page .header { margin-bottom: 6px; }
 .linkage-readout-strip {
@@ -441,6 +482,8 @@ table.dt td.dt-readonly span {
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
+import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
+import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry } from './src/linkage-setup.js';
 
 
@@ -469,7 +512,7 @@ const P_EN = {
   Travel_Rear:  { label:'Rear Wheel Travel', desc:'Current rear vertical compression. Compression is positive. Multiply shock travel by Motion Ratio.', source:'Shock potentiometer × Motion Ratio', typical:'0 – 130 mm' },
   WB:           { label:'Wheelbase', desc:'Horizontal distance between front and rear axle centers.', source:'Frame manual', typical:'1340 – 1440 mm (sport)' },
   Rf:           { label:'Front Rolling Radius', desc:'Loaded rolling radius of the front tire (with deformation correction).', source:'Tire spec + deformation factor', typical:'300 – 320 mm (17")' },
-  O:            { label:'Total Offset', desc:'Triple-clamp offset (steering axis to fork center) plus axle offset.', source:'Triple-clamp spec + measurement', typical:'25 – 35 mm' },
+  O:            { label:'Total Offset', desc:'Perpendicular offset of the front axle from the steering axis. Derived from Yoke Offset.', source:'Derived from yoke offset', typical:'25 – 35 mm' },
   beta_static:  { label:'Static Swingarm Angle', desc:'Angle between the line from swingarm pivot to rear axle and horizontal at rest.', source:'Frame manual or direct measurement', typical:'10° – 18°' },
   L_SA:         { label:'Effective Swingarm Length', desc:'Distance from the swingarm pivot to the rear axle.', source:'Frame manual', typical:'550 – 600 mm' },
   theta_chain:  { label:'Chain Pull Angle', desc:'Angle (vs. horizontal) of the line from the top of the front sprocket to the top of the rear sprocket.', source:'Sprocket coords + geometry', typical:'Varies live, typically 10° – 25°' },
@@ -996,15 +1039,23 @@ function loadState() {
       const merged = defaultValues();
       for (const k in s.values) if (k in merged) merged[k] = s.values[k];
       const bikes = (Array.isArray(s.bikes) && s.bikes.length === 3) ? s.bikes : defaultBikes();
-      return { values: merged, bikes };
+      if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
+      const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];
+      return { values: merged, bikes, catalogTab };
     }
   } catch (e) {}
   return null;
 }
-function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+function saveState() {
+  try {
+    const payload = { ...state, userCatalogs: getUserOverlay() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {}
+}
 
-const state = loadState() || { values: defaultValues(), bikes: defaultBikes() };
+const state = loadState() || { values: defaultValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0] };
 if (!Array.isArray(state.bikes) || state.bikes.length !== 3) state.bikes = defaultBikes();
+if (!state.catalogTab) state.catalogTab = CATALOG_KEYS[0];
 let _all = computeAll(state.values);
 function gv(id) { return _all[id]; }
 function clearCache() { _all = computeAll(state.values); }
@@ -1141,11 +1192,85 @@ function setBikeInput(bikeIdx, key, raw) {
   saveState();
   renderContent();
 }
-function setBikeProfile(bikeIdx, key, value) {
+const COMPONENT_TO_CATALOG = {
+  clamp: 'clamps', fork: 'forks', shock: 'shocks', swingarm: 'swingarms',
+  linkage: 'linkages', front_tire: 'tires', rear_tire: 'tires',
+};
+function setCatalogTab(catalogKey) {
+  if (!CATALOG_KEYS.includes(catalogKey)) return;
+  state.catalogTab = catalogKey;
+  saveState();
+  renderContent();
+}
+function coerceCatalogValue(raw) {
+  if (raw === '' || raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && raw.trim() !== '' ? n : raw;
+}
+function setCatalogField(catalogKey, id, fieldPath, raw) {
+  const value = (fieldPath === 'name' || fieldPath === 'manufacturer') ? raw : coerceCatalogValue(raw);
+  try { patchCatalogEntry(catalogKey, id, fieldPath, value); }
+  catch (e) { console.error(e); return; }
+  saveState();
+  renderContent();
+}
+function addCatalogEntryUI(catalogKey) {
+  const input = document.getElementById('cat-add-' + catalogKey);
+  const id = (input?.value || '').trim();
+  if (!id) { alert(lang === 'en' ? 'Enter an ID first' : '请先输入 ID'); return; }
+  if (CATALOGS[catalogKey]?.[id]) { alert(lang === 'en' ? 'ID already exists' : 'ID 已存在'); return; }
+  setCatalogEntry(catalogKey, id, { name: id, manufacturer: '', specs: {} });
+  saveState();
+  renderContent();
+}
+function removeCatalogEntryUI(catalogKey, id) {
+  const ok = confirm((lang === 'en' ? 'Remove ' : '删除 ') + catalogKey + '/' + id + '?');
+  if (!ok) return;
+  removeCatalogEntry(catalogKey, id);
+  saveState();
+  renderContent();
+}
+function exportCatalogs() {
+  const json = JSON.stringify(getUserOverlay(), null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'motospec-catalogs.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importCatalogs() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'application/json,.json';
+  input.onchange = async () => {
+    const f = input.files?.[0]; if (!f) return;
+    try {
+      const txt = await f.text();
+      const parsed = JSON.parse(txt);
+      applyUserOverlay(parsed);
+      saveState();
+      renderContent();
+    } catch (e) { alert((lang === 'en' ? 'Import failed: ' : '导入失败：') + e.message); }
+  };
+  input.click();
+}
+function resetCatalogs() {
+  const ok = confirm(lang === 'en' ? 'Reset all catalog edits to baseline?' : '清除所有部件库编辑，恢复出厂数据？');
+  if (!ok) return;
+  resetUserOverlay();
+  saveState();
+  renderContent();
+}
+function setBikeComponent(bikeIdx, componentKey, id) {
   const b = state.bikes[bikeIdx];
   if (!b) return;
-  b.profile = b.profile || {};
-  b.profile[key] = value;
+  const catalog = CATALOGS[COMPONENT_TO_CATALOG[componentKey]];
+  if (!catalog) return;
+  const entry = catalog[id];
+  if (!entry) return;
+  b.components = b.components || {};
+  b.components[componentKey] = id;
+  if (entry.specs) Object.assign(b.values, entry.specs);
   saveState();
   renderContent();
 }
@@ -1208,7 +1333,7 @@ function typeLabel(t) {
 }
 
 function navigateTo(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
   if (stack[stack.length - 1] === id) return;
   const idx = stack.indexOf(id);
   if (idx >= 0) stack = stack.slice(0, idx + 1);
@@ -1217,7 +1342,7 @@ function navigateTo(id) {
 }
 
 function navigateRoot(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
   stack = [id];
   render();
 }
@@ -1253,6 +1378,9 @@ function renderNav() {
   </div>
   <div class="nav-item dashboard ${current === '__linkage' ? 'active' : ''}" onclick="navigateRoot('__linkage')">
     <strong>${escapeHtml(T('linkage_nav'))}</strong><span class="label">${escapeHtml(T('linkage_sub'))}</span>
+  </div>
+  <div class="nav-item dashboard ${current === '__catalogs' ? 'active' : ''}" onclick="navigateRoot('__catalogs')">
+    <strong>${escapeHtml(lang === 'en' ? 'Component Library' : '部件库')}</strong><span class="label">${escapeHtml(lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …')}</span>
   </div>`;
   const make = (ids) => ids.map(id => {
     const p = P[id];
@@ -1274,6 +1402,7 @@ function renderBreadcrumbs() {
     const label = id === '__dashboard' ? T('dashboard_nav')
                 : id === '__datatable' ? T('datatable_nav')
                 : id === '__linkage' ? T('linkage_nav')
+                : id === '__catalogs' ? (lang === 'en' ? 'Component Library' : '部件库')
                 : P[id].name;
     return `<span class="${cls}" ${onClick}>${escapeHtml(label)}</span>` +
       (isLast ? '' : '<span class="sep">›</span>');
@@ -1331,6 +1460,10 @@ function renderContent() {
   }
   if (id === '__linkage') {
     document.getElementById('content').innerHTML = renderLinkageSetup({ values: state.values, lang });
+    return;
+  }
+  if (id === '__catalogs') {
+    document.getElementById('content').innerHTML = renderCatalogEditor({ catalogKey: state.catalogTab, lang });
     return;
   }
   const p = P[id];
@@ -1421,7 +1554,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, setBikeInput, setBikeComponent, setBikeName, applyBikePreset, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs });
 
 render();
 </script>

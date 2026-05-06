@@ -1,0 +1,23 @@
+{
+  "yamaha-r7-stock": {
+    "name": "Yamaha R7 Stock Yoke",
+    "manufacturer": "Yamaha",
+    "specs": {
+      "Yoke_Offset": 35
+    }
+  },
+  "suzuki-gsx8r-stock": {
+    "name": "Suzuki GSX-8R Stock Yoke",
+    "manufacturer": "Suzuki",
+    "specs": {
+      "Yoke_Offset": 30
+    }
+  },
+  "aprilia-rs660-stock": {
+    "name": "Aprilia RS 660 Stock Yoke",
+    "manufacturer": "Aprilia",
+    "specs": {
+      "Yoke_Offset": 28
+    }
+  }
+}

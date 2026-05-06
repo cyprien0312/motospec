@@ -1,0 +1,59 @@
+{
+  "yamaha-r7-stock": {
+    "name": "Yamaha R7 Stock Linkage",
+    "manufacturer": "Yamaha",
+    "source": "PLACEHOLDER — replace with measured coords",
+    "specs": {
+      "Linkage_Mode": "pro-link",
+      "Frame_Rocker_Pivot_X": -50,
+      "Frame_Rocker_Pivot_Y": 80,
+      "Rocker_To_Shock_X": -65,
+      "Rocker_To_Shock_Y": 100,
+      "Rocker_To_Drag_X": -45,
+      "Rocker_To_Drag_Y": 60,
+      "Drag_To_Swingarm_X": 40,
+      "Drag_To_Swingarm_Y": -10,
+      "Frame_Shock_Top_X": -200,
+      "Frame_Shock_Top_Y": 300,
+      "Linkarm_Length": 92
+    }
+  },
+  "suzuki-gsx8r-stock": {
+    "name": "Suzuki GSX-8R Stock Linkage",
+    "manufacturer": "Suzuki",
+    "source": "PLACEHOLDER — replace with measured coords",
+    "specs": {
+      "Linkage_Mode": "pro-link",
+      "Frame_Rocker_Pivot_X": -50,
+      "Frame_Rocker_Pivot_Y": 80,
+      "Rocker_To_Shock_X": -65,
+      "Rocker_To_Shock_Y": 100,
+      "Rocker_To_Drag_X": -45,
+      "Rocker_To_Drag_Y": 60,
+      "Drag_To_Swingarm_X": 40,
+      "Drag_To_Swingarm_Y": -10,
+      "Frame_Shock_Top_X": -200,
+      "Frame_Shock_Top_Y": 300,
+      "Linkarm_Length": 128.9
+    }
+  },
+  "aprilia-rs660-stock": {
+    "name": "Aprilia RS 660 Stock Linkage",
+    "manufacturer": "Aprilia",
+    "source": "PLACEHOLDER — replace with measured coords",
+    "specs": {
+      "Linkage_Mode": "pro-link",
+      "Frame_Rocker_Pivot_X": -50,
+      "Frame_Rocker_Pivot_Y": 80,
+      "Rocker_To_Shock_X": -65,
+      "Rocker_To_Shock_Y": 100,
+      "Rocker_To_Drag_X": -45,
+      "Rocker_To_Drag_Y": 60,
+      "Drag_To_Swingarm_X": 40,
+      "Drag_To_Swingarm_Y": -10,
+      "Frame_Shock_Top_X": -200,
+      "Frame_Shock_Top_Y": 300,
+      "Linkarm_Length": 0
+    }
+  }
+}

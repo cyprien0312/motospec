@@ -81,7 +81,7 @@ test('Trail_Static = (Rf · sin(Rake) − O) / cos(Rake)', () => {
   // Expected Trail = (308·sin(24°) − 30) / cos(24°) ≈ 104.291 mm (hand-computed once).
   // Pinning to a precomputed constant — not re-derived from the formula —
   // catches sin/cos swap, sign error, missing D2R conversion.
-  const inputs = { ...defaultValues(), Rake_Static: 24, Rf: 308, O: 30 };
+  const inputs = { ...defaultValues(), Rake_Static: 24, Rf: 308, Yoke_Offset: 30 };
   const out = computeAll(inputs);
   assert.ok(Math.abs(out.Trail_Static - 104.291) < 1e-3,
     `Trail_Static=${out.Trail_Static}, expected ≈ 104.291`);

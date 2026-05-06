@@ -1,0 +1,35 @@
+{
+  "ya-589": {
+    "name": "KYB YA 589",
+    "manufacturer": "KYB",
+    "specs": {
+      "Shock_Length": 310,
+      "Rear_Spring_Rate": 110,
+      "Rear_Spring_Preload": 14,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
+    }
+  },
+  "showa-gsx8r": {
+    "name": "Showa (GSX-8R stock)",
+    "manufacturer": "Showa",
+    "specs": {
+      "Shock_Length": 309.6,
+      "Rear_Spring_Rate": 135,
+      "Rear_Spring_Preload": 15,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
+    }
+  },
+  "ap660": {
+    "name": "Aprilia AP660",
+    "manufacturer": "Aprilia",
+    "specs": {
+      "Shock_Length": 309,
+      "Rear_Spring_Rate": 160,
+      "Rear_Spring_Preload": 7,
+      "Rear_Topout_Rate": 0,
+      "Rear_Topout_Length": 0
+    }
+  }
+}

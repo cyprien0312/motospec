@@ -1,0 +1,35 @@
+{
+  "fgk242": {
+    "name": "KYB FGK242",
+    "manufacturer": "KYB",
+    "specs": {
+      "Front_Spring_Rate": 9.0,
+      "Front_Spring_Preload": 10.0,
+      "Front_Oil_Level": 170.0,
+      "Front_Topout_Rate": 4.0,
+      "Front_Topout_Length": 40.0
+    }
+  },
+  "showa-gsx8r": {
+    "name": "Showa (GSX-8R stock)",
+    "manufacturer": "Showa",
+    "specs": {
+      "Front_Spring_Rate": 8.5,
+      "Front_Spring_Preload": 10.0,
+      "Front_Oil_Level": 180.0,
+      "Front_Topout_Rate": 4.0,
+      "Front_Topout_Length": 40.0
+    }
+  },
+  "fl-23030": {
+    "name": "Andreani FL 23030",
+    "manufacturer": "Andreani",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 5.0,
+      "Front_Oil_Level": 125.0,
+      "Front_Topout_Rate": 3.5,
+      "Front_Topout_Length": 40.0
+    }
+  }
+}

@@ -5,21 +5,20 @@
 
 import { computeAll, INPUT_META, defaultValues } from './formulas.js';
 import { REFERENCE_BIKES } from './reference-bikes.js';
+import { CATALOGS } from './catalog.js';
 
-// Map CSV "RESULTS" row → key name used in REFERENCE_BIKES expected blocks
-// AND the corresponding computed id in P (or null if not yet computed).
-// NOTE: the RESULTS group is rendered in a sticky table at the top of the
-// page by renderDataTable(). Its position in this array doesn't matter —
-// the renderer pulls it out by header name. We keep it last so the data
-// definition reads naturally (inputs flow into results).
+// Rows tagged with `component: 'fork' | 'shock' | …` render as a
+// <select> sourced from the matching catalog. Rows tagged with `input:`
+// remain editable number inputs. The RESULTS group is rendered as
+// computed read-only cells.
 export const ROW_GROUPS = [
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
-    { spec: 'Clamp/Yoke Name',                                      spec_zh: '三星台名称',           profile: 'clamp_yoke_name' },
+    { spec: 'Clamp/Yoke',                                           spec_zh: '三星台',               component: 'clamp' },
     { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移 (mm)',      input: 'Yoke_Offset' },
     { spec: 'Steering Axis Angle (degrees)',                        spec_zh: '转向轴角 (度)',        literal: '0.00 deg' },
-    { spec: 'Steering Axis Offset (mm)',                            spec_zh: '转向轴偏移 (mm)',      literal: '0.0 mm' },
+    { spec: 'Total Steering Offset (mm)',                           spec_zh: '总偏移量 O (mm)',      computed: 'O' },
     { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position' },
-    { spec: 'Fork Name',                                            spec_zh: '前叉名称',             profile: 'fork_name' },
+    { spec: 'Fork',                                                 spec_zh: '前叉',                 component: 'fork' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Front_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Front_Spring_Preload' },
     { spec: 'Oil Level (mm)',                                       spec_zh: '油位 (mm)',            input: 'Front_Oil_Level' },
@@ -27,21 +26,21 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Front_Topout_Length' },
   ]},
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
-    { spec: 'Swingarm Name',                                        spec_zh: '摇臂名称',             profile: 'swingarm_name' },
+    { spec: 'Swingarm',                                             spec_zh: '摇臂',                 component: 'swingarm' },
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '避震Clevis车高 (mm)',  input: 'Shock_Clevis_RHA' },
-    { spec: 'Shock Name',                                           spec_zh: '避震名称',             profile: 'shock_name' },
+    { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
     { spec: 'Shock Length (mm)',                                    spec_zh: '避震长度 (mm)',        input: 'Shock_Length' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Rear_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Rear_Spring_Preload' },
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Rear_Topout_Rate' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Rear_Topout_Length' },
-    { spec: 'Link Name',                                            spec_zh: '连杆名称',             profile: 'link_name' },
+    { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
     { spec: 'Linkarm Length (mm)',                                  spec_zh: '连杆臂长度 (mm)',      input: 'Linkarm_Length' },
   ]},
   { header: 'TIRES', header_zh: '轮胎', rows: [
-    { spec: 'Front Tire Name',                                      spec_zh: '前胎',                profile: 'front_tire' },
-    { spec: 'Rear Tire Name',                                       spec_zh: '后胎',                profile: 'rear_tire' },
+    { spec: 'Front Tire',                                           spec_zh: '前胎',                 component: 'front_tire' },
+    { spec: 'Rear Tire',                                            spec_zh: '后胎',                 component: 'rear_tire' },
   ]},
   { header: 'SPROCKETS', header_zh: '链轮', rows: [
     { spec: 'Front Sprocket',                                       spec_zh: '前链轮',              input: 'Front_Sprocket' },
@@ -73,7 +72,6 @@ export const ROW_GROUPS = [
   ]},
 ];
 
-// Status badge text per language. Hover tooltip explains what's missing.
 const STATUS_BADGE = {
   pending: { en: 'PENDING',  zh: '待实现',     title_en: 'Formula not yet implemented (Phase D research)', title_zh: '公式尚未实现（待 Phase D 研究）' },
   coords:  { en: 'NEEDS COORDS', zh: '需真实坐标', title_en: 'Needs real linkage coordinates — uses placeholder values until measured',  title_zh: '需要真实连杆坐标 — 在用户测量前使用占位值' },
@@ -82,11 +80,19 @@ const STATUS_BADGE = {
 
 const DASH = '—';
 
-// Profile fields that get datalist-backed inputs
-export const PROFILE_FIELDS = [
-  'clamp_yoke_name', 'fork_name', 'swingarm_name', 'shock_name',
-  'link_name', 'front_tire', 'rear_tire',
-];
+// component bike-key → catalog name
+const COMPONENT_TO_CATALOG = {
+  clamp: 'clamps',
+  fork: 'forks',
+  shock: 'shocks',
+  swingarm: 'swingarms',
+  linkage: 'linkages',
+  front_tire: 'tires',
+  rear_tire: 'tires',
+};
+
+// All component keys appearing on bike rows (for tests / introspection).
+export const COMPONENT_FIELDS = Object.keys(COMPONENT_TO_CATALOG);
 
 export const PRESET_VALUES = {
   sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0  },
@@ -111,7 +117,22 @@ function escapeHtml(s) {
   })[c]);
 }
 
-// Build initial state.bikes from REFERENCE_BIKES
+// Filter a rear-tire catalog to entries that look like rear tires (and
+// vice-versa) when an `axis` field is present. Falls back to all entries
+// for catalogs without an axis tag.
+function catalogEntriesFor(componentKey) {
+  const catalogName = COMPONENT_TO_CATALOG[componentKey];
+  const catalog = CATALOGS[catalogName] || {};
+  const isTire = componentKey === 'front_tire' || componentKey === 'rear_tire';
+  const wantAxis = componentKey === 'front_tire' ? 'front' :
+                   componentKey === 'rear_tire'  ? 'rear'  : null;
+  return Object.entries(catalog).filter(([_, e]) => {
+    if (!isTire) return true;
+    if (!e.axis) return true;
+    return e.axis === wantAxis;
+  });
+}
+
 export function defaultBikes() {
   const presetByIndex = ['sag', 'braking', 'mid_corner'];
   return REFERENCE_BIKES.map((b, i) => {
@@ -119,33 +140,14 @@ export function defaultBikes() {
     const values = { ...baseValues, ...(b.inputs || {}) };
     const presetName = presetByIndex[i] || 'sag';
     Object.assign(values, PRESET_VALUES[presetName]);
-    const profile = {
-      clamp_yoke_name: b.fork_name || '',
-      fork_name: b.fork_name || '',
-      swingarm_name: b.swingarm_name || '',
-      shock_name: b.shock_name || '',
-      link_name: b.link_name || '',
-      front_tire: b.front_tire || '',
-      rear_tire: b.rear_tire || '',
-    };
     return {
       id: `col-${i}`,
       name: b.name,
       values,
-      profile,
+      components: { ...(b.components || {}) },
       preset: presetName,
     };
   });
-}
-
-// Union of profile-field values across REFERENCE_BIKES, for datalist suggestions
-export function profileOptions(field) {
-  const opts = new Set();
-  for (const b of REFERENCE_BIKES) {
-    const v = b[field];
-    if (v != null && v !== '') opts.add(v);
-  }
-  return [...opts];
 }
 
 function inputCell(bikeIdx, key, value) {
@@ -157,9 +159,14 @@ function inputCell(bikeIdx, key, value) {
   return `<td><input type="number" class="dt-input" value="${v}" step="${step}"${minAttr}${maxAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
 }
 
-function profileCell(bikeIdx, field, value) {
-  const listId = `dt-options-${field}`;
-  return `<td><input type="text" class="dt-input" list="${listId}" value="${escapeHtml(value || '')}" onchange="setBikeProfile(${bikeIdx}, '${field}', this.value)"></td>`;
+function componentCell(bikeIdx, componentKey, currentId) {
+  const entries = catalogEntriesFor(componentKey);
+  const optionsHtml = entries.map(([id, entry]) => {
+    const sel = id === currentId ? ' selected' : '';
+    const label = entry.name || id;
+    return `<option value="${escapeHtml(id)}"${sel}>${escapeHtml(label)}</option>`;
+  }).join('');
+  return `<td><select class="dt-input" onchange="setBikeComponent(${bikeIdx}, '${componentKey}', this.value)">${optionsHtml}</select></td>`;
 }
 
 function presetCell(bikeIdx, current, lang) {
@@ -186,16 +193,8 @@ export function renderDataTable(state) {
     ? state.bikes
     : defaultBikes();
 
-  // Pre-compute outputs per bike
   const outs = bikes.map(b => computeAll({ ...b.values }));
 
-  // Build datalists once
-  const datalists = PROFILE_FIELDS.map(f => {
-    const opts = profileOptions(f).map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
-    return `<datalist id="dt-options-${f}">${opts}</datalist>`;
-  }).join('');
-
-  // Header row: editable bike-name inputs
   const bikeHeaders = bikes.map((b, i) =>
     `<th><input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)"></th>`
   ).join('');
@@ -221,8 +220,8 @@ export function renderDataTable(state) {
           cells += literalCell(row.literal);
         } else if (row.preset) {
           cells += presetCell(i, b.preset || 'custom', lang);
-        } else if (row.profile) {
-          cells += profileCell(i, row.profile, b.profile?.[row.profile]);
+        } else if (row.component) {
+          cells += componentCell(i, row.component, b.components?.[row.component]);
         } else if (row.input) {
           cells += inputCell(i, row.input, b.values?.[row.input]);
         } else if (row.derivedFrom) {
@@ -239,7 +238,6 @@ export function renderDataTable(state) {
 
   return `
     <div class="dt-wrap">
-      ${datalists}
       <table class="dt dt-compact">
         <thead>
           <tr>
