@@ -9,14 +9,22 @@ import { computeAll, INPUT_META } from './formulas.js';
 
 // 5 linkage points the user measures on a real bike. Origin is the
 // swingarm pivot bolt; +X forward (toward the front wheel), +Y up.
+//
+// Two of the five points have a different physical meaning in Pro-Link
+// mode (rocker rides on the swingarm instead of the frame). The mode-
+// dependent labels are stored in `*_pro` keys and selected at render time.
 export const LINKAGE_POINTS = [
   {
     key: 'frame_rocker_pivot',
     label_zh: '摇臂枢轴在车架上的位置',
     label_en: 'Frame Rocker Pivot',
+    label_pro_zh: '摇臂枢轴（在平叉上）',
+    label_pro_en: 'Rocker Pivot (on swingarm)',
     xKey: 'Frame_Rocker_Pivot_X', yKey: 'Frame_Rocker_Pivot_Y',
     desc_zh: '从摇臂枢轴量到车架上摇臂转点的距离（前为正、上为正）',
     desc_en: "From swingarm pivot bolt to the rocker arm's frame-side pivot bolt (X forward, Y up)",
+    desc_pro_zh: '从摇臂枢轴量到摇臂转点的位置；该点固定在平叉上、随平叉一起运动。',
+    desc_pro_en: "From swingarm pivot to the rocker pivot bolt — this bolt sits on the SWINGARM and moves with it.",
   },
   {
     key: 'rocker_to_shock',
@@ -38,9 +46,13 @@ export const LINKAGE_POINTS = [
     key: 'drag_to_swingarm',
     label_zh: '拉杆与摇臂连接点',
     label_en: 'Drag-to-Swingarm',
+    label_pro_zh: '拉杆与车架固定端',
+    label_pro_en: 'Drag-to-Frame Anchor',
     xKey: 'Drag_To_Swingarm_X', yKey: 'Drag_To_Swingarm_Y',
     desc_zh: '从摇臂枢轴量到拉杆与摇臂相连的螺栓中心（点位于摇臂上）',
     desc_en: 'From swingarm pivot to the bolt where the drag link meets the swingarm (this point lives on the swingarm)',
+    desc_pro_zh: '从摇臂枢轴量到拉杆固定在车架上的那一端（绊马索的"固定钩"，不随平叉运动）。',
+    desc_pro_en: 'From swingarm pivot to the FRAME-fixed end of the tie rod (the "trip-wire" anchor that does NOT move with the swingarm).',
   },
   {
     key: 'frame_shock_top',
@@ -85,6 +97,11 @@ const UI = {
     units: 'mm',
     x_label: 'X (前/后)',
     y_label: 'Y (上/下)',
+    mode_title: '连杆型式',
+    mode_linked: '联动式（R7 / RS660）',
+    mode_pro:    'Pro-Link（本田）',
+    mode_desc_linked: '摇臂三角块固定在车架上，平叉通过一根活动拉杆去拨动它。',
+    mode_desc_pro:    '摇臂骑在平叉上、随平叉一起运动；车架底部伸出一根固定拉杆，平叉抬起时把它绊住、迫使其旋转。',
   },
   en: {
     nav: '🔧 Linkage Setup',
@@ -103,6 +120,11 @@ const UI = {
     reset: '↺ Reset to placeholder',
     units: 'mm',
     x_label: 'X (fwd/back)',
+    mode_title: 'Linkage Type',
+    mode_linked: 'Linked (R7 / RS660)',
+    mode_pro:    'Pro-Link (Honda)',
+    mode_desc_linked: 'Rocker triangle is fixed to the frame; the swingarm drives it through a moving drag/pull link.',
+    mode_desc_pro:    'Rocker rides on the swingarm and moves with it; a frame-anchored tie rod "trips" the rocker as the swingarm rises, forcing it to rotate.',
     y_label: 'Y (up/down)',
   },
 };
@@ -268,9 +290,14 @@ function renderTopologySVG(values) {
   `;
 }
 
-function renderInputPair(p, values, lang, str) {
-  const label = lang === 'en' ? p.label_en : p.label_zh;
-  const desc  = lang === 'en' ? p.desc_en  : p.desc_zh;
+function renderInputPair(p, values, lang, str, mode) {
+  const pro = mode === 'pro-link';
+  const label = pro
+    ? (lang === 'en' ? (p.label_pro_en || p.label_en) : (p.label_pro_zh || p.label_zh))
+    : (lang === 'en' ? p.label_en : p.label_zh);
+  const desc  = pro
+    ? (lang === 'en' ? (p.desc_pro_en  || p.desc_en)  : (p.desc_pro_zh  || p.desc_zh))
+    : (lang === 'en' ? p.desc_en  : p.desc_zh);
   const xMeta = INPUT_META[p.xKey] || { min: -400, max: 400, step: 1 };
   const yMeta = INPUT_META[p.yKey] || { min: -400, max: 400, step: 1 };
   const xVal = values[p.xKey];
@@ -321,7 +348,21 @@ export function renderLinkageSetup(state) {
     </div>
   `).join('');
 
-  const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str)).join('');
+  const mode = values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
+  const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str, mode)).join('');
+
+  const modeToggle = `
+    <div class="linkage-mode-card">
+      <div class="linkage-mode-title">${escapeHtml(str.mode_title)}</div>
+      <div class="linkage-mode-row">
+        <button class="linkage-mode-btn ${mode === 'linked'   ? 'active' : ''}"
+                onclick="setLinkageMode('linked')">${escapeHtml(str.mode_linked)}</button>
+        <button class="linkage-mode-btn ${mode === 'pro-link' ? 'active' : ''}"
+                onclick="setLinkageMode('pro-link')">${escapeHtml(str.mode_pro)}</button>
+      </div>
+      <div class="linkage-mode-desc">${escapeHtml(mode === 'pro-link' ? str.mode_desc_pro : str.mode_desc_linked)}</div>
+    </div>
+  `;
 
   return `
     <div class="linkage-page">
@@ -330,6 +371,8 @@ export function renderLinkageSetup(state) {
         <span class="label-zh">${escapeHtml(str.kicker)}</span>
       </div>
       <div class="desc">${escapeHtml(str.desc)}</div>
+
+      ${modeToggle}
 
       <div class="section-title">${escapeHtml(str.readouts)}</div>
       <div class="linkage-readout-strip">${readoutHTML}</div>

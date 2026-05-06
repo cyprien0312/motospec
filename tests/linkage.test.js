@@ -57,3 +57,27 @@ test('rearRideHeight is signed negative for swingarm below pivot', () => {
   const h = rearRideHeight(SYNTHETIC, 0, 580, 14);
   assert.ok(h < 0, `expected axle below pivot, got ${h}`);
 });
+
+test('pro-link mode: closure residual zero at static (β=0)', () => {
+  const cfg = { ...SYNTHETIC, Linkage_Mode: 'pro-link' };
+  const { residual } = closeFourBar(cfg, 0);
+  assert.ok(Math.abs(residual) < 1e-6, `residual ${residual}`);
+});
+
+test('pro-link mode: closure is continuous under small swingarm rotation', () => {
+  const cfg = { ...SYNTHETIC, Linkage_Mode: 'pro-link' };
+  const a = closeFourBar(cfg, 0).deltaPhiDeg;
+  const b = closeFourBar(cfg, 1).deltaPhiDeg;
+  assert.ok(Math.abs(a - b) < 5, `discontinuity: 0deg→${a}, 1deg→${b}`);
+});
+
+test('pro-link vs linked: kinematics differ for non-zero swingarm rotation', () => {
+  const cfgLinked = { ...SYNTHETIC, Linkage_Mode: 'linked' };
+  const cfgPro    = { ...SYNTHETIC, Linkage_Mode: 'pro-link' };
+  // At β=0 both modes share the static config so shock length must match.
+  assert.ok(Math.abs(shockLength(cfgLinked, 0) - shockLength(cfgPro, 0)) < 1e-6);
+  // Under β=10° the two modes must produce a different shock length —
+  // otherwise the mode dispatch is a no-op.
+  const dL = shockLength(cfgLinked, 10) - shockLength(cfgPro, 10);
+  assert.ok(Math.abs(dL) > 0.1, `expected modes to differ, got Δ=${dL}`);
+});

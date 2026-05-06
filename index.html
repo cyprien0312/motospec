@@ -356,6 +356,23 @@ table.dt td.dt-readonly span {
 }
 .linkage-guide summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .linkage-guide ul { margin: 10px 0 4px 18px; color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.linkage-mode-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 14px; margin: 10px 0 6px 0;
+}
+.linkage-mode-title { font-size: 12px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 6px; }
+.linkage-mode-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.linkage-mode-btn {
+  background: var(--formula-bg); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.linkage-mode-btn:hover { color: var(--text); border-color: var(--accent); }
+.linkage-mode-btn.active {
+  background: rgba(78,161,255,0.15); color: var(--accent);
+  border-color: var(--accent);
+}
+.linkage-mode-desc { color: var(--text-dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -974,6 +991,13 @@ function setInputValue(id, raw) {
   // re-render the page off-DOM, then swap only the SVG and the live-readouts strip.
   if (stack[stack.length - 1] === '__linkage') patchLinkageView();
 }
+function setLinkageMode(mode) {
+  if (mode !== 'linked' && mode !== 'pro-link') return;
+  state.values.Linkage_Mode = mode;
+  saveState();
+  clearCache();
+  renderContent(); // mode change swaps labels + button-active state, full redraw is fine
+}
 function patchLinkageView() {
   const content = document.getElementById('content');
   if (!content) return;
@@ -1280,7 +1304,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
 
 render();
 </script>

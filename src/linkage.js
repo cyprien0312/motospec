@@ -12,10 +12,22 @@
 //   Rocker:      rotates Δφ about (Px,Py); carries D and the shock-end S.
 //
 // Closure: |frame_pivot + R(Δφ)·(D0−frame_pivot) − R(β)·T0| = L_static.
+//
+// Two linkage modes are supported (cfg.Linkage_Mode):
+//   'linked'   — Rocker pivots on the FRAME; drag/pull link runs to the
+//                SWINGARM (e.g. Yamaha R7, Aprilia RS660, generic Unitrack).
+//                Default if Linkage_Mode is unset.
+//   'pro-link' — Rocker rides on the SWINGARM; drag link is anchored to a
+//                FIXED point on the FRAME and "trips" the rocker as the
+//                swingarm rises (Honda Pro-Link family).
+// In Pro-Link, working in the swingarm's rotating frame is exactly the
+// linked-mode closure with β negated (frame-fixed points appear to rotate
+// the opposite way), so we share one solver and just flip the sign.
 
 const D2R = Math.PI / 180;
 
 export function closeFourBar(cfg, swingarmDeltaDeg) {
+  const mode = cfg.Linkage_Mode || 'linked';
   const beta = swingarmDeltaDeg * D2R;
   const Px = cfg.Frame_Rocker_Pivot_X;
   const Py = cfg.Frame_Rocker_Pivot_Y;
@@ -25,8 +37,11 @@ export function closeFourBar(cfg, swingarmDeltaDeg) {
   const Dx0 = cfg.Rocker_To_Drag_X - Px;
   const Dy0 = cfg.Rocker_To_Drag_Y - Py;
 
-  // Swingarm-side drag attach after rotation by β
-  const cb = Math.cos(beta), sb = Math.sin(beta);
+  // In linked mode T sits on the swingarm and rotates by R(β).
+  // In pro-link mode T is frame-fixed; in the swingarm's rotating frame
+  // it appears to rotate by R(−β).
+  const effBeta = mode === 'pro-link' ? -beta : beta;
+  const cb = Math.cos(effBeta), sb = Math.sin(effBeta);
   const Tx = Tx0 * cb - Ty0 * sb;
   const Ty = Tx0 * sb + Ty0 * cb;
 
@@ -73,7 +88,16 @@ export function rockerShockEnd(cfg, swingarmDeltaDeg) {
 
 export function shockLength(cfg, swingarmDeltaDeg) {
   const e = rockerShockEnd(cfg, swingarmDeltaDeg);
-  return Math.hypot(e.x - cfg.Frame_Shock_Top_X, e.y - cfg.Frame_Shock_Top_Y);
+  // In pro-link mode rockerShockEnd lives in the swingarm's rotating frame,
+  // so transform the frame-fixed shock-top into that same frame to compare.
+  let topX = cfg.Frame_Shock_Top_X, topY = cfg.Frame_Shock_Top_Y;
+  if ((cfg.Linkage_Mode || 'linked') === 'pro-link') {
+    const beta = swingarmDeltaDeg * D2R;
+    const c = Math.cos(beta), s = Math.sin(beta);
+    topX =  cfg.Frame_Shock_Top_X * c + cfg.Frame_Shock_Top_Y * s;
+    topY = -cfg.Frame_Shock_Top_X * s + cfg.Frame_Shock_Top_Y * c;
+  }
+  return Math.hypot(e.x - topX, e.y - topY);
 }
 
 // Rear wheel y-coordinate (positive down) relative to swingarm pivot.
