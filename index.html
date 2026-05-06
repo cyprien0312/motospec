@@ -204,42 +204,22 @@
     main { padding: 20px 16px; }
     .input-control { grid-template-columns: 1fr; }
   }
-/* Data Table — split into two columns: editable settings on the left,
-   read-only RESULTS pinned on the right. */
+/* Data Table */
 .dt-wrap { overflow-x: auto; max-width: 100%; }
-.dt-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, 520px);
-  gap: 18px;
-  align-items: start;
-}
-@media (max-width: 1100px) {
-  .dt-grid { grid-template-columns: minmax(0, 1fr); }
-}
-.dt-settings-col { min-width: 0; overflow-x: auto; }
-.dt-results-col {
-  position: sticky;
-  top: 12px;
-  align-self: start;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  background: var(--panel);
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  padding: 4px;
-}
-.dt-results-col table.dt { border: none; }
-.dt-col-spec { width: 220px; }
-.dt-col-bike { width: auto; }
 table.dt {
   border-collapse: collapse;
   width: 100%;
-  table-layout: fixed;
-  font-size: 13px;
+  font-size: 12px;
   background: var(--panel);
   color: var(--text);
 }
+/* Compact mode: squash vertical space so the whole table fits on one screen. */
+table.dt.dt-compact th, table.dt.dt-compact td { padding: 2px 6px; line-height: 1.25; }
+table.dt.dt-compact .dt-input,
+table.dt.dt-compact .dt-bike-name,
+table.dt.dt-compact .dt-readonly span { padding: 1px 4px; font-size: 12px; }
+table.dt.dt-compact .dt-status { font-size: 8px; padding: 0 4px; margin-left: 4px; }
+table.dt.dt-compact tr.dt-group th { padding: 3px 6px; font-size: 11px; letter-spacing: 0.4px; }
 table.dt th, table.dt td {
   border: 1px solid var(--border);
   padding: 6px 10px;

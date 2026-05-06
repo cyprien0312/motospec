@@ -201,12 +201,12 @@ export function renderDataTable(state) {
   ).join('');
   const specHeader = lang === 'en' ? 'Parameter' : '参数';
 
-  // Render the rows of one group → tbody HTML.
-  const renderGroup = (group) => {
+  let body = '';
+  for (const group of ROW_GROUPS) {
     const groupLabel = lang === 'en'
       ? group.header
       : `${group.header} (${group.header_zh})`;
-    let html = `<tr class="dt-group"><th colspan="4">${escapeHtml(groupLabel)}</th></tr>`;
+    body += `<tr class="dt-group"><th colspan="4">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
       const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
       const badge = row.status && STATUS_BADGE[row.status]
@@ -233,53 +233,24 @@ export function renderDataTable(state) {
           cells += readonlyCell(DASH);
         }
       }
-      html += `<tr><th class="dt-spec">${label}</th>${cells}</tr>`;
+      body += `<tr><th class="dt-spec">${label}</th>${cells}</tr>`;
     }
-    return html;
-  };
-
-  // Split RESULTS into its own sticky table at the top so users always see
-  // the computed values while scrolling through settings below.
-  const resultsGroup = ROW_GROUPS.find(g => g.header === 'RESULTS');
-  const otherGroups  = ROW_GROUPS.filter(g => g.header !== 'RESULTS');
-
-  // Identical colgroup so both tables align column-for-column.
-  const colgroup = `
-    <colgroup>
-      <col class="dt-col-spec"/>
-      ${bikes.map(() => '<col class="dt-col-bike"/>').join('')}
-    </colgroup>
-  `;
-  const headRow = `
-    <tr>
-      <th class="dt-spec">${escapeHtml(specHeader)}</th>
-      ${bikeHeaders}
-    </tr>
-  `;
-
-  const resultsTable = resultsGroup ? `
-    <table class="dt dt-results-table">
-      ${colgroup}
-      <thead>${headRow}</thead>
-      <tbody>${renderGroup(resultsGroup)}</tbody>
-    </table>
-  ` : '';
-
-  const settingsBody = otherGroups.map(renderGroup).join('');
+  }
 
   return `
-    <div class="dt-grid">
+    <div class="dt-wrap">
       ${datalists}
-      <div class="dt-settings-col">
-        <table class="dt dt-settings-table">
-          ${colgroup}
-          <thead>${headRow}</thead>
-          <tbody>${settingsBody}</tbody>
-        </table>
-      </div>
-      <aside class="dt-results-col">
-        ${resultsTable}
-      </aside>
+      <table class="dt dt-compact">
+        <thead>
+          <tr>
+            <th class="dt-spec">${escapeHtml(specHeader)}</th>
+            ${bikeHeaders}
+          </tr>
+        </thead>
+        <tbody>
+          ${body}
+        </tbody>
+      </table>
     </div>
   `;
 }
