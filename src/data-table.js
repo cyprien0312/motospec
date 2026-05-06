@@ -268,15 +268,18 @@ export function renderDataTable(state) {
   const settingsBody = otherGroups.map(renderGroup).join('');
 
   return `
-    <div class="dt-wrap">
+    <div class="dt-grid">
       ${datalists}
-      <div class="dt-results-sticky">
-        ${resultsTable}
+      <div class="dt-settings-col">
+        <table class="dt dt-settings-table">
+          ${colgroup}
+          <thead>${headRow}</thead>
+          <tbody>${settingsBody}</tbody>
+        </table>
       </div>
-      <table class="dt dt-settings-table">
-        ${colgroup}
-        <tbody>${settingsBody}</tbody>
-      </table>
+      <aside class="dt-results-col">
+        ${resultsTable}
+      </aside>
     </div>
   `;
 }

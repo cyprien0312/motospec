@@ -204,9 +204,33 @@
     main { padding: 20px 16px; }
     .input-control { grid-template-columns: 1fr; }
   }
-/* Data Table */
+/* Data Table — split into two columns: editable settings on the left,
+   read-only RESULTS pinned on the right. */
 .dt-wrap { overflow-x: auto; max-width: 100%; }
-.dt-col-spec { width: 280px; }
+.dt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 520px);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .dt-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.dt-settings-col { min-width: 0; overflow-x: auto; }
+.dt-results-col {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+}
+.dt-results-col table.dt { border: none; }
+.dt-col-spec { width: 220px; }
 .dt-col-bike { width: auto; }
 table.dt {
   border-collapse: collapse;
@@ -216,16 +240,6 @@ table.dt {
   background: var(--panel);
   color: var(--text);
 }
-.dt-results-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--panel);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  margin-bottom: 14px;
-  border-bottom: 2px solid var(--accent);
-}
-.dt-results-sticky table.dt { margin: 0; }
 table.dt th, table.dt td {
   border: 1px solid var(--border);
   padding: 6px 10px;
