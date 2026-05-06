@@ -918,6 +918,9 @@ function setInputValue(id, raw) {
   clearCache();
   syncControls(id);
   updateLiveValues();
+  // Re-render the content area when on a page whose SVG/diagram depends on the input
+  // (linkage-setup plots the 10 coord inputs as an SVG topology — needs full redraw).
+  if (stack[stack.length - 1] === '__linkage') renderContent();
 }
 function syncControls(id) {
   document.querySelectorAll(`[data-input="${id}"]`).forEach(el => {
