@@ -207,6 +207,108 @@ export const P = {
   rear_weight_dist: { name:'rear_weight_dist', label:'后轮静态重量分配', unit:'—', type:'input',
     desc:'静止时后轮承担的总重量比例。= 1 − front_weight_dist。', source:'称重台',
     typical:'0.45 – 0.50' },
+
+  // ===== 新增输入参数 (Phase A: linkage / spring / drivetrain / dynamic) =====
+  Yoke_Offset:          { name:'Yoke_Offset',          label:'三星台偏移量', unit:'mm', type:'input',
+    desc:'三星台联板偏移量。', source:'三星台规格', typical:'25 – 40 mm' },
+  Fork_Position:        { name:'Fork_Position',        label:'前叉伸出量', unit:'mm', type:'input',
+    desc:'前叉管伸出三星台的长度。', source:'实测', typical:'0 – 15 mm' },
+  Front_Spring_Rate:    { name:'Front_Spring_Rate',    label:'前叉弹簧刚度', unit:'N/mm', type:'input',
+    desc:'前叉主弹簧刚度。', source:'弹簧规格', typical:'8.0 – 10.0 N/mm' },
+  Front_Spring_Preload: { name:'Front_Spring_Preload', label:'前叉弹簧预压', unit:'mm', type:'input',
+    desc:'前叉弹簧预紧量。', source:'调校设定', typical:'5 – 15 mm' },
+  Front_Oil_Level:      { name:'Front_Oil_Level',      label:'前叉油位', unit:'mm', type:'input',
+    desc:'前叉油位高度（从顶部测量）。', source:'调校设定', typical:'100 – 200 mm' },
+  Front_Topout_Rate:    { name:'Front_Topout_Rate',    label:'前叉回顶弹簧刚度', unit:'N/mm', type:'input',
+    desc:'前叉回顶弹簧刚度。', source:'弹簧规格', typical:'3.0 – 5.0 N/mm' },
+  Front_Topout_Length:  { name:'Front_Topout_Length',  label:'前叉回顶弹簧长度', unit:'mm', type:'input',
+    desc:'前叉回顶弹簧有效长度。', source:'弹簧规格', typical:'30 – 50 mm' },
+  Swingarm_Length:      { name:'Swingarm_Length',      label:'摇臂长度', unit:'mm', type:'input',
+    desc:'摇臂枢轴到后轮中心的距离。', source:'车架手册', typical:'520 – 600 mm' },
+  Shock_Clevis_RHA:     { name:'Shock_Clevis_RHA',     label:'后避震Clevis调整', unit:'mm', type:'input',
+    desc:'后避震 Clevis 车高调整量。', source:'调校设定', typical:'-5 – 5 mm' },
+  Shock_Length:         { name:'Shock_Length',         label:'后避震长度', unit:'mm', type:'input',
+    desc:'后避震眼对眼总长。', source:'避震规格', typical:'290 – 320 mm' },
+  Rear_Spring_Rate:     { name:'Rear_Spring_Rate',     label:'后避震弹簧刚度', unit:'N/mm', type:'input',
+    desc:'后避震主弹簧刚度。', source:'弹簧规格', typical:'90 – 180 N/mm' },
+  Rear_Spring_Preload:  { name:'Rear_Spring_Preload',  label:'后避震弹簧预压', unit:'mm', type:'input',
+    desc:'后避震弹簧预紧量。', source:'调校设定', typical:'5 – 20 mm' },
+  Rear_Topout_Rate:     { name:'Rear_Topout_Rate',     label:'后避震回顶刚度', unit:'N/mm', type:'input',
+    desc:'后避震回顶弹簧刚度。', source:'弹簧规格', typical:'0 – 200 N/mm' },
+  Rear_Topout_Length:   { name:'Rear_Topout_Length',   label:'后避震回顶长度', unit:'mm', type:'input',
+    desc:'后避震回顶弹簧有效长度。', source:'弹簧规格', typical:'0 – 15 mm' },
+  Linkarm_Length:       { name:'Linkarm_Length',       label:'连杆臂长度', unit:'mm', type:'input',
+    desc:'后悬挂连杆臂长度。', source:'车架手册', typical:'80 – 140 mm' },
+  Front_Sprocket:       { name:'Front_Sprocket',       label:'前链轮齿数', unit:'T', type:'input',
+    desc:'前链轮齿数。', source:'链轮规格', typical:'14 – 17 T' },
+  Rear_Sprocket:        { name:'Rear_Sprocket',        label:'后链轮齿数', unit:'T', type:'input',
+    desc:'后链轮齿数。', source:'链轮规格', typical:'40 – 48 T' },
+  Frame_Rocker_Pivot_X: { name:'Frame_Rocker_Pivot_X', label:'摇臂枢轴X', unit:'mm', type:'input',
+    desc:'摇臂枢轴 X 坐标 (相对车架原点)。', source:'车架几何', typical:'-100 – 0 mm' },
+  Frame_Rocker_Pivot_Y: { name:'Frame_Rocker_Pivot_Y', label:'摇臂枢轴Y', unit:'mm', type:'input',
+    desc:'摇臂枢轴 Y 坐标 (相对车架原点)。', source:'车架几何', typical:'50 – 150 mm' },
+  Rocker_To_Shock_X:    { name:'Rocker_To_Shock_X',    label:'摇臂→避震X', unit:'mm', type:'input',
+    desc:'摇臂到避震连接点 X 坐标。', source:'车架几何', typical:'-100 – 0 mm' },
+  Rocker_To_Shock_Y:    { name:'Rocker_To_Shock_Y',    label:'摇臂→避震Y', unit:'mm', type:'input',
+    desc:'摇臂到避震连接点 Y 坐标。', source:'车架几何', typical:'50 – 150 mm' },
+  Rocker_To_Drag_X:     { name:'Rocker_To_Drag_X',     label:'摇臂→拉杆X', unit:'mm', type:'input',
+    desc:'摇臂到拉杆连接点 X 坐标。', source:'车架几何', typical:'-80 – 0 mm' },
+  Rocker_To_Drag_Y:     { name:'Rocker_To_Drag_Y',     label:'摇臂→拉杆Y', unit:'mm', type:'input',
+    desc:'摇臂到拉杆连接点 Y 坐标。', source:'车架几何', typical:'30 – 100 mm' },
+  Drag_To_Swingarm_X:   { name:'Drag_To_Swingarm_X',   label:'拉杆→摇臂X', unit:'mm', type:'input',
+    desc:'拉杆到摇臂连接点 X 坐标。', source:'车架几何', typical:'0 – 80 mm' },
+  Drag_To_Swingarm_Y:   { name:'Drag_To_Swingarm_Y',   label:'拉杆→摇臂Y', unit:'mm', type:'input',
+    desc:'拉杆到摇臂连接点 Y 坐标。', source:'车架几何', typical:'-30 – 30 mm' },
+  Frame_Shock_Top_X:    { name:'Frame_Shock_Top_X',    label:'车架→避震顶X', unit:'mm', type:'input',
+    desc:'车架避震顶部连接点 X 坐标。', source:'车架几何', typical:'-250 – -100 mm' },
+  Frame_Shock_Top_Y:    { name:'Frame_Shock_Top_Y',    label:'车架→避震顶Y', unit:'mm', type:'input',
+    desc:'车架避震顶部连接点 Y 坐标。', source:'车架几何', typical:'200 – 400 mm' },
+  Lean_Angle:           { name:'Lean_Angle',           label:'倾角', unit:'deg', type:'input',
+    desc:'车辆相对垂直方向的倾角 (过弯)。', source:'IMU', typical:'0 – 60°' },
+
+  // ===== 新增计算量 (Phase A) =====
+  Final_Ratio: {
+    name:'Final_Ratio', label:'最终传动比', unit:'—', type:'intermediate',
+    desc:'后链轮 / 前链轮 齿数比。',
+    formula: [{ref:'Rear_Sprocket'}, ' / ', {ref:'Front_Sprocket'}],
+    deps: ['Front_Sprocket', 'Rear_Sprocket']
+  },
+  Motion_Ratio: {
+    name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',
+    desc:'后轮垂直位移 / 后避震行程。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
+  Progression: {
+    name:'Progression', label:'渐进性 (%)', unit:'%', type:'intermediate',
+    desc:'后悬挂全行程渐进性百分比。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
+  Rear_Ride_Height: {
+    name:'Rear_Ride_Height', label:'后部车高参考', unit:'mm', type:'intermediate',
+    desc:'后部车高参考值。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
+  Rear_Wheel_Vertical_Travel: {
+    name:'Rear_Wheel_Vertical_Travel', label:'后轮垂直行程', unit:'mm', type:'intermediate',
+    desc:'后轮的垂直位移。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
+  Rear_Wheel_Rate: {
+    name:'Rear_Wheel_Rate', label:'后轮综合刚度', unit:'N/mm', type:'channel',
+    desc:'后轮综合弹簧刚度 (轮端)。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
+  Front_Wheel_Rate: {
+    name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
+    desc:'前轮综合弹簧刚度 (轮端)。需要连杆几何 (Phase C)。',
+    formula: ['(Phase C 连杆求解)'],
+    deps: []
+  },
 };
 
 // ============================================================
@@ -234,6 +336,36 @@ export const INPUT_META = {
   C_r_aero:          { def: 0.6,   min: 0,     max: 1,     step: 0.01 },
   front_weight_dist: { def: 0.52,  min: 0.30,  max: 0.70,  step: 0.005 },
   rear_weight_dist:  { def: 0.48,  min: 0.30,  max: 0.70,  step: 0.005 },
+
+  // ===== Phase A new inputs =====
+  Yoke_Offset:          { def: 32,    min: 20,    max: 45,    step: 0.5 },
+  Fork_Position:        { def: 5,     min: 0,     max: 20,    step: 0.5 },
+  Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.1 },
+  Front_Spring_Preload: { def: 10.0,  min: 0,     max: 25,    step: 0.5 },
+  Front_Oil_Level:      { def: 170,   min: 80,    max: 220,   step: 1 },
+  Front_Topout_Rate:    { def: 4.0,   min: 0,     max: 10,    step: 0.1 },
+  Front_Topout_Length:  { def: 40,    min: 0,     max: 80,    step: 1 },
+  Swingarm_Length:      { def: 580,   min: 480,   max: 650,   step: 0.1 },
+  Shock_Clevis_RHA:     { def: 0,     min: -10,   max: 10,    step: 0.5 },
+  Shock_Length:         { def: 310,   min: 280,   max: 340,   step: 0.1 },
+  Rear_Spring_Rate:     { def: 110,   min: 70,    max: 220,   step: 1 },
+  Rear_Spring_Preload:  { def: 14,    min: 0,     max: 30,    step: 0.5 },
+  Rear_Topout_Rate:     { def: 188,   min: 0,     max: 300,   step: 1 },
+  Rear_Topout_Length:   { def: 8,     min: 0,     max: 30,    step: 0.5 },
+  Linkarm_Length:       { def: 92,    min: 0,     max: 180,   step: 0.1 },
+  Front_Sprocket:       { def: 16,    min: 12,    max: 20,    step: 1 },
+  Rear_Sprocket:        { def: 42,    min: 35,    max: 55,    step: 1 },
+  Frame_Rocker_Pivot_X: { def: -50,   min: -200,  max: 100,   step: 1 },
+  Frame_Rocker_Pivot_Y: { def: 80,    min: -50,   max: 250,   step: 1 },
+  Rocker_To_Shock_X:    { def: -65,   min: -250,  max: 100,   step: 1 },
+  Rocker_To_Shock_Y:    { def: 100,   min: -50,   max: 300,   step: 1 },
+  Rocker_To_Drag_X:     { def: -45,   min: -200,  max: 100,   step: 1 },
+  Rocker_To_Drag_Y:     { def: 60,    min: -50,   max: 200,   step: 1 },
+  Drag_To_Swingarm_X:   { def: 40,    min: -100,  max: 200,   step: 1 },
+  Drag_To_Swingarm_Y:   { def: -10,   min: -100,  max: 100,   step: 1 },
+  Frame_Shock_Top_X:    { def: -200,  min: -400,  max: 0,     step: 1 },
+  Frame_Shock_Top_Y:    { def: 300,   min: 100,   max: 500,   step: 1 },
+  Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 0.5 },
 };
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
@@ -259,6 +391,15 @@ export const CALC = {
   W_R_Static:    v => v.Mass * 9.81 * v.rear_weight_dist,
   MotoSPEC_FrontForce: v => v.W_F_Static + v.delta_W + v.F_Aero * v.C_f_aero,
   MotoSPEC_RearForce:  v => v.W_R_Static - v.delta_W + v.F_Aero * v.C_r_aero,
+
+  // Phase A: real CALC for Final_Ratio; rest are stubs returning NaN until Phase C
+  Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
+  Motion_Ratio:              v => NaN,
+  Progression:               v => NaN,
+  Rear_Ride_Height:          v => NaN,
+  Rear_Wheel_Vertical_Travel:v => NaN,
+  Rear_Wheel_Rate:           v => NaN,
+  Front_Wheel_Rate:          v => NaN,
 };
 
 // Topological order: every entry's deps appear earlier in the list
@@ -268,6 +409,10 @@ export const TOPO_ORDER = [
   'MotoSPEC_SwgarmAngl', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
+  // Phase A additions
+  'Final_Ratio',
+  'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
+  'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
 ];
 
 export function defaultValues() {

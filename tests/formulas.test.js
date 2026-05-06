@@ -34,9 +34,14 @@ test('every parameter has name, label, unit, type', () => {
   }
 });
 
-test('computeAll on defaults returns finite values for all params', () => {
+const KNOWN_STUB_NAN = new Set([
+  'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
+  'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
+]);
+test('computeAll on defaults returns finite values for all non-stub params', () => {
   const out = computeAll(defaultValues());
   for (const id in P) {
+    if (KNOWN_STUB_NAN.has(id)) continue;
     assert.ok(Number.isFinite(out[id]), `${id} = ${out[id]} not finite`);
   }
 });
@@ -85,4 +90,38 @@ test('Trail_Static = (Rf · sin(Rake) − O) / cos(Rake)', () => {
 test('Trail_Static is a channel (visible on dashboard)', () => {
   assert.equal(P.Trail_Static.type, 'channel');
 });
+
+const NEW_INPUTS = [
+  'Yoke_Offset', 'Fork_Position', 'Front_Spring_Rate', 'Front_Spring_Preload',
+  'Front_Oil_Level', 'Front_Topout_Rate', 'Front_Topout_Length',
+  'Swingarm_Length', 'Shock_Clevis_RHA', 'Shock_Length',
+  'Rear_Spring_Rate', 'Rear_Spring_Preload', 'Rear_Topout_Rate', 'Rear_Topout_Length',
+  'Linkarm_Length',
+  'Front_Sprocket', 'Rear_Sprocket',
+  'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+  'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',
+  'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
+  'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
+  'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
+  'Lean_Angle',
+];
+const NEW_COMPUTED = [
+  'Final_Ratio', 'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
+  'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
+];
+
+for (const id of NEW_INPUTS) {
+  test(`new input ${id} registered`, () => {
+    assert.ok(P[id], `${id} missing from P`);
+    assert.equal(P[id].type, 'input');
+    assert.ok(INPUT_META[id], `${id} missing INPUT_META`);
+  });
+}
+for (const id of NEW_COMPUTED) {
+  test(`new computed ${id} registered`, () => {
+    assert.ok(P[id], `${id} missing from P`);
+    assert.notEqual(P[id].type, 'input');
+    assert.equal(typeof CALC[id], 'function');
+  });
+}
 
