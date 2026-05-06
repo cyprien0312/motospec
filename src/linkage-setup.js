@@ -52,12 +52,18 @@ export const LINKAGE_POINTS = [
   },
 ];
 
+// Placeholder coords roughly representing a sport-bike pull-rod linkage
+// (R7 / GSX-8R class) viewed from the right side of the bike, using
+// swingarm pivot as origin, +X forward (toward front wheel), +Y up.
+//   - Rocker pivot sits above and slightly forward of the swingarm pivot.
+//   - Shock body leans forward, top mount high on the frame.
+//   - Drag/pull link runs forward-and-down from the rocker to the swingarm.
 export const LINKAGE_PLACEHOLDER = {
-  Frame_Rocker_Pivot_X: -50, Frame_Rocker_Pivot_Y: 80,
-  Rocker_To_Shock_X: -65,    Rocker_To_Shock_Y: 100,
-  Rocker_To_Drag_X: -45,     Rocker_To_Drag_Y: 60,
-  Drag_To_Swingarm_X: 40,    Drag_To_Swingarm_Y: -10,
-  Frame_Shock_Top_X: -200,   Frame_Shock_Top_Y: 300,
+  Frame_Rocker_Pivot_X: 30,  Frame_Rocker_Pivot_Y: 120,
+  Rocker_To_Shock_X:    10,  Rocker_To_Shock_Y:    145,
+  Rocker_To_Drag_X:     55,  Rocker_To_Drag_Y:     95,
+  Drag_To_Swingarm_X:   95,  Drag_To_Swingarm_Y:  -15,
+  Frame_Shock_Top_X:   200,  Frame_Shock_Top_Y:   480,
 };
 
 const UI = {
@@ -66,7 +72,7 @@ const UI = {
     nav_sub: '后悬挂点位测量',
     title: '连杆几何 / Linkage Setup',
     kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
-    desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。占位坐标只是为了让公式有数值，实测后图示与运动比才有意义。',
+    desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。图示按右侧视图绘制——车头朝左、+X 在屏幕上向左。占位坐标只为让公式有数值；实测后图示与运动比才有意义。',
     readouts: '实时读数（Live Readouts）',
     points_title: '5 个连杆测量点',
     diagram_title: '连杆拓扑图（侧视）',
@@ -85,7 +91,7 @@ const UI = {
     nav_sub: 'Rear suspension geometry',
     title: 'Linkage Setup',
     kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
-    desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The placeholder coords just keep the formulas numerical — the diagram and motion ratio only become meaningful once you enter real measurements.',
+    desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The diagram is a right-side view — bike faces left, so +X-forward points left on screen. Placeholder coords just keep the formulas numerical; the diagram and motion ratio only become meaningful once you enter real measurements.',
     readouts: 'Live Readouts',
     points_title: '5 Linkage Measurement Points',
     diagram_title: 'Linkage Topology (Side View)',
@@ -117,80 +123,123 @@ function fmtReadout(out, key, unit) {
 }
 
 // Build the topology SVG. The user's coords are in millimetres relative to
-// the swingarm pivot (+X forward, +Y up). We project that into a 600×400
-// SVG with the swingarm pivot at (svgX0, svgY0). SVG +Y is down so we
-// invert Y when plotting.
+// the swingarm pivot (+X forward = toward front wheel, +Y up). The diagram
+// is drawn with the bike facing LEFT (front wheel on the left), so on
+// screen +X-forward maps to −x-pixels. SVG +Y is down so we invert Y.
+// We auto-fit the bounding box of all key points so the user's coords
+// always render at a sensible scale.
 function renderTopologySVG(values) {
-  const W = 600, H = 400;
-  const svgX0 = 380; // swingarm pivot on screen — shifted right so most points (negative X) fit on the left
-  const svgY0 = 270; // and up a bit so positive-Y points (rocker, shock top) fit above
-  const scale = 0.8; // 1 mm = 0.8 px → 250 mm range maps to 200 px
+  const W = 720, H = 440;
 
   const swingarmLength = values.Swingarm_Length || 580;
-  // Rear axle in mm: along the swingarm at static angle, +X forward means rear is BEHIND pivot, so rear axle X is negative (in fact rear axle is opposite to "forward"). To keep the diagram intuitive we draw the swingarm extending backward (negative X-on-bike) — but our convention says +X is forward. So rear axle is at (−swingarmLength·cosβ, −swingarmLength·sinβ).
   const beta = (values.beta_static || 14) * Math.PI / 180;
+  // Rear axle is opposite the front wheel along the swingarm: in our
+  // +X-forward convention rear is at −swingarmLength·cosβ.
   const rearAxleMM = { x: -swingarmLength * Math.cos(beta), y: -swingarmLength * Math.sin(beta) };
 
-  // Helpers that convert a mm point to SVG coords.
-  const mm2svg = (mx, my) => ({
-    x: svgX0 + mx * scale,
-    y: svgY0 - my * scale, // invert
+  const ptsMM = {
+    pivot:    { x: 0, y: 0 },
+    rearAxle: rearAxleMM,
+    fRocker:  { x: values.Frame_Rocker_Pivot_X, y: values.Frame_Rocker_Pivot_Y },
+    rShock:   { x: values.Rocker_To_Shock_X,    y: values.Rocker_To_Shock_Y },
+    rDrag:    { x: values.Rocker_To_Drag_X,     y: values.Rocker_To_Drag_Y },
+    dSwg:     { x: values.Drag_To_Swingarm_X,   y: values.Drag_To_Swingarm_Y },
+    fShock:   { x: values.Frame_Shock_Top_X,    y: values.Frame_Shock_Top_Y },
+  };
+
+  // Auto-fit bounding box (with padding) → pick uniform scale and centre.
+  const xs = Object.values(ptsMM).map(p => p.x);
+  const ys = Object.values(ptsMM).map(p => p.y);
+  const padMM = 80;
+  const minX = Math.min(...xs) - padMM, maxX = Math.max(...xs) + padMM;
+  const minY = Math.min(...ys) - padMM * 1.2, maxY = Math.max(...ys) + padMM;
+  const margin = 40;
+  const sx = (W - margin * 2) / (maxX - minX);
+  const sy = (H - margin * 2) / (maxY - minY);
+  const scale = Math.min(sx, sy);
+  const rangeX = (maxX - minX) * scale;
+  const rangeY = (maxY - minY) * scale;
+  const offX = margin + (W - margin * 2 - rangeX) / 2;
+  const offY = margin + (H - margin * 2 - rangeY) / 2;
+
+  // Bike faces LEFT on the diagram → +X-forward (mm) maps to LEFT in pixels.
+  const mm2svg = (m) => ({
+    x: offX + (maxX - m.x) * scale,
+    y: offY + (maxY - m.y) * scale,
   });
 
-  const pivot   = mm2svg(0, 0);
-  const rearAxle = mm2svg(rearAxleMM.x, rearAxleMM.y);
-  const fRocker  = mm2svg(values.Frame_Rocker_Pivot_X, values.Frame_Rocker_Pivot_Y);
-  const rShock   = mm2svg(values.Rocker_To_Shock_X,    values.Rocker_To_Shock_Y);
-  const rDrag    = mm2svg(values.Rocker_To_Drag_X,     values.Rocker_To_Drag_Y);
-  const dSwg     = mm2svg(values.Drag_To_Swingarm_X,   values.Drag_To_Swingarm_Y);
-  const fShock   = mm2svg(values.Frame_Shock_Top_X,    values.Frame_Shock_Top_Y);
+  const P = Object.fromEntries(Object.entries(ptsMM).map(([k, v]) => [k, mm2svg(v)]));
 
-  // Backdrop: ground line + frame outline (very crude, evocative)
-  const groundY = svgY0 + 70; // ~90mm below pivot
+  // Ground line: world Y = ymin level → in SVG that's the bottom band.
+  const groundY = mm2svg({ x: 0, y: minY + padMM * 0.5 }).y;
+
+  // Coordinate axes anchored at swingarm pivot (origin).
+  const axisLenPx = 60;
+  const axesGroup = `
+    <g class="lk-axes" stroke="#5a6878" fill="#5a6878" font-size="11">
+      <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.pivot.x - axisLenPx}" y2="${P.pivot.y}" marker-end="url(#lk-arrow)"/>
+      <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.pivot.x}" y2="${P.pivot.y - axisLenPx}" marker-end="url(#lk-arrow)"/>
+      <text x="${P.pivot.x - axisLenPx - 4}" y="${P.pivot.y + 4}" text-anchor="end">+X (fwd)</text>
+      <text x="${P.pivot.x + 6}"            y="${P.pivot.y - axisLenPx + 2}">+Y (up)</text>
+    </g>
+  `;
+
   const backdrop = `
-    <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#3a4555" stroke-width="2"/>
-    <text x="30" y="${groundY+18}" fill="#5a6878" font-size="11">ground</text>
-    <!-- crude frame triangle behind upper-shock mount -->
-    <path d="M ${fShock.x-30} ${fShock.y-10} L ${fShock.x+50} ${fShock.y+30} L ${pivot.x+30} ${pivot.y-30} Z"
-          fill="rgba(90,104,120,0.08)" stroke="#3a4555" stroke-width="1" stroke-dasharray="4,3"/>
+    <defs>
+      <marker id="lk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#5a6878"/>
+      </marker>
+    </defs>
+    <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#3a4555" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="${W-30}" y="${groundY-6}" fill="#5a6878" font-size="11" text-anchor="end">ground (reference)</text>
   `;
 
-  // Linkage lines
-  const stroke = '#4ea1ff', stroke2 = '#ff8c5a', stroke3 = '#c084fc', stroke4 = '#4ade80';
+  const cSwg = '#5a6878', cSwgLink = '#4ade80', cDrag = '#c084fc', cRock = '#4ea1ff', cShock = '#ff8c5a';
+
   const lines = `
-    <!-- swingarm -->
-    <line x1="${pivot.x}" y1="${pivot.y}" x2="${rearAxle.x}" y2="${rearAxle.y}" stroke="#5a6878" stroke-width="6" stroke-linecap="round"/>
-    <!-- swingarm pivot → drag-to-swingarm point (also on swingarm) -->
-    <line x1="${pivot.x}" y1="${pivot.y}" x2="${dSwg.x}" y2="${dSwg.y}" stroke="${stroke4}" stroke-width="2" stroke-dasharray="4,3"/>
-    <!-- drag link: drag-to-swingarm → rocker-to-drag -->
-    <line x1="${dSwg.x}" y1="${dSwg.y}" x2="${rDrag.x}" y2="${rDrag.y}" stroke="${stroke3}" stroke-width="3"/>
-    <!-- rocker arm side 1: rocker-to-drag → frame-rocker-pivot -->
-    <line x1="${rDrag.x}" y1="${rDrag.y}" x2="${fRocker.x}" y2="${fRocker.y}" stroke="${stroke}" stroke-width="3"/>
-    <!-- rocker arm side 2: frame-rocker-pivot → rocker-to-shock -->
-    <line x1="${fRocker.x}" y1="${fRocker.y}" x2="${rShock.x}" y2="${rShock.y}" stroke="${stroke}" stroke-width="3"/>
-    <!-- shock body: rocker-to-shock → frame-shock-top -->
-    <line x1="${rShock.x}" y1="${rShock.y}" x2="${fShock.x}" y2="${fShock.y}" stroke="${stroke2}" stroke-width="4" stroke-linecap="round"/>
+    <!-- swingarm: pivot → rear axle -->
+    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.rearAxle.x}" y2="${P.rearAxle.y}" stroke="${cSwg}" stroke-width="7" stroke-linecap="round"/>
+    <!-- swingarm extension: pivot → drag attach point on swingarm -->
+    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.dSwg.x}" y2="${P.dSwg.y}" stroke="${cSwgLink}" stroke-width="2" stroke-dasharray="4,3"/>
+    <!-- drag/pull link -->
+    <line x1="${P.dSwg.x}" y1="${P.dSwg.y}" x2="${P.rDrag.x}" y2="${P.rDrag.y}" stroke="${cDrag}" stroke-width="3.5"/>
+    <!-- rocker triangle (3 sides): drag → pivot → shock → drag -->
+    <polygon points="${P.rDrag.x},${P.rDrag.y} ${P.fRocker.x},${P.fRocker.y} ${P.rShock.x},${P.rShock.y}"
+             fill="rgba(78,161,255,0.12)" stroke="${cRock}" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- shock body -->
+    <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="${cShock}" stroke-width="5" stroke-linecap="round"/>
+    <!-- shock spring coil hint -->
+    <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#fff5" stroke-width="1" stroke-dasharray="2,4"/>
   `;
 
-  const point = (p, label, color, dx = 8, dy = -6) => `
-    <circle cx="${p.x}" cy="${p.y}" r="5" fill="${color}" stroke="#0c1116" stroke-width="1.5"/>
-    <text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="600">${escapeHtml(label)}</text>
-  `;
+  const dot = (p, color, r = 5) =>
+    `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#0c1116" stroke-width="1.5"/>`;
+
+  const label = (p, text, color, dx, dy, anchor = 'start') =>
+    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="600" text-anchor="${anchor}" style="paint-order:stroke;stroke:#0c1116;stroke-width:3px;">${escapeHtml(text)}</text>`;
 
   const points = `
-    ${point(pivot,     'swingarm pivot', '#e6edf3', -110, -8)}
-    ${point(rearAxle,  'rear axle',      '#5a6878', -80, 18)}
-    ${point(fRocker,   'frame rocker',   stroke,    8, -8)}
-    ${point(rShock,    'rocker→shock',   stroke,    8, 14)}
-    ${point(rDrag,     'rocker→drag',    stroke3,  -110, -8)}
-    ${point(dSwg,      'drag→swingarm',  stroke4,   8, 16)}
-    ${point(fShock,    'frame shock top',stroke2,  -130, 4)}
+    ${dot(P.pivot, '#e6edf3', 6)}
+    ${label(P.pivot, 'swingarm pivot (origin)', '#e6edf3', 10, -10)}
+    ${dot(P.rearAxle, cSwg, 6)}
+    ${label(P.rearAxle, 'rear axle', cSwg, -10, 18, 'end')}
+    ${dot(P.fRocker, cRock)}
+    ${label(P.fRocker, 'frame rocker', cRock, 10, -8)}
+    ${dot(P.rShock, cRock)}
+    ${label(P.rShock, 'rocker→shock', cRock, -10, -8, 'end')}
+    ${dot(P.rDrag, cRock)}
+    ${label(P.rDrag, 'rocker→drag', cRock, 10, 14)}
+    ${dot(P.dSwg, cSwgLink)}
+    ${label(P.dSwg, 'drag→swingarm', cSwgLink, -10, 16, 'end')}
+    ${dot(P.fShock, cShock)}
+    ${label(P.fShock, 'frame shock top', cShock, -10, -8, 'end')}
   `;
 
   return `
     <svg class="linkage-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linkage topology side view">
       ${backdrop}
       ${lines}
+      ${axesGroup}
       ${points}
     </svg>
   `;
