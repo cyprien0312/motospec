@@ -150,7 +150,8 @@ function fmtReadout(out, key, unit) {
 // screen +X-forward maps to −x-pixels. SVG +Y is down so we invert Y.
 // We auto-fit the bounding box of all key points so the user's coords
 // always render at a sensible scale.
-function renderTopologySVG(values) {
+function renderTopologySVG(values, mode = 'linked') {
+  const proLink = mode === 'pro-link';
   const W = 720, H = 440;
 
   const swingarmLength = values.Swingarm_Length || 580;
@@ -211,18 +212,42 @@ function renderTopologySVG(values) {
       <marker id="lk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M0,0 L10,5 L0,10 Z" fill="#5a6878"/>
       </marker>
+      <pattern id="lk-frame-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1.4"/>
+      </pattern>
     </defs>
     <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#3a4555" stroke-width="1.5" stroke-dasharray="6,4"/>
     <text x="${W-30}" y="${groundY-6}" fill="#5a6878" font-size="11" text-anchor="end">ground (reference)</text>
   `;
 
   const cSwg = '#5a6878', cSwgLink = '#4ade80', cDrag = '#c084fc', cRock = '#4ea1ff', cShock = '#ff8c5a';
+  // Mode-aware colors for the two points whose host body changes.
+  // Linked: rocker pivot is FRAME-fixed (cRock), drag-to-swingarm is on the SWINGARM (cSwgLink).
+  // Pro-link: rocker pivot is on the SWINGARM (cSwgLink), drag-to-frame is FRAME-fixed (cRock).
+  const cRockerPivot = proLink ? cSwgLink : cRock;
+  const cDragGround  = proLink ? cRock    : cSwgLink;
+
+  // The "swingarm-extension" dashed line connects the swingarm pivot to whichever
+  // linkage point lives on the swingarm body. In pro-link mode that's the rocker
+  // pivot; in linked mode that's the drag-to-swingarm point.
+  const swingarmExtensionTo = proLink ? P.fRocker : P.dSwg;
+
+  // The frame-anchored point (drawn with ground hatch around the bolt).
+  const frameAnchor = proLink ? P.dSwg : P.fRocker;
+
+  // Small "frame ground" hatch around a frame-fixed pivot — visual cue that
+  // this bolt does NOT move with the swingarm.
+  const groundHatch = (p, r = 14) => `
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#lk-frame-hatch)" opacity="0.45"/>
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+  `;
 
   const lines = `
     <!-- swingarm: pivot → rear axle -->
     <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.rearAxle.x}" y2="${P.rearAxle.y}" stroke="${cSwg}" stroke-width="7" stroke-linecap="round"/>
-    <!-- swingarm extension: pivot → drag attach point on swingarm -->
-    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.dSwg.x}" y2="${P.dSwg.y}" stroke="${cSwgLink}" stroke-width="2" stroke-dasharray="4,3"/>
+    <!-- swingarm extension: pivot → whichever linkage point sits on the swingarm body -->
+    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${swingarmExtensionTo.x}" y2="${swingarmExtensionTo.y}"
+          stroke="${cSwgLink}" stroke-width="2" stroke-dasharray="4,3"/>
     <!-- drag/pull link -->
     <line x1="${P.dSwg.x}" y1="${P.dSwg.y}" x2="${P.rDrag.x}" y2="${P.rDrag.y}" stroke="${cDrag}" stroke-width="3.5"/>
     <!-- rocker triangle (3 sides): drag → pivot → shock → drag -->
@@ -232,6 +257,12 @@ function renderTopologySVG(values) {
     <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="${cShock}" stroke-width="5" stroke-linecap="round"/>
     <!-- shock spring coil hint -->
     <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#fff5" stroke-width="1" stroke-dasharray="2,4"/>
+  `;
+
+  // Frame-anchor hatches (drawn under the dots) for points fixed to the frame.
+  const frameAnchors = `
+    ${groundHatch(frameAnchor)}
+    ${groundHatch(P.fShock)}
   `;
 
   const dot = (p, color, r = 5) =>
@@ -244,11 +275,10 @@ function renderTopologySVG(values) {
   const points = `
     ${dot(P.pivot, '#e6edf3', 6)}      ${tag(P.pivot,    '①', '#e6edf3')}
     ${dot(P.rearAxle, cSwg, 6)}        ${tag(P.rearAxle, '②', cSwg)}
-    ${dot(P.fRocker, cRock)}           ${tag(P.fRocker,  '③', cRock)}
+    ${dot(P.fRocker, cRockerPivot)}    ${tag(P.fRocker,  '③', cRockerPivot)}
     ${dot(P.rShock, cRock)}            ${tag(P.rShock,   '④', cRock)}
-    ${dot(P.rDrag, cRock)}
     ${dot(P.rDrag, cRock)}             ${tag(P.rDrag,    '⑤', cRock)}
-    ${dot(P.dSwg, cSwgLink)}           ${tag(P.dSwg,     '⑥', cSwgLink)}
+    ${dot(P.dSwg, cDragGround)}        ${tag(P.dSwg,     '⑥', cDragGround)}
     ${dot(P.fShock, cShock)}           ${tag(P.fShock,   '⑦', cShock)}
   `;
 
@@ -256,10 +286,10 @@ function renderTopologySVG(values) {
   const legendItems = [
     { n: '①', color: '#e6edf3', text: 'swingarm pivot (origin)' },
     { n: '②', color: cSwg,      text: 'rear axle' },
-    { n: '③', color: cRock,     text: 'frame rocker pivot' },
+    { n: '③', color: cRockerPivot, text: proLink ? 'rocker pivot (on swingarm)' : 'frame rocker pivot' },
     { n: '④', color: cRock,     text: 'rocker → shock' },
     { n: '⑤', color: cRock,     text: 'rocker → drag' },
-    { n: '⑥', color: cSwgLink,  text: 'drag → swingarm' },
+    { n: '⑥', color: cDragGround, text: proLink ? 'drag → frame anchor' : 'drag → swingarm' },
     { n: '⑦', color: cShock,    text: 'frame shock top' },
   ];
   const legW = 200, legH = legendItems.length * 18 + 16;
@@ -279,12 +309,24 @@ function renderTopologySVG(values) {
     </g>
   `;
 
+  // Mode-name caption inside the SVG so the diagram is self-describing.
+  const modeCaption = `
+    <text x="20" y="${H - 14}" fill="#94a3b8" font-size="12" font-weight="700">
+      ${escapeHtml(proLink ? 'Mode: Pro-Link (rocker on swingarm)' : 'Mode: Linked (rocker on frame)')}
+    </text>
+    <text x="20" y="${H - 30}" fill="#5a6878" font-size="10">
+      ${escapeHtml('hatched points = frame-fixed; green dashed line = swingarm body')}
+    </text>
+  `;
+
   return `
     <svg class="linkage-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linkage topology side view">
       ${backdrop}
+      ${frameAnchors}
       ${lines}
       ${axesGroup}
       ${points}
+      ${modeCaption}
       ${legend}
     </svg>
   `;
@@ -378,7 +420,7 @@ export function renderLinkageSetup(state) {
       <div class="linkage-readout-strip">${readoutHTML}</div>
 
       <div class="section-title">${escapeHtml(str.diagram_title)}</div>
-      ${renderTopologySVG(values)}
+      ${renderTopologySVG(values, mode)}
 
       <div class="section-title">${escapeHtml(str.points_title)}</div>
       <div class="linkage-points-grid">${pointsHTML}</div>
