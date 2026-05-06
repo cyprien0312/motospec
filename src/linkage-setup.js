@@ -215,24 +215,46 @@ function renderTopologySVG(values) {
   const dot = (p, color, r = 5) =>
     `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#0c1116" stroke-width="1.5"/>`;
 
-  const label = (p, text, color, dx, dy, anchor = 'start') =>
-    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="600" text-anchor="${anchor}" style="paint-order:stroke;stroke:#0c1116;stroke-width:3px;">${escapeHtml(text)}</text>`;
+  // Tiny numeric tag next to each dot — keyed to the legend in the top-right.
+  const tag = (p, n, color, dx = 7, dy = -7) =>
+    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#0c1116;stroke-width:3px;">${n}</text>`;
 
   const points = `
-    ${dot(P.pivot, '#e6edf3', 6)}
-    ${label(P.pivot, 'swingarm pivot (origin)', '#e6edf3', 10, -10)}
-    ${dot(P.rearAxle, cSwg, 6)}
-    ${label(P.rearAxle, 'rear axle', cSwg, -10, 18, 'end')}
-    ${dot(P.fRocker, cRock)}
-    ${label(P.fRocker, 'frame rocker', cRock, 10, -8)}
-    ${dot(P.rShock, cRock)}
-    ${label(P.rShock, 'rocker→shock', cRock, -10, -8, 'end')}
+    ${dot(P.pivot, '#e6edf3', 6)}      ${tag(P.pivot,    '①', '#e6edf3')}
+    ${dot(P.rearAxle, cSwg, 6)}        ${tag(P.rearAxle, '②', cSwg)}
+    ${dot(P.fRocker, cRock)}           ${tag(P.fRocker,  '③', cRock)}
+    ${dot(P.rShock, cRock)}            ${tag(P.rShock,   '④', cRock)}
     ${dot(P.rDrag, cRock)}
-    ${label(P.rDrag, 'rocker→drag', cRock, 10, 14)}
-    ${dot(P.dSwg, cSwgLink)}
-    ${label(P.dSwg, 'drag→swingarm', cSwgLink, -10, 16, 'end')}
-    ${dot(P.fShock, cShock)}
-    ${label(P.fShock, 'frame shock top', cShock, -10, -8, 'end')}
+    ${dot(P.rDrag, cRock)}             ${tag(P.rDrag,    '⑤', cRock)}
+    ${dot(P.dSwg, cSwgLink)}           ${tag(P.dSwg,     '⑥', cSwgLink)}
+    ${dot(P.fShock, cShock)}           ${tag(P.fShock,   '⑦', cShock)}
+  `;
+
+  // Legend in the top-right corner — color swatches keyed to the numbered tags.
+  const legendItems = [
+    { n: '①', color: '#e6edf3', text: 'swingarm pivot (origin)' },
+    { n: '②', color: cSwg,      text: 'rear axle' },
+    { n: '③', color: cRock,     text: 'frame rocker pivot' },
+    { n: '④', color: cRock,     text: 'rocker → shock' },
+    { n: '⑤', color: cRock,     text: 'rocker → drag' },
+    { n: '⑥', color: cSwgLink,  text: 'drag → swingarm' },
+    { n: '⑦', color: cShock,    text: 'frame shock top' },
+  ];
+  const legW = 200, legH = legendItems.length * 18 + 16;
+  const legX = W - legW - 12, legY = 12;
+  const legend = `
+    <g class="lk-legend">
+      <rect x="${legX}" y="${legY}" width="${legW}" height="${legH}" rx="6" ry="6"
+            fill="rgba(12,17,22,0.78)" stroke="#3a4555" stroke-width="1"/>
+      ${legendItems.map((it, i) => {
+        const cy = legY + 18 + i * 18;
+        return `
+          <circle cx="${legX + 14}" cy="${cy - 4}" r="4.5" fill="${it.color}" stroke="#0c1116" stroke-width="1"/>
+          <text x="${legX + 26}" y="${cy}" fill="${it.color}" font-size="11" font-weight="700">${it.n}</text>
+          <text x="${legX + 44}" y="${cy}" fill="#cbd5e1" font-size="11">${escapeHtml(it.text)}</text>
+        `;
+      }).join('')}
+    </g>
   `;
 
   return `
@@ -241,6 +263,7 @@ function renderTopologySVG(values) {
       ${lines}
       ${axesGroup}
       ${points}
+      ${legend}
     </svg>
   `;
 }
