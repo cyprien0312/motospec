@@ -823,6 +823,10 @@ function escapeHtml(s) {
   }[c]));
 }
 
+// Expose handlers used by inline onclick/oninput attributes — module scope
+// hides them from the global scope by default.
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue });
+
 render();
 </script>
 </body>
