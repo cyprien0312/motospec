@@ -969,9 +969,23 @@ function setInputValue(id, raw) {
   clearCache();
   syncControls(id);
   updateLiveValues();
-  // Re-render the content area when on a page whose SVG/diagram depends on the input
-  // (linkage-setup plots the 10 coord inputs as an SVG topology — needs full redraw).
-  if (stack[stack.length - 1] === '__linkage') renderContent();
+  // Linkage page needs the SVG/readouts to refresh, but a full renderContent()
+  // destroys the focused input and resets scroll. Do a scoped patch instead:
+  // re-render the page off-DOM, then swap only the SVG and the live-readouts strip.
+  if (stack[stack.length - 1] === '__linkage') patchLinkageView();
+}
+function patchLinkageView() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderLinkageSetup({ values: state.values, lang });
+  const swap = (sel) => {
+    const next = tmp.querySelector(sel);
+    const cur  = content.querySelector(sel);
+    if (next && cur) cur.replaceWith(next);
+  };
+  swap('.linkage-svg');
+  swap('.linkage-readout-strip');
 }
 function setBikeInput(bikeIdx, key, raw) {
   const b = state.bikes[bikeIdx];
