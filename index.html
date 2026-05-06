@@ -391,6 +391,27 @@ table.dt td.dt-readonly span {
   border-color: var(--accent);
 }
 .linkage-mode-desc { color: var(--text-dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.linkage-points-desc {
+  color: var(--text-dim); font-size: 12px; margin: 2px 0 8px 0; line-height: 1.5;
+}
+.linkage-length-row label {
+  display: grid; grid-template-columns: 1fr auto;
+  grid-template-areas: "name unit" "input input";
+  column-gap: 6px; row-gap: 4px; align-items: center;
+  font-size: 12px; color: var(--text-dim); min-width: 0;
+}
+.linkage-length-row label > span:first-child { grid-area: name; }
+.linkage-length-row label > .linkage-unit    { grid-area: unit; justify-self: end; }
+.linkage-length-row input[type="number"] {
+  grid-area: input;
+  background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 4px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+  text-align: right;
+}
+.linkage-length-row input[type="number"]:focus {
+  outline: none; border-color: var(--accent);
+}
 .linkage-anchor-tag {
   display: inline-block; margin-left: 8px;
   font-size: 10px; font-weight: 500; letter-spacing: 0.4px;
@@ -420,7 +441,7 @@ table.dt td.dt-readonly span {
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
-import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS } from './src/linkage-setup.js';
+import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry } from './src/linkage-setup.js';
 
 
 // ============================================================
@@ -998,75 +1019,74 @@ function fmtVal(id) {
   return `${v.toFixed(dec)}${u}`;
 }
 
+const LINKAGE_FIXED_KEYS = new Set([
+  'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+  'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+  'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+]);
+
 function setInputValue(id, raw) {
   const m = INPUT_META[id];
   let n = parseFloat(raw);
   if (isNaN(n)) return;
   n = Math.max(m.min, Math.min(m.max, n));
+
+  // Length mode: when a fixed anchor moves, hold the four rod lengths
+  // constant and re-derive the rocker-triangle points to match.
+  const inLengthMode = state.values.Linkage_Input_Style === 'length'
+                    || state.values.Linkage_Input_Style === 'polar';
+  let lengthsBefore = null;
+  if (inLengthMode && LINKAGE_FIXED_KEYS.has(id)) {
+    lengthsBefore = currentLengths(state.values);
+  }
+
   state.values[id] = n;
   if (id === 'front_weight_dist') state.values.rear_weight_dist  = +(1 - n).toFixed(3);
   if (id === 'rear_weight_dist')  state.values.front_weight_dist = +(1 - n).toFixed(3);
+
+  if (lengthsBefore) {
+    const { rd, rs } = rebuildLinkageGeometry(state.values, lengthsBefore);
+    if (rd) {
+      state.values.Rocker_To_Drag_X  = clampMeta('Rocker_To_Drag_X',  rd.x);
+      state.values.Rocker_To_Drag_Y  = clampMeta('Rocker_To_Drag_Y',  rd.y);
+    }
+    if (rs) {
+      state.values.Rocker_To_Shock_X = clampMeta('Rocker_To_Shock_X', rs.x);
+      state.values.Rocker_To_Shock_Y = clampMeta('Rocker_To_Shock_Y', rs.y);
+    }
+  }
+
   saveState();
   clearCache();
   syncControls(id);
   updateLiveValues();
-  // Linkage page needs the SVG/readouts to refresh, but a full renderContent()
-  // destroys the focused input and resets scroll. Do a scoped patch instead:
-  // re-render the page off-DOM, then swap only the SVG and the live-readouts strip.
   if (stack[stack.length - 1] === '__linkage') patchLinkageView();
 }
 function setLinkageInputStyle(style) {
-  if (style !== 'cartesian' && style !== 'polar') return;
+  if (style !== 'cartesian' && style !== 'length') return;
   state.values.Linkage_Input_Style = style;
   saveState();
   renderContent(); // toggle re-renders all input cards
 }
-// Polar input setter: user enters length L (mm) or angle θ (°) for one of the
-// 5 linkage points. We convert to (X, Y) — relative to the appropriate origin
-// (swingarm pivot, or rocker pivot for arm-anchored points) — and write it
-// back. When the rocker pivot itself moves we cascade the rocker-anchored
-// points so their arm vectors stay constant.
-function setLinkagePolar(pointKey, axis, raw) {
+// Length-mode setter: user types a new length for one of the four
+// rod/arm measurements. We hold the three fixed-point XY anchors and
+// the other three lengths constant, then re-derive rocker_to_drag and
+// rocker_to_shock by two-circle intersection (branch picked nearest the
+// previous solution).
+function setLinkageLength(lengthKey, raw) {
   const v = parseFloat(raw);
-  if (!Number.isFinite(v)) return;
-  const p = LINKAGE_POINTS.find(pp => pp.key === pointKey);
-  if (!p) return;
-  const anchor = p.anchor || 'swingarm';
-  const ox = anchor === 'rocker' ? state.values.Frame_Rocker_Pivot_X : 0;
-  const oy = anchor === 'rocker' ? state.values.Frame_Rocker_Pivot_Y : 0;
-  const dx = state.values[p.xKey] - ox;
-  const dy = state.values[p.yKey] - oy;
-  let L  = Math.hypot(dx, dy);
-  let th = Math.atan2(dy, dx) * 180 / Math.PI;
-  if (axis === 'L')  L  = Math.max(0, v);
-  if (axis === 'th') th = v;
-  const r = th * Math.PI / 180;
-  const newDx = L * Math.cos(r);
-  const newDy = L * Math.sin(r);
-
-  if (pointKey === 'frame_rocker_pivot') {
-    // Capture rocker-anchored offsets BEFORE moving the rocker, so arm
-    // lengths/angles are preserved when the pivot translates.
-    const offsets = {};
-    for (const pp of LINKAGE_POINTS) {
-      if (pp.anchor === 'rocker') {
-        offsets[pp.key] = {
-          dx: state.values[pp.xKey] - state.values.Frame_Rocker_Pivot_X,
-          dy: state.values[pp.yKey] - state.values.Frame_Rocker_Pivot_Y,
-        };
-      }
-    }
-    state.values.Frame_Rocker_Pivot_X = clampMeta('Frame_Rocker_Pivot_X', newDx);
-    state.values.Frame_Rocker_Pivot_Y = clampMeta('Frame_Rocker_Pivot_Y', newDy);
-    for (const pp of LINKAGE_POINTS) {
-      if (pp.anchor === 'rocker') {
-        state.values[pp.xKey] = clampMeta(pp.xKey, state.values.Frame_Rocker_Pivot_X + offsets[pp.key].dx);
-        state.values[pp.yKey] = clampMeta(pp.yKey, state.values.Frame_Rocker_Pivot_Y + offsets[pp.key].dy);
-      }
-    }
-  } else {
-    state.values[p.xKey] = clampMeta(p.xKey, ox + newDx);
-    state.values[p.yKey] = clampMeta(p.yKey, oy + newDy);
+  if (!Number.isFinite(v) || v <= 0) return;
+  const lengths = currentLengths(state.values);
+  if (!Object.prototype.hasOwnProperty.call(lengths, lengthKey)) return;
+  lengths[lengthKey] = v;
+  const { rd, rs } = rebuildLinkageGeometry(state.values, lengths);
+  if (rd) {
+    state.values.Rocker_To_Drag_X  = clampMeta('Rocker_To_Drag_X',  rd.x);
+    state.values.Rocker_To_Drag_Y  = clampMeta('Rocker_To_Drag_Y',  rd.y);
+  }
+  if (rs) {
+    state.values.Rocker_To_Shock_X = clampMeta('Rocker_To_Shock_X', rs.x);
+    state.values.Rocker_To_Shock_Y = clampMeta('Rocker_To_Shock_Y', rs.y);
   }
   saveState();
   clearCache();
@@ -1401,7 +1421,7 @@ function escapeHtml(s) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkagePolar, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, setBikeInput, setBikeProfile, setBikeName, applyBikePreset });
 
 render();
 </script>

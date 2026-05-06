@@ -8,6 +8,89 @@
 import { computeAll, INPUT_META } from './formulas.js';
 import { motionRatio } from './linkage.js';
 
+// ----- Length-mode helpers --------------------------------------------------
+// In length mode the user types four rod/arm lengths (rocker arm A, rocker
+// arm B, rocker chord, drag link) plus three fixed-point XY coordinates
+// (rocker pivot, drag anchor, frame shock top). The two "rocker triangle"
+// points (rocker_to_shock, rocker_to_drag) are derived from these via
+// two-circle intersections, branch picked to stay nearest the previous
+// solution.
+
+export function circleCircleIntersect(c1, r1, c2, r2) {
+  const dx = c2.x - c1.x, dy = c2.y - c1.y;
+  const d = Math.hypot(dx, dy);
+  if (d === 0) return null;
+  if (d > r1 + r2 + 1e-6) return null;          // too far apart
+  if (d < Math.abs(r1 - r2) - 1e-6) return null; // one inside the other
+  const a = (r1*r1 - r2*r2 + d*d) / (2*d);
+  const h = Math.sqrt(Math.max(0, r1*r1 - a*a));
+  const px = c1.x + a * dx / d, py = c1.y + a * dy / d;
+  return [
+    { x: px + h * (dy / d), y: py - h * (dx / d) },
+    { x: px - h * (dy / d), y: py + h * (dx / d) },
+  ];
+}
+
+export function pickNearestBranch(solutions, prev) {
+  if (!solutions || solutions.length === 0) return null;
+  let best = solutions[0], bestD = Infinity;
+  for (const s of solutions) {
+    const d = (s.x - prev.x) ** 2 + (s.y - prev.y) ** 2;
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  return best;
+}
+
+// Recompute the two derived rocker-triangle points from current fixed points
+// and four lengths. Returns the new (X, Y) for rocker_to_drag and
+// rocker_to_shock, or null for any point that couldn't be triangulated
+// (geometry is impossible for the given lengths — caller should leave the
+// previous values untouched in that case).
+export function rebuildLinkageGeometry(values, lengths) {
+  const fp = { x: values.Frame_Rocker_Pivot_X, y: values.Frame_Rocker_Pivot_Y };
+  const da = { x: values.Drag_To_Swingarm_X,   y: values.Drag_To_Swingarm_Y };
+  const prevRD = { x: values.Rocker_To_Drag_X,  y: values.Rocker_To_Drag_Y };
+  const prevRS = { x: values.Rocker_To_Shock_X, y: values.Rocker_To_Shock_Y };
+
+  const rd = pickNearestBranch(circleCircleIntersect(fp, lengths.armB, da, lengths.dragLink), prevRD);
+  if (!rd) return { rd: null, rs: null };
+  const rs = pickNearestBranch(circleCircleIntersect(fp, lengths.armA, rd, lengths.chord), prevRS);
+  return { rd, rs };
+}
+
+// Read the four current lengths off the values object.
+export function currentLengths(values) {
+  const fp = { x: values.Frame_Rocker_Pivot_X, y: values.Frame_Rocker_Pivot_Y };
+  const da = { x: values.Drag_To_Swingarm_X,   y: values.Drag_To_Swingarm_Y };
+  const rd = { x: values.Rocker_To_Drag_X,  y: values.Rocker_To_Drag_Y };
+  const rs = { x: values.Rocker_To_Shock_X, y: values.Rocker_To_Shock_Y };
+  return {
+    armA:     Math.hypot(rs.x - fp.x, rs.y - fp.y),
+    armB:     Math.hypot(rd.x - fp.x, rd.y - fp.y),
+    chord:    Math.hypot(rs.x - rd.x, rs.y - rd.y),
+    dragLink: Math.hypot(rd.x - da.x, rd.y - da.y),
+  };
+}
+
+// Definitions for the 4 length inputs shown in length mode.
+export const LINKAGE_LENGTHS = [
+  { key: 'armA',     label_en: 'Rocker Arm → Shock',  label_zh: '摇臂 → 避震 臂长',
+    desc_en: 'Distance from rocker pivot to the shock-attach bolt on the rocker.',
+    desc_zh: '从摇臂转点到摇臂上避震连接螺栓中心。' },
+  { key: 'armB',     label_en: 'Rocker Arm → Drag',   label_zh: '摇臂 → 拉杆 臂长',
+    desc_en: 'Distance from rocker pivot to the drag-link bolt on the rocker.',
+    desc_zh: '从摇臂转点到摇臂上拉杆连接螺栓中心。' },
+  { key: 'chord',    label_en: 'Rocker Chord (shock ↔ drag)', label_zh: '摇臂弦长（避震 ↔ 拉杆）',
+    desc_en: 'Straight-line distance between the shock-bolt and drag-bolt on the rocker. Together with the two arm lengths this fixes the rocker triangle.',
+    desc_zh: '摇臂上避震螺栓与拉杆螺栓之间的直线距离。配合两段臂长，确定摇臂三角形。' },
+  { key: 'dragLink', label_en: 'Drag/Pull Link Length', label_zh: '拉杆长度',
+    desc_en: 'Length of the drag/pull link rod, end-to-end (bolt centres).',
+    desc_zh: '拉杆（活动连杆）从一端到另一端的长度，按螺栓中心量。' },
+];
+
+// Which of LINKAGE_POINTS are entered as fixed XY in length mode.
+const FIXED_POINT_KEYS = ['frame_rocker_pivot', 'drag_to_swingarm', 'frame_shock_top'];
+
 // 5 linkage points the user measures on a real bike. Origin is the
 // swingarm pivot bolt; +X forward (toward the front wheel), +Y up.
 //
@@ -149,14 +232,14 @@ const UI = {
     mode_desc_pro:    '摇臂骑在平叉上、随平叉一起运动；车架底部伸出一根固定拉杆，平叉抬起时把它绊住、迫使其旋转。',
     style_title:     '输入方式',
     style_xy:        'X / Y 坐标',
-    style_polar:     '长度 + 角度',
-    style_desc_xy:    '每个点用 (X, Y) 两个偏移值表示，单位 mm，原点为摇臂枢轴。适合从 CAD 或图纸上读数。',
-    style_desc_polar: '每个点用长度 (mm) + 角度 (° 相对 +X 轴，逆时针为正) 表示。实车实测时更友好——摇臂臂长直接卡尺量、连杆长度量出来即可。',
+    style_polar:     '只填长度',
+    style_desc_xy:    '5 个点都填 (X, Y) 偏移，单位 mm，原点为摇臂枢轴。适合从 CAD 或图纸上读数。',
+    style_desc_polar: '把 3 个固定点（摇臂转点、拉杆锚点、避震顶）的 XY 锁住，再填 4 个杆/臂长——剩下的摇臂三角点会自动算出来。实车测量最方便，不用量角器。',
     length_label:    '长度',
-    angle_label:     '角度',
-    angle_units:     '°',
-    anchor_swingarm_zh: '相对摇臂枢轴',
-    anchor_rocker_zh:   '相对摇臂转点',
+    fixed_title:     '固定点（3 个锚点）',
+    fixed_desc:      '这 3 个点的 XY 直接从摇臂枢轴量。其它的连杆点会用下方的 4 个长度反推得到。',
+    lengths_title:   '长度（4 项测量）',
+    lengths_desc:    '卡尺或直尺量螺栓中心的距离即可。摇臂三角形的两个点（摇臂→避震、摇臂→拉杆）会自动重算。',
   },
   en: {
     nav: '🔧 Linkage Setup',
@@ -183,14 +266,14 @@ const UI = {
     mode_desc_pro:    'Rocker rides on the swingarm and moves with it; a frame-anchored tie rod "trips" the rocker as the swingarm rises, forcing it to rotate.',
     style_title:     'Input Style',
     style_xy:        'X / Y coordinates',
-    style_polar:     'Length + angle',
-    style_desc_xy:    'Type each point as a pair of (X, Y) offsets in mm from the swingarm pivot. Easier when you have a CAD/2D drawing.',
-    style_desc_polar: 'Type each point as a length (mm) and an angle (° above the +X axis, measured CCW). Easier when you measure a real bike with calipers and a protractor — rocker arm = caliper length, etc.',
+    style_polar:     'Lengths only',
+    style_desc_xy:    'Type each of the 5 points as a pair of (X, Y) offsets in mm from the swingarm pivot. Easier when you have a CAD/2D drawing.',
+    style_desc_polar: 'Pin 3 points as XY (rocker pivot, drag anchor, frame shock top) and type 4 rod/arm lengths — the rocker-triangle points are computed for you. Easiest when measuring a real bike with calipers; no protractor needed.',
     length_label:    'Length',
-    angle_label:     'Angle',
-    angle_units:     '°',
-    anchor_swingarm_en: 'from swingarm pivot',
-    anchor_rocker_en:   'from rocker pivot',
+    fixed_title:     'Fixed Points (3 anchors)',
+    fixed_desc:      'These XY positions are measured directly from the swingarm pivot. The rest of the linkage is solved from the four lengths below.',
+    lengths_title:   'Lengths (4 measurements)',
+    lengths_desc:    'Caliper or ruler measurements between bolt centres. The two rocker-triangle points (Rocker→Shock, Rocker→Drag) are recomputed automatically.',
     y_label: 'Y (up/down)',
   },
 };
@@ -487,19 +570,7 @@ function renderTopologySVG(values, mode = 'linked') {
   `;
 }
 
-// Convert (dx, dy) → (length, angle°). Inverse: fromPolar.
-function toPolar(dx, dy) {
-  return { L: Math.hypot(dx, dy), th: Math.atan2(dy, dx) * 180 / Math.PI };
-}
-
-function originForAnchor(anchor, values) {
-  if (anchor === 'rocker') {
-    return { x: values.Frame_Rocker_Pivot_X || 0, y: values.Frame_Rocker_Pivot_Y || 0 };
-  }
-  return { x: 0, y: 0 };
-}
-
-function renderInputPair(p, values, lang, str, mode, style) {
+function renderInputPair(p, values, lang, str, mode) {
   const pro = mode === 'pro-link';
   const label = pro
     ? (lang === 'en' ? (p.label_pro_en || p.label_en) : (p.label_pro_zh || p.label_zh))
@@ -507,43 +578,6 @@ function renderInputPair(p, values, lang, str, mode, style) {
   const desc  = pro
     ? (lang === 'en' ? (p.desc_pro_en  || p.desc_en)  : (p.desc_pro_zh  || p.desc_zh))
     : (lang === 'en' ? p.desc_en  : p.desc_zh);
-
-  if (style === 'polar') {
-    const anchor = p.anchor || 'swingarm';
-    const o = originForAnchor(anchor, values);
-    const dx = (values[p.xKey] ?? 0) - o.x;
-    const dy = (values[p.yKey] ?? 0) - o.y;
-    const { L, th } = toPolar(dx, dy);
-    const anchorTxt = anchor === 'rocker'
-      ? (lang === 'en' ? str.anchor_rocker_en : str.anchor_rocker_zh)
-      : (lang === 'en' ? str.anchor_swingarm_en : str.anchor_swingarm_zh);
-    return `
-      <div class="linkage-point">
-        <div class="linkage-point-label">${escapeHtml(label)}
-          <span class="linkage-anchor-tag">${escapeHtml(anchorTxt)}</span>
-        </div>
-        <div class="linkage-point-desc">${escapeHtml(desc)}</div>
-        <div class="linkage-xy-row">
-          <label>
-            <span>${escapeHtml(str.length_label)}</span>
-            <input type="number" data-polar="${p.key}.L"
-                   min="0" max="800" step="0.5"
-                   value="${L.toFixed(2)}"
-                   oninput="setLinkagePolar('${p.key}','L',this.value)"/>
-            <span class="linkage-unit">${escapeHtml(str.units)}</span>
-          </label>
-          <label>
-            <span>${escapeHtml(str.angle_label)}</span>
-            <input type="number" data-polar="${p.key}.th"
-                   min="-180" max="180" step="0.5"
-                   value="${th.toFixed(2)}"
-                   oninput="setLinkagePolar('${p.key}','th',this.value)"/>
-            <span class="linkage-unit">${escapeHtml(str.angle_units)}</span>
-          </label>
-        </div>
-      </div>
-    `;
-  }
 
   const xMeta = INPUT_META[p.xKey] || { min: -400, max: 400, step: 1 };
   const yMeta = INPUT_META[p.yKey] || { min: -400, max: 400, step: 1 };
@@ -575,6 +609,28 @@ function renderInputPair(p, values, lang, str, mode, style) {
   `;
 }
 
+function renderLengthCard(def, lengths, lang, str) {
+  const labelTxt = lang === 'en' ? def.label_en : def.label_zh;
+  const descTxt  = lang === 'en' ? def.desc_en  : def.desc_zh;
+  const v = lengths[def.key];
+  return `
+    <div class="linkage-point">
+      <div class="linkage-point-label">${escapeHtml(labelTxt)}</div>
+      <div class="linkage-point-desc">${escapeHtml(descTxt)}</div>
+      <div class="linkage-length-row">
+        <label>
+          <span>${escapeHtml(str.length_label)}</span>
+          <input type="number" data-length="${def.key}"
+                 min="0" max="800" step="0.5"
+                 value="${Number.isFinite(v) ? v.toFixed(2) : ''}"
+                 oninput="setLinkageLength('${def.key}', this.value)"/>
+          <span class="linkage-unit">${escapeHtml(str.units)}</span>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
 export function renderLinkageSetup(state) {
   const lang = (state && state.lang) || 'zh';
   const str = UI[lang] || UI.zh;
@@ -596,8 +652,31 @@ export function renderLinkageSetup(state) {
   `).join('');
 
   const mode  = values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
-  const style = values.Linkage_Input_Style === 'polar' ? 'polar' : 'cartesian';
-  const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str, mode, style)).join('');
+  const style = (values.Linkage_Input_Style === 'polar' || values.Linkage_Input_Style === 'length')
+    ? 'length' : 'cartesian';
+
+  let inputsSection = '';
+  if (style === 'length') {
+    const fixedPoints = LINKAGE_POINTS.filter(p => FIXED_POINT_KEYS.includes(p.key));
+    const fixedHTML = fixedPoints.map(p => renderInputPair(p, values, lang, str, mode)).join('');
+    const lengths = currentLengths(values);
+    const lengthsHTML = LINKAGE_LENGTHS.map(d => renderLengthCard(d, lengths, lang, str)).join('');
+    inputsSection = `
+      <div class="section-title">${escapeHtml(str.fixed_title)}</div>
+      <div class="linkage-points-desc">${escapeHtml(str.fixed_desc)}</div>
+      <div class="linkage-points-grid">${fixedHTML}</div>
+
+      <div class="section-title">${escapeHtml(str.lengths_title)}</div>
+      <div class="linkage-points-desc">${escapeHtml(str.lengths_desc)}</div>
+      <div class="linkage-points-grid">${lengthsHTML}</div>
+    `;
+  } else {
+    const pointsHTML = LINKAGE_POINTS.map(p => renderInputPair(p, values, lang, str, mode)).join('');
+    inputsSection = `
+      <div class="section-title">${escapeHtml(str.points_title)}</div>
+      <div class="linkage-points-grid">${pointsHTML}</div>
+    `;
+  }
 
   const modeToggle = `
     <div class="linkage-mode-card">
@@ -643,8 +722,7 @@ export function renderLinkageSetup(state) {
       <div class="section-title">${escapeHtml(str.diagram_title)}</div>
       ${renderTopologySVG(values, mode)}
 
-      <div class="section-title">${escapeHtml(str.points_title)}</div>
-      <div class="linkage-points-grid">${pointsHTML}</div>
+      ${inputsSection}
 
       <div class="section-title">${escapeHtml(str.guide_title)}</div>
       <details class="linkage-guide" open>
