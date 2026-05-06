@@ -331,13 +331,20 @@ table.dt td.dt-readonly span {
 .linkage-point-desc { color: var(--text-dim); font-size: 12px; margin: 4px 0 10px 0; line-height: 1.45; }
 .linkage-xy-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .linkage-xy-row label {
-  display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center;
-  font-size: 12px; color: var(--text-dim);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name unit" "input input";
+  column-gap: 6px; row-gap: 4px; align-items: center;
+  font-size: 12px; color: var(--text-dim); min-width: 0;
 }
+.linkage-xy-row label > span:first-child { grid-area: name; }
+.linkage-xy-row label > .linkage-unit    { grid-area: unit; justify-self: end; }
 .linkage-xy-row input[type="number"] {
+  grid-area: input;
   background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: 4px; padding: 4px 6px; font-size: 13px; width: 100%;
+  border-radius: 4px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
   font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+  text-align: right;
 }
 .linkage-xy-row input[type="number"]:focus {
   outline: none; border-color: var(--accent);
