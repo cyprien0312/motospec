@@ -96,7 +96,6 @@ const NEW_INPUTS = [
   'Front_Oil_Level', 'Front_Topout_Rate', 'Front_Topout_Length',
   'Swingarm_Length', 'Shock_Clevis_RHA', 'Shock_Length',
   'Rear_Spring_Rate', 'Rear_Spring_Preload', 'Rear_Topout_Rate', 'Rear_Topout_Length',
-  'Linkarm_Length',
   'Front_Sprocket', 'Rear_Sprocket',
   'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
   'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',

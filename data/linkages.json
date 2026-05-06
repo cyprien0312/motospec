@@ -14,8 +14,7 @@
       "Drag_To_Swingarm_X": 40,
       "Drag_To_Swingarm_Y": -10,
       "Frame_Shock_Top_X": -200,
-      "Frame_Shock_Top_Y": 300,
-      "Linkarm_Length": 92
+      "Frame_Shock_Top_Y": 300
     }
   },
   "suzuki-gsx8r-stock": {
@@ -33,8 +32,7 @@
       "Drag_To_Swingarm_X": 40,
       "Drag_To_Swingarm_Y": -10,
       "Frame_Shock_Top_X": -200,
-      "Frame_Shock_Top_Y": 300,
-      "Linkarm_Length": 128.9
+      "Frame_Shock_Top_Y": 300
     }
   },
   "aprilia-rs660-stock": {
@@ -52,8 +50,7 @@
       "Drag_To_Swingarm_X": 40,
       "Drag_To_Swingarm_Y": -10,
       "Frame_Shock_Top_X": -200,
-      "Frame_Shock_Top_Y": 300,
-      "Linkarm_Length": 0
+      "Frame_Shock_Top_Y": 300
     }
   }
 }

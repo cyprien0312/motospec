@@ -36,7 +36,6 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Rear_Topout_Rate' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Rear_Topout_Length' },
     { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
-    { spec: 'Linkarm Length (mm)',                                  spec_zh: '连杆臂长度 (mm)',      input: 'Linkarm_Length' },
   ]},
   { header: 'TIRES', header_zh: '轮胎', rows: [
     { spec: 'Front Tire',                                           spec_zh: '前胎',                 component: 'front_tire' },

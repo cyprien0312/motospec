@@ -204,7 +204,6 @@ export const LINKAGE_SPEC_FIELDS = [
   'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
   'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
   'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
-  'Linkarm_Length',
 ];
 
 // Slug a user-entered name to a catalog id; if the slug collides with an
