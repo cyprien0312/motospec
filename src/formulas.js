@@ -51,7 +51,7 @@ export const P = {
     typical:'300 – 320 mm（17 寸轮）' },
   O: { name:'O', label:'总偏移量 (Offset)', unit:'mm', type:'input',
     desc:'三星台联板中心到前叉中心的距离 + 轮芯偏移。', source:'三星台规格 + 实测',
-    typical:'25 – 35 mm（你前面拍照测得约 32 mm）' },
+    typical:'25 – 35 mm' },
   beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
     desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
     typical:'10° – 18°' },
