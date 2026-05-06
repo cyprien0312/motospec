@@ -193,6 +193,52 @@ test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
     `Expected new Swingarm Angle < beta_static on compression; got ${out.MotoSPEC_SwgarmAngl} vs ${v.beta_static}`);
 });
 
+test('theta_chain_dynamic: rear-axle-behind-front-sprocket sanity (H2)', () => {
+  // Rear axle level with front sprocket, rear sprocket physically larger:
+  // chain top at front is lower than at rear → going front→rear chain rises,
+  // i.e. measured rear→front it descends → theta_chain_dynamic should be NEGATIVE.
+  const v = {
+    ...defaultValues(),
+    Front_Sprocket_X: 0, Front_Sprocket_Y: 0,
+    beta_static: 0, Travel_Rear: 0,           // swingarm horizontal
+    Front_Sprocket: 14, Rear_Sprocket: 50,    // rear much bigger
+    Chain_Pitch: 15.875,
+  };
+  const out = computeAll(v);
+  assert.ok(Number.isFinite(out.theta_chain_dynamic),
+    `theta_chain_dynamic not finite: ${out.theta_chain_dynamic}`);
+  assert.ok(out.theta_chain_dynamic < 0,
+    `Expected negative chain tilt for rear-bigger-and-level case; got ${out.theta_chain_dynamic.toFixed(3)}°`);
+  assert.ok(Math.abs(out.theta_chain_dynamic) < 30,
+    `chain angle magnitude should be modest; got ${out.theta_chain_dynamic.toFixed(3)}°`);
+});
+
+test('theta_chain_dynamic at default state is finite and small (H2)', () => {
+  const out = computeAll(defaultValues());
+  assert.ok(Number.isFinite(out.theta_chain_dynamic),
+    `theta_chain_dynamic not finite: ${out.theta_chain_dynamic}`);
+  // Front sprocket at placeholder (50, 10), rear axle at swingarm angle ~beta_static.
+  // Result should be a small angle, well within ±30°.
+  assert.ok(Math.abs(out.theta_chain_dynamic) < 30,
+    `chain angle out of range: ${out.theta_chain_dynamic.toFixed(3)}°`);
+});
+
+test('MotoSPEC_AntSquat now routes through dynamic chain angle (H2)', () => {
+  // theta_chain (the static input) is gone; AntiSquat must come from
+  // theta_chain_dynamic + MotoSPEC_SwgarmAngl. Verify both that AntiSquat
+  // is finite and that perturbing a sprocket-geometry input changes it
+  // (proof the new path is wired in, not a stale static value).
+  const base = computeAll(defaultValues());
+  const perturbed = computeAll({ ...defaultValues(), Front_Sprocket_X: 200 });
+  assert.ok(Number.isFinite(base.MotoSPEC_AntSquat),
+    `AntSquat not finite: ${base.MotoSPEC_AntSquat}`);
+  assert.notEqual(base.MotoSPEC_AntSquat, perturbed.MotoSPEC_AntSquat,
+    'AntiSquat unchanged when Front_Sprocket_X moved → dynamic chain angle not wired');
+  // Ensure theta_chain (legacy static input) is fully removed.
+  assert.equal(P.theta_chain, undefined, 'theta_chain should be removed from P');
+  assert.equal(INPUT_META.theta_chain, undefined, 'theta_chain should be removed from INPUT_META');
+});
+
 test('Final_Ratio matches CSV for each reference bike', () => {
   for (const b of REFERENCE_BIKES) {
     const out = computeAll({ ...defaultValues(), ...b.inputs });

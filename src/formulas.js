@@ -109,10 +109,23 @@ export const P = {
     name: 'θ_Thrust', label: '驱动力推力角', unit: 'rad', type: 'intermediate',
     desc: '链条拉力与摇臂线合成的瞬时推力方向。tan 值 = 链条角 tan + 摇臂角 tan。',
     formula: [
-      'arctan( tan(', {ref:'theta_chain'}, ') + tan(', {ref:'MotoSPEC_SwgarmAngl'}, ') )'
+      'arctan( tan(', {ref:'theta_chain_dynamic'}, ') + tan(', {ref:'MotoSPEC_SwgarmAngl'}, ') )'
     ],
-    deps: ['theta_chain', 'MotoSPEC_SwgarmAngl'],
-    note: '注意：标准切线法直接对 tan 求和，再求反正切。'
+    deps: ['theta_chain_dynamic', 'MotoSPEC_SwgarmAngl'],
+    note: '注意：标准切线法直接对 tan 求和，再求反正切。链条角现由 sprocket 几何动态求出 (H2)。'
+  },
+  theta_chain_dynamic: {
+    name: 'θ_Chain_Dyn', label: '动态链条拉力角', unit: 'deg', type: 'intermediate',
+    desc: '前小齿轮顶端 → 后大齿轮顶端的上方外切线相对水平面的夹角，正值代表"链条向前侧上扬"（产生抗蹲）。前链轮坐标固定于车架；后链轮中心随摇臂以 Swingarm_Length × MotoSPEC_SwgarmAngl 摆动。',
+    formula: [
+      'atan2(Cf.y − Cr.y, Cf.x − Cr.x) + arcsin((r_f − r_r) / |Cf − Cr|)',
+    ],
+    deps: [
+      'Front_Sprocket_X', 'Front_Sprocket_Y',
+      'Front_Sprocket', 'Rear_Sprocket', 'Chain_Pitch',
+      'Swingarm_Length', 'MotoSPEC_SwgarmAngl',
+    ],
+    note: '链节距 15.875 mm 适用于 520/525/530 链条。后链轮中心: (−L·cos(β), −L·sin(β))，β 为 MotoSPEC_SwgarmAngl 度数。'
   },
   theta_cg: {
     name: 'θ_CG', label: '重心角', unit: 'rad', type: 'intermediate',
@@ -183,9 +196,6 @@ export const P = {
   L_SA: { name:'L_SA', label:'摇臂有效长度', unit:'mm', type:'input',
     desc:'摇臂轴心到后轮轴心的距离。', source:'车架手册',
     typical:'550 – 600 mm' },
-  theta_chain: { name:'θ_Chain', label:'链条拉力角', unit:'deg', type:'input',
-    desc:'前小齿轮最高点 → 后大齿轮最高点连线的角度（相对水平面）。', source:'齿轮坐标 + 几何计算',
-    typical:'动态变化，通常 10° – 25°' },
   H_CG: { name:'H_CG', label:'重心高度', unit:'mm', type:'input',
     desc:'人车综合重心距地面的垂直高度。', source:'称重台 + 倾斜法实测',
     typical:'600 – 700 mm（含车手）' },
@@ -258,6 +268,15 @@ export const P = {
     desc:'前链轮齿数。', source:'链轮规格', typical:'14 – 17 T' },
   Rear_Sprocket:        { name:'Rear_Sprocket',        label:'后链轮齿数', unit:'T', type:'input',
     desc:'后链轮齿数。', source:'链轮规格', typical:'40 – 48 T' },
+  Front_Sprocket_X:     { name:'Front_Sprocket_X',     label:'前链轮中心 X', unit:'mm', type:'input',
+    desc:'前链轮中心 X 坐标 (相对摇臂枢轴, +X 前向)。占位默认值，需按车型校准。',
+    source:'车架几何', typical:'30 – 80 mm' },
+  Front_Sprocket_Y:     { name:'Front_Sprocket_Y',     label:'前链轮中心 Y', unit:'mm', type:'input',
+    desc:'前链轮中心 Y 坐标 (相对摇臂枢轴, +Y 上)。占位默认值，需按车型校准。',
+    source:'车架几何', typical:'-10 – 30 mm' },
+  Chain_Pitch:          { name:'Chain_Pitch',          label:'链节距', unit:'mm', type:'input',
+    desc:'摩托车链条节距。520 / 525 / 530 链条均为 15.875 mm (5/8")。',
+    source:'链条规格', typical:'15.875 mm' },
   Frame_Rocker_Pivot_X: { name:'Frame_Rocker_Pivot_X', label:'摇臂枢轴X', unit:'mm', type:'input',
     desc:'摇臂枢轴 X 坐标 (相对车架原点)。', source:'车架几何', typical:'-100 – 0 mm' },
   Frame_Rocker_Pivot_Y: { name:'Frame_Rocker_Pivot_Y', label:'摇臂枢轴Y', unit:'mm', type:'input',
@@ -337,7 +356,6 @@ export const INPUT_META = {
   Rf:                { def: 310,   min: 290,   max: 330,   step: 1 },
   beta_static:       { def: 14,    min: 5,     max: 25,    step: 0.1 },
   L_SA:              { def: 580,   min: 500,   max: 650,   step: 1 },
-  theta_chain:       { def: 15,    min: 0,     max: 30,    step: 0.1 },
   H_CG:              { def: 650,   min: 500,   max: 800,   step: 1 },
   L_CG:              { def: 750,   min: 600,   max: 900,   step: 1 },
   Mass:              { def: 265,   min: 180,   max: 380,   step: 1 },
@@ -369,6 +387,9 @@ export const INPUT_META = {
   Linkarm_Length:       { def: 92,    min: 0,     max: 180,   step: 0.1 },
   Front_Sprocket:       { def: 16,    min: 12,    max: 20,    step: 1 },
   Rear_Sprocket:        { def: 42,    min: 35,    max: 55,    step: 1 },
+  Front_Sprocket_X:     { def: 50,    min: -50,   max: 200,   step: 1 },
+  Front_Sprocket_Y:     { def: 10,    min: -100,  max: 200,   step: 1 },
+  Chain_Pitch:          { def: 15.875, min: 12.7, max: 19.05, step: 0.001 },
   // Defaults below match the Pro-Link placeholder (default linkage mode).
   Frame_Rocker_Pivot_X: { def: -200, min: -400,  max: 400,   step: 1 },
   Frame_Rocker_Pivot_Y: { def: -50,  min: -500,  max: 500,   step: 1 },
@@ -417,7 +438,29 @@ export const CALC = {
     const dBetaDeg = swingarmDeltaForShockTravel(cfg, v.Travel_Rear);
     return v.beta_static + dBetaDeg;
   },
-  theta_thrust:  v => Math.atan(Math.tan(v.theta_chain * D2R) + Math.tan(v.MotoSPEC_SwgarmAngl * D2R)),
+  theta_chain_dynamic: v => {
+    // Sprocket pitch radii (mm): r = pitch / (2·sin(π/N))
+    const rF = v.Chain_Pitch / (2 * Math.sin(Math.PI / v.Front_Sprocket));
+    const rR = v.Chain_Pitch / (2 * Math.sin(Math.PI / v.Rear_Sprocket));
+    // Front sprocket center fixed in frame.
+    const Cfx = v.Front_Sprocket_X;
+    const Cfy = v.Front_Sprocket_Y;
+    // Rear sprocket center: rear axle, on swingarm. Swingarm extends backward
+    // (-X) and downward by the dynamic swingarm angle below horizontal.
+    const beta = v.MotoSPEC_SwgarmAngl * D2R;
+    const Crx = -v.Swingarm_Length * Math.cos(beta);
+    const Cry = -v.Swingarm_Length * Math.sin(beta);
+    const dx = Cfx - Crx, dy = Cfy - Cry;
+    const d = Math.hypot(dx, dy);
+    if (!Number.isFinite(d) || d <= Math.abs(rF - rR)) return 0;
+    // Angle of vector rear→front, plus upper-external-tangent offset for
+    // unequal radii. Convention: positive when chain top tilts up going from
+    // rear toward front (rear sprocket lower / smaller).
+    const baseAngle = Math.atan2(dy, dx);
+    const offset = Math.asin((rF - rR) / d);
+    return (baseAngle + offset) * R2D;
+  },
+  theta_thrust:  v => Math.atan(Math.tan(v.theta_chain_dynamic * D2R) + Math.tan(v.MotoSPEC_SwgarmAngl * D2R)),
   theta_cg:      v => Math.atan(v.H_CG / v.L_CG),
   MotoSPEC_AntSquat: v => Math.tan(v.theta_thrust) / Math.tan(v.theta_cg) * 100,
   delta_W:       v => v.Mass * v.a_x * 9.81 * (v.H_CG / v.WB),
@@ -433,8 +476,8 @@ export const CALC = {
   Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
   Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
   Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
-  Rear_Wheel_Rate:           v => NaN,
-  Front_Wheel_Rate:          v => NaN,
+  Rear_Wheel_Rate:           () => NaN,
+  Front_Wheel_Rate:          () => NaN,
 };
 
 // Topological order: every entry's deps appear earlier in the list
@@ -442,7 +485,7 @@ export const TOPO_ORDER = [
   'O',
   'Trail_Static',
   'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
-  'MotoSPEC_SwgarmAngl', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
+  'MotoSPEC_SwgarmAngl', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
   // Phase A additions

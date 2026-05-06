@@ -1113,7 +1113,18 @@ The same `Travel_Rear` input is consumed differently by `Rear_Wheel_Vertical_Tra
 
 **Fix:** replace with the linkage-consistent path: `Δβ = swingarmDeltaForShockTravel(cfg, Travel_Rear)`; `MotoSPEC_SwgarmAngl = β_static + Δβ` (sign convention check). Once Phase C real coords are in, pin against reference-bike `expected.Swingarm_Angle`.
 
-### Task H2: AntiSquat with dynamic chain angle (currently `APPROX`)
+### Task H2: AntiSquat with dynamic chain angle (currently `APPROX`) — DONE 2026-05-06
+**Done.** New intermediate `theta_chain_dynamic` (degrees) computes the upper external tangent between front and rear sprockets:
+- Sprocket pitch radii from tooth counts + `Chain_Pitch` (default 15.875 mm; covers 520/525/530).
+- Front sprocket center frame-fixed at `(Front_Sprocket_X, Front_Sprocket_Y)` (placeholders `(50, 10)` mm — refine per bike).
+- Rear sprocket center on swingarm at `(−Swingarm_Length·cosβ, −Swingarm_Length·sinβ)` where β = `MotoSPEC_SwgarmAngl`.
+- `theta = atan2(Cf.y − Cr.y, Cf.x − Cr.x) + asin((r_f − r_r) / d)` (rad → deg). Sign convention: positive when chain top tilts upward going from rear toward front.
+
+`theta_thrust` and therefore `MotoSPEC_AntSquat` now route through `theta_chain_dynamic`. The static `theta_chain` input was **removed** from `P`, `INPUT_META`, `defaultValues()`, `index.html` UI label, and `COMMON_ENV` in `reference-bikes.js`. The diagram in `index.html` was renamed to key off `theta_chain_dynamic`. Data-table badge moved `APPROX` → `NEEDS COORDS` because the formula is real but accuracy depends on placeholder linkage + sprocket coords.
+
+New tests in `tests/formulas.test.js`: sanity check (rear-bigger-and-level → negative chain tilt), default-state finiteness/range, and AntiSquat-changes-when-front-sprocket-X-moved (proves the new path is wired). `theta_chain` removal asserted.
+
+Original brief follows for context:
 `MotoSPEC_AntSquat` chains off the approximate swingarm angle (H1) and uses `theta_chain` as a static input. Real anti-squat needs:
 - correct dynamic swingarm angle (requires H1);
 - chain pull line recomputed from front-sprocket center, rear-sprocket center (which moves with the swingarm), and sprocket radii (derived from `Front_Sprocket` / `Rear_Sprocket` tooth counts + chain pitch).

@@ -517,7 +517,6 @@ const P_EN = {
   O:            { label:'Total Offset', desc:'Perpendicular offset of the front axle from the steering axis. Derived from Yoke Offset.', source:'Derived from yoke offset', typical:'25 – 35 mm' },
   beta_static:  { label:'Static Swingarm Angle', desc:'Angle between the line from swingarm pivot to rear axle and horizontal at rest.', source:'Frame manual or direct measurement', typical:'10° – 18°' },
   L_SA:         { label:'Effective Swingarm Length', desc:'Distance from the swingarm pivot to the rear axle.', source:'Frame manual', typical:'550 – 600 mm' },
-  theta_chain:  { label:'Chain Pull Angle', desc:'Angle (vs. horizontal) of the line from the top of the front sprocket to the top of the rear sprocket.', source:'Sprocket coords + geometry', typical:'Varies live, typically 10° – 25°' },
   H_CG:         { label:'CG Height', desc:'Vertical height of the combined rider+bike center of gravity above ground.', source:'Scale + tilt-table method', typical:'600 – 700 mm (with rider)' },
   L_CG:         { label:'CG to Rear Axle (Horiz.)', desc:'Horizontal distance from the combined CG to the rear axle.', source:'Scales + geometric conversion', typical:'700 – 800 mm' },
   Mass:         { label:'Total Mass', desc:'Bike + rider + gear total mass.', source:'Scale', typical:'250 – 280 kg' },
@@ -798,8 +797,8 @@ DIAGRAMS.L_SA = () => {
     <text x="${ra.x-55}" y="${ra.y-15}" fill="${SC.hi}" font-size="10" opacity="0.85">Rear axle</text>`;
 };
 
-// === theta_chain ===
-DIAGRAMS.theta_chain = () => {
+// === theta_chain_dynamic ===
+DIAGRAMS.theta_chain_dynamic = () => {
   const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
   const p1 = { x: ra.x, y: ra.y - b.rearSprocketR };
   const p2 = { x: sp.x, y: sp.y - b.frontSprocketR };

@@ -23,7 +23,6 @@ const DYNAMIC_PRESETS = {
 // Bike-intrinsic geometry shared across the three reference bikes
 // where the spec sheets agree (only env block is truly shared today).
 const COMMON_ENV = {
-  theta_chain: 15,
   a_x: 0.5,
   rho: 1.225,
   V: 30,
