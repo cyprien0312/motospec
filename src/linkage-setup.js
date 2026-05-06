@@ -87,11 +87,11 @@ export const LINKAGE_PLACEHOLDER_LINKED = {
 //   - Drag tip of the rocker reaches forward-and-down toward a low frame anchor.
 //   - Frame shock-top is the same upper-frame mount, high and forward.
 export const LINKAGE_PLACEHOLDER_PROLINK = {
-  Frame_Rocker_Pivot_X: -60, Frame_Rocker_Pivot_Y:  -50,
-  Rocker_To_Shock_X:    -40, Rocker_To_Shock_Y:     -10,
-  Rocker_To_Drag_X:     -95, Rocker_To_Drag_Y:     -100,
-  Drag_To_Swingarm_X:    50, Drag_To_Swingarm_Y:   -120,
-  Frame_Shock_Top_X:    200, Frame_Shock_Top_Y:     400,
+  Frame_Rocker_Pivot_X: -200, Frame_Rocker_Pivot_Y: -50,
+  Rocker_To_Shock_X:    -130, Rocker_To_Shock_Y:    -60,
+  Rocker_To_Drag_X:     -190, Rocker_To_Drag_Y:     -90,
+  Drag_To_Swingarm_X:    -20, Drag_To_Swingarm_Y:   -20,
+  Frame_Shock_Top_X:    -120, Frame_Shock_Top_Y:     50,
 };
 
 // Backward-compat alias: code that imports LINKAGE_PLACEHOLDER still gets
