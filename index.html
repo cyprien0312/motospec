@@ -204,6 +204,60 @@
     main { padding: 20px 16px; }
     .input-control { grid-template-columns: 1fr; }
   }
+/* Data Table */
+.dt-wrap { overflow-x: auto; max-width: 100%; }
+table.dt {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  background: var(--panel);
+  color: var(--text);
+}
+table.dt th, table.dt td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+table.dt thead th {
+  background: var(--panel);
+  color: var(--accent);
+  font-weight: 600;
+  position: sticky; top: 0;
+}
+table.dt th.dt-spec {
+  position: sticky; left: 0;
+  background: var(--panel);
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1;
+}
+table.dt thead th.dt-spec {
+  z-index: 2;
+}
+table.dt tbody tr:nth-child(even) td,
+table.dt tbody tr:nth-child(even) th {
+  background: rgba(255,255,255,0.02);
+}
+table.dt tr.dt-group th {
+  background: var(--panel);
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+  border-top: 2px solid var(--accent);
+}
+table.dt td.dt-current,
+table.dt th.dt-current {
+  border-left: 2px solid var(--accent);
+  font-weight: 500;
+}
+table.dt .dt-preset {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 400;
+}
 </style>
 </head>
 <body>
@@ -226,6 +280,7 @@
 
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
+import { renderDataTable } from './src/data-table.js';
 
 
 // ============================================================
@@ -278,6 +333,7 @@ const UI = {
   zh: {
     nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
     dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
+    datatable_nav: '📋 数据表', datatable_sub: '参考车型对照',
     dashboard_title: '仪表盘', dashboard_kicker: '实时计算 · 6 大通道',
     dashboard_desc: '所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
     presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
@@ -294,6 +350,7 @@ const UI = {
   en: {
     nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
     dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
+    datatable_nav: '📋 Data Table', datatable_sub: 'Reference bike comparison',
     dashboard_title: 'Dashboard', dashboard_kicker: 'Live calc · 6 channels',
     dashboard_desc: 'Live values for every channel and intermediate. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
     presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
@@ -837,7 +894,7 @@ function typeLabel(t) {
 }
 
 function navigateTo(id) {
-  if (id !== '__dashboard' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && !P[id]) return;
   if (stack[stack.length - 1] === id) return;
   const idx = stack.indexOf(id);
   if (idx >= 0) stack = stack.slice(0, idx + 1);
@@ -846,7 +903,7 @@ function navigateTo(id) {
 }
 
 function navigateRoot(id) {
-  if (id !== '__dashboard' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && !P[id]) return;
   stack = [id];
   render();
 }
@@ -876,6 +933,9 @@ function renderNav() {
   const current = stack[stack.length - 1];
   const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
     <strong>${escapeHtml(T('dashboard_nav'))}</strong><span class="label">${escapeHtml(T('dashboard_sub'))}</span>
+  </div>
+  <div class="nav-item dashboard ${current === '__datatable' ? 'active' : ''}" onclick="navigateRoot('__datatable')">
+    <strong>${escapeHtml(T('datatable_nav'))}</strong><span class="label">${escapeHtml(T('datatable_sub'))}</span>
   </div>`;
   const make = (ids) => ids.map(id => {
     const p = P[id];
@@ -894,7 +954,9 @@ function renderBreadcrumbs() {
     const isLast = i === stack.length - 1;
     const cls = isLast ? 'crumb current' : 'crumb';
     const onClick = isLast ? '' : `onclick="navigateTo('${id}')"`;
-    const label = id === '__dashboard' ? T('dashboard_nav') : P[id].name;
+    const label = id === '__dashboard' ? T('dashboard_nav')
+                : id === '__datatable' ? T('datatable_nav')
+                : P[id].name;
     return `<span class="${cls}" ${onClick}>${escapeHtml(label)}</span>` +
       (isLast ? '' : '<span class="sep">›</span>');
   }).join('');
@@ -945,6 +1007,15 @@ function renderDashboard() {
 function renderContent() {
   const id = stack[stack.length - 1];
   if (id === '__dashboard') return renderDashboard();
+  if (id === '__datatable') {
+    const values = {};
+    for (const k in INPUT_META) {
+      const el = document.getElementById('input-' + k);
+      values[k] = el ? Number(el.value) : INPUT_META[k].def;
+    }
+    document.getElementById('content').innerHTML = renderDataTable({ values, lang });
+    return;
+  }
   const p = P[id];
   let html = '';
 
