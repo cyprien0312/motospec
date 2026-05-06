@@ -396,7 +396,7 @@ table.dt td.dt-readonly span {
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
-import { renderLinkageSetup, LINKAGE_PLACEHOLDER } from './src/linkage-setup.js';
+import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder } from './src/linkage-setup.js';
 
 
 // ============================================================
@@ -993,10 +993,19 @@ function setInputValue(id, raw) {
 }
 function setLinkageMode(mode) {
   if (mode !== 'linked' && mode !== 'pro-link') return;
+  const prev = state.values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
   state.values.Linkage_Mode = mode;
+  // If the user hasn't customised the coords (they still match the previous
+  // mode's placeholder verbatim), swap them to the new mode's placeholder so
+  // the diagram immediately reflects the geometry of that mode. Otherwise
+  // we keep their measurements — they can hit Reset to overwrite manually.
+  if (mode !== prev && matchesPlaceholder(state.values, prev)) {
+    const p = placeholderForMode(mode);
+    for (const [k, v] of Object.entries(p)) state.values[k] = v;
+  }
   saveState();
   clearCache();
-  renderContent(); // mode change swaps labels + button-active state, full redraw is fine
+  renderContent();
 }
 function patchLinkageView() {
   const content = document.getElementById('content');
@@ -1075,7 +1084,8 @@ function resetDefaults() {
   saveState(); clearCache(); render();
 }
 function resetLinkagePlaceholder() {
-  for (const [k, v] of Object.entries(LINKAGE_PLACEHOLDER)) {
+  const mode = state.values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
+  for (const [k, v] of Object.entries(placeholderForMode(mode))) {
     state.values[k] = v;
   }
   saveState(); clearCache(); render();

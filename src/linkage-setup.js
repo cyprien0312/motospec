@@ -64,19 +64,52 @@ export const LINKAGE_POINTS = [
   },
 ];
 
-// Placeholder coords roughly representing a sport-bike pull-rod linkage
-// (R7 / GSX-8R class) viewed from the right side of the bike, using
-// swingarm pivot as origin, +X forward (toward front wheel), +Y up.
-//   - Rocker pivot sits above and slightly forward of the swingarm pivot.
+// Placeholder coords roughly representing a sport-bike linkage viewed
+// from the right side, swingarm pivot as origin, +X forward (toward
+// front wheel), +Y up.
+//
+// Linked variant (R7 / GSX-8R / RS660 class):
+//   - Rocker pivot sits ABOVE and slightly forward of the swingarm pivot.
 //   - Shock body leans forward, top mount high on the frame.
 //   - Drag/pull link runs forward-and-down from the rocker to the swingarm.
-export const LINKAGE_PLACEHOLDER = {
+export const LINKAGE_PLACEHOLDER_LINKED = {
   Frame_Rocker_Pivot_X: 30,  Frame_Rocker_Pivot_Y: 120,
   Rocker_To_Shock_X:    10,  Rocker_To_Shock_Y:    145,
   Rocker_To_Drag_X:     55,  Rocker_To_Drag_Y:     95,
   Drag_To_Swingarm_X:   95,  Drag_To_Swingarm_Y:  -15,
   Frame_Shock_Top_X:   200,  Frame_Shock_Top_Y:   480,
 };
+
+// Pro-Link variant (Honda): the rocker bell-crank hangs BELOW the swingarm,
+// so all three rocker points and the frame tie-rod anchor have negative Y.
+//   - Rocker pivot is bolted to the underside of the swingarm.
+//   - Shock-attach tip of the rocker reaches up toward the swingarm body.
+//   - Drag tip of the rocker reaches forward-and-down toward a low frame anchor.
+//   - Frame shock-top is the same upper-frame mount, high and forward.
+export const LINKAGE_PLACEHOLDER_PROLINK = {
+  Frame_Rocker_Pivot_X: -60, Frame_Rocker_Pivot_Y:  -50,
+  Rocker_To_Shock_X:    -40, Rocker_To_Shock_Y:     -10,
+  Rocker_To_Drag_X:     -95, Rocker_To_Drag_Y:     -100,
+  Drag_To_Swingarm_X:    50, Drag_To_Swingarm_Y:   -120,
+  Frame_Shock_Top_X:    200, Frame_Shock_Top_Y:     400,
+};
+
+// Backward-compat alias: code that imports LINKAGE_PLACEHOLDER still gets
+// the linked-mode default.
+export const LINKAGE_PLACEHOLDER = LINKAGE_PLACEHOLDER_LINKED;
+
+export function placeholderForMode(mode) {
+  return mode === 'pro-link' ? LINKAGE_PLACEHOLDER_PROLINK : LINKAGE_PLACEHOLDER_LINKED;
+}
+
+// True iff the values match the placeholder coords for the given mode
+// exactly (no user customisation). Used by setLinkageMode to decide
+// whether it's safe to swap to the other mode's placeholder.
+export function matchesPlaceholder(values, mode) {
+  const p = placeholderForMode(mode);
+  for (const k of Object.keys(p)) if (values[k] !== p[k]) return false;
+  return true;
+}
 
 const UI = {
   zh: {
