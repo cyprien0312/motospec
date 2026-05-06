@@ -79,7 +79,7 @@ export function shockLength(cfg, swingarmDeltaDeg) {
 // Rear wheel y-coordinate (positive down) relative to swingarm pivot.
 // betaStaticDeg is the static swingarm angle below horizontal (+ve number,
 // matches CSV input convention; e.g. R7 ≈ 14°).
-export function rearWheelHeight(cfg, swingarmDeltaDeg, swingarmLength, betaStaticDeg) {
+export function rearWheelHeight(_cfg, swingarmDeltaDeg, swingarmLength, betaStaticDeg) {
   const totalDeg = betaStaticDeg + swingarmDeltaDeg;
   // wheel sits below pivot by swingarmLength·sin(angle below horizontal)
   return swingarmLength * Math.sin(totalDeg * D2R);
