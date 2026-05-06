@@ -58,7 +58,7 @@ export const ROW_GROUPS = [
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
     { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel', status: 'coords' },
     { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height',           status: 'coords' },
-    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'MotoSPEC_SwgarmAngl',        status: 'approx' },
+    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'MotoSPEC_SwgarmAngl',        status: 'coords' },
     { spec: 'AntiSquat (%)',                                        spec_zh: '抗蹲伏 (%)',          computed: 'MotoSPEC_AntSquat',          status: 'approx' },
     { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression',                status: 'coords' },
     { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio',               status: 'coords' },

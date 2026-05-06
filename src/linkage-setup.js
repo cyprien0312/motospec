@@ -196,6 +196,46 @@ export function placeholderForMode(mode) {
   return mode === 'pro-link' ? LINKAGE_PLACEHOLDER_PROLINK : LINKAGE_PLACEHOLDER_LINKED;
 }
 
+// 12 spec fields that fully describe a linkage entry in CATALOGS.linkages.
+export const LINKAGE_SPEC_FIELDS = [
+  'Linkage_Mode',
+  'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+  'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',
+  'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
+  'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
+  'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
+  'Linkarm_Length',
+];
+
+// Slug a user-entered name to a catalog id; if the slug collides with an
+// existing id in `existingIds` (Set or array of strings), a timestamp suffix
+// is appended.
+export function slugifyLinkageName(name, existingIds = []) {
+  const base = String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'linkage';
+  const set = existingIds instanceof Set ? existingIds : new Set(existingIds);
+  if (!set.has(base)) return base;
+  return `${base}-${Date.now()}`;
+}
+
+// Build a catalog entry payload from the current state values.
+export function buildLinkagePresetEntry(name, values) {
+  const specs = {};
+  for (const k of LINKAGE_SPEC_FIELDS) specs[k] = values[k];
+  if (specs.Linkage_Mode !== 'pro-link' && specs.Linkage_Mode !== 'linked') {
+    specs.Linkage_Mode = 'pro-link';
+  }
+  return {
+    name: String(name),
+    manufacturer: 'User',
+    source: 'Saved from Linkage Setup',
+    specs,
+  };
+}
+
 // True iff the values match the placeholder coords for the given mode
 // exactly (no user customisation). Used by setLinkageMode to decide
 // whether it's safe to swap to the other mode's placeholder.
@@ -211,6 +251,7 @@ const UI = {
     nav_sub: '后悬挂点位测量',
     title: '连杆几何 / Linkage Setup',
     kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
+    save_preset: '💾 保存为预设',
     desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。图示按右侧视图绘制——车头朝左、+X 在屏幕上向左。占位坐标只为让公式有数值；实测后图示与运动比才有意义。',
     readouts: '实时读数（Live Readouts）',
     chart_title: '运动比曲线',
@@ -246,6 +287,7 @@ const UI = {
     nav_sub: 'Rear suspension geometry',
     title: 'Linkage Setup',
     kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
+    save_preset: '💾 Save as preset',
     desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The diagram is a right-side view — bike faces left, so +X-forward points left on screen. Placeholder coords just keep the formulas numerical; the diagram and motion ratio only become meaningful once you enter real measurements.',
     readouts: 'Live Readouts',
     chart_title: 'Motion Ratio Curve',
@@ -735,8 +777,9 @@ export function renderLinkageSetup(state) {
         </ul>
       </details>
 
-      <div style="margin-top:18px">
+      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
         <button class="preset-btn reset" onclick="resetLinkagePlaceholder()">${escapeHtml(str.reset)}</button>
+        <button class="preset-btn" onclick="saveLinkageAsPreset()">${escapeHtml(str.save_preset)}</button>
       </div>
     </div>
   `;

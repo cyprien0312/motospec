@@ -175,6 +175,24 @@ for (const b of REFERENCE_BIKES) {
   }
 }
 
+test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
+  // With the default pro-link placeholder coords and Travel_Rear=25, the
+  // linkage-routed swingarm angle should differ noticeably from the legacy
+  // asin(Travel_Rear/L_SA) approximation. >0.5° guarantees we're not still
+  // computing the asin shortcut by accident.
+  const v = { ...defaultValues(), Travel_Rear: 25 };
+  const out = computeAll(v);
+  const oldApprox = v.beta_static - Math.asin(v.Travel_Rear / v.L_SA) * 180 / Math.PI;
+  const diff = Math.abs(out.MotoSPEC_SwgarmAngl - oldApprox);
+  assert.ok(Number.isFinite(out.MotoSPEC_SwgarmAngl),
+    `MotoSPEC_SwgarmAngl not finite: ${out.MotoSPEC_SwgarmAngl}`);
+  assert.ok(diff > 0.5,
+    `Expected linkage-routed Swingarm Angle to differ from the asin approximation by >0.5°; got diff=${diff.toFixed(3)}° (new=${out.MotoSPEC_SwgarmAngl.toFixed(3)}, old=${oldApprox.toFixed(3)})`);
+  // On compression, swingarm angle below horizontal should decrease.
+  assert.ok(out.MotoSPEC_SwgarmAngl < v.beta_static,
+    `Expected new Swingarm Angle < beta_static on compression; got ${out.MotoSPEC_SwgarmAngl} vs ${v.beta_static}`);
+});
+
 test('Final_Ratio matches CSV for each reference bike', () => {
   for (const b of REFERENCE_BIKES) {
     const out = computeAll({ ...defaultValues(), ...b.inputs });

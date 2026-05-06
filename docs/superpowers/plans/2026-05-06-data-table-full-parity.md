@@ -1100,8 +1100,11 @@ While auditing the RESULTS column we found the page renders values for several r
 ### Already done (2026-05-06)
 - **`O` is now derived**: `O = Yoke_Offset` (channel, not input). Changing the clamp / Yoke Offset in the data table updates Ground Trail. Rake correctly stays unaffected (rake is set by the steering-head angle, not yoke offset). `Wheel_Hub_Offset` was tried as a second contributor but removed because it's effectively always 0 — re-add only if a non-zero hub offset case appears.
 - **Status badges expanded** in `src/data-table.js` STATUS_BADGE: added `partial` (orange) and `approx` (purple) with bilingual tooltips. Tagged rows accordingly.
+- **Linkage Setup → "Save as preset"**: the Linkage Setup page can save the current 12 linkage spec fields (mode + 5 XY pairs + Linkarm_Length) as a user-overlay entry in `CATALOGS.linkages` via `setCatalogEntry`, slugifying the user-entered name and deduping on collision. Helpers exported from `src/linkage-setup.js` (`slugifyLinkageName`, `buildLinkagePresetEntry`, `LINKAGE_SPEC_FIELDS`) so they're testable.
+- **H1 done (2026-05-06)**: `MotoSPEC_SwgarmAngl` now routes through the 4-bar linkage closure (`swingarmDeltaForShockTravel`) instead of the `asin(Travel_Rear / L_SA)` shortcut. Badge changed `APPROX` → `NEEDS COORDS` because the formula is real but reference bikes still ship placeholder linkage coords.
 
-### Task H1: Swingarm Angle through linkage (currently `APPROX`)
+### Task H1: Swingarm Angle through linkage (currently `APPROX`) — DONE 2026-05-06
+**Done.** `MotoSPEC_SwgarmAngl` calc now builds a `cfg` from the 5 linkage XY pairs + `Linkage_Mode` + `beta_static` and adds `swingarmDeltaForShockTravel(cfg, Travel_Rear)` (signed degrees) to `beta_static`. Sign convention: on bump the wheel rises and Δβ is negative, so the displayed angle drops below `beta_static`. The `delta_beta` intermediate is kept (no other consumer, no harm). Badge moved `APPROX` → `NEEDS COORDS` in `src/data-table.js`. New test: `MotoSPEC_SwgarmAngl is routed through the linkage (H1)` in `tests/formulas.test.js`.
 `MotoSPEC_SwgarmAngl` uses `β_static − asin(Travel_Rear / L_SA)·R2D`, which:
 - treats `Travel_Rear` (the rear potentiometer / shock-pot reading) as if it were rear-wheel vertical travel;
 - bypasses the 4-bar linkage entirely.
@@ -1167,7 +1170,7 @@ When a phase task lands and removes a gap, the badge should be removed in the sa
 | Ground Trail | — | ✓ done (Yoke_Offset wired) |
 | Rear Wheel Vertical Travel | NEEDS COORDS | C1 (real coords) |
 | Rear Ride Height Reference | NEEDS COORDS | C1 |
-| Swingarm Angle | APPROX | **H1** (new) |
+| Swingarm Angle | NEEDS COORDS | **H1** done — coords still placeholder (resolved by C1) |
 | AntiSquat | APPROX | **H2** (new) |
 | Progression | NEEDS COORDS | C1 |
 | Motion Ratio | NEEDS COORDS | C1 |

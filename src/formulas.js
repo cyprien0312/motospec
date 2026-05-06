@@ -5,6 +5,7 @@
 import {
   motionRatio, progression,
   rearVerticalTravel, rearRideHeight,
+  swingarmDeltaForShockTravel,
 } from './linkage.js';
 
 export const D2R = Math.PI / 180;
@@ -45,12 +46,19 @@ export const P = {
   },
   MotoSPEC_SwgarmAngl: {
     name: 'MotoSPEC_SwgarmAngl', label: '动态摇臂角度', unit: 'deg', type: 'channel',
-    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。压缩时角度变小（摇臂趋于水平）。',
+    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。通过 4-bar 连杆闭合从避震行程反解 Δβ，再加到静态角上。',
     formula: [
-      {ref:'beta_static'}, ' − ', {ref:'delta_beta'}, ' × (180 / π)'
+      {ref:'beta_static'}, ' + Δβ(linkage,', {ref:'Travel_Rear'}, ')'
     ],
-    deps: ['beta_static', 'delta_beta'],
-    note: '出弯开油时若摇臂趋近水平，机械抓地力骤降，赛车会向外抛。'
+    deps: [
+      'beta_static', 'Travel_Rear',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
+    ],
+    note: 'Δβ 由 swingarmDeltaForShockTravel 经 4-bar 闭合解出，单位度；压缩时 Δβ 为负，摇臂趋于水平。'
   },
   MotoSPEC_AntSquat: {
     name: 'MotoSPEC_AntSquat', label: '抗蹲伏百分比', unit: '%', type: 'channel',
@@ -389,7 +397,26 @@ export const CALC = {
     const r = v.MotoSPEC_Rake * D2R;
     return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
   },
-  MotoSPEC_SwgarmAngl: v => v.beta_static - v.delta_beta * R2D,
+  MotoSPEC_SwgarmAngl: v => {
+    const cfg = {
+      Linkage_Mode: v.Linkage_Mode,
+      Frame_Rocker_Pivot_X: v.Frame_Rocker_Pivot_X,
+      Frame_Rocker_Pivot_Y: v.Frame_Rocker_Pivot_Y,
+      Rocker_To_Shock_X:    v.Rocker_To_Shock_X,
+      Rocker_To_Shock_Y:    v.Rocker_To_Shock_Y,
+      Rocker_To_Drag_X:     v.Rocker_To_Drag_X,
+      Rocker_To_Drag_Y:     v.Rocker_To_Drag_Y,
+      Drag_To_Swingarm_X:   v.Drag_To_Swingarm_X,
+      Drag_To_Swingarm_Y:   v.Drag_To_Swingarm_Y,
+      Frame_Shock_Top_X:    v.Frame_Shock_Top_X,
+      Frame_Shock_Top_Y:    v.Frame_Shock_Top_Y,
+    };
+    // swingarmDeltaForShockTravel returns Δβ in DEGREES, signed (negative on
+    // compression because swingarm rotates upward, decreasing the angle below
+    // horizontal). Add directly to beta_static.
+    const dBetaDeg = swingarmDeltaForShockTravel(cfg, v.Travel_Rear);
+    return v.beta_static + dBetaDeg;
+  },
   theta_thrust:  v => Math.atan(Math.tan(v.theta_chain * D2R) + Math.tan(v.MotoSPEC_SwgarmAngl * D2R)),
   theta_cg:      v => Math.atan(v.H_CG / v.L_CG),
   MotoSPEC_AntSquat: v => Math.tan(v.theta_thrust) / Math.tan(v.theta_cg) * 100,
