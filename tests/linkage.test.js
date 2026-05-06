@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { closeFourBar } from '../src/linkage.js';
+import {
+  closeFourBar,
+  shockLength,
+  swingarmDeltaForShockTravel,
+  rearVerticalTravel,
+  rearRideHeight,
+} from '../src/linkage.js';
 
 test('4-bar closure: residual is zero at static configuration', () => {
   const cfg = {
