@@ -4,6 +4,18 @@
 
 import { ROW_GROUPS as LEGACY_ROW_GROUPS } from './data-table.js';
 import { P } from './formulas.js';
+import { matchesPlaceholder } from './linkage-setup.js';
+
+/**
+ * Returns true if the bike's linkage coordinates match either the
+ * pro-link or linked placeholder set. Such a bike does NOT have real
+ * linkage coords and must produce missing values for every linkage-
+ * dependent result on the advance page.
+ */
+export function isPlaceholderCoords(inputs) {
+  const mode = inputs.Linkage_Mode || 'pro-link';
+  return matchesPlaceholder(inputs, mode);
+}
 
 /**
  * Walk P[name].deps transitively. A name is a "leaf" if it does not appear

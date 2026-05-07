@@ -40,3 +40,28 @@ test('leafDepsFor on a leaf-only result still returns the leaves', () => {
   // O is intermediate — it must NOT appear in the leaf set.
   assert.ok(!leaves.includes('O'), 'O is an intermediate channel, not a leaf');
 });
+
+import { isPlaceholderCoords } from '../src/data-table-advance.js';
+import {
+  LINKAGE_PLACEHOLDER_LINKED,
+  LINKAGE_PLACEHOLDER_PROLINK,
+} from '../src/linkage-setup.js';
+
+test('isPlaceholderCoords: pro-link placeholder → true', () => {
+  const inputs = { ...LINKAGE_PLACEHOLDER_PROLINK, Linkage_Mode: 'pro-link' };
+  assert.equal(isPlaceholderCoords(inputs), true);
+});
+
+test('isPlaceholderCoords: linked placeholder → true', () => {
+  const inputs = { ...LINKAGE_PLACEHOLDER_LINKED, Linkage_Mode: 'linked' };
+  assert.equal(isPlaceholderCoords(inputs), true);
+});
+
+test('isPlaceholderCoords: customized coords → false', () => {
+  const inputs = {
+    ...LINKAGE_PLACEHOLDER_PROLINK,
+    Linkage_Mode: 'pro-link',
+    Frame_Rocker_Pivot_X: -123.45, // arbitrary non-placeholder value
+  };
+  assert.equal(isPlaceholderCoords(inputs), false);
+});
