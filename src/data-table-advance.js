@@ -11,6 +11,7 @@ import {
   LINKAGE_PLACEHOLDER_PROLINK,
 } from './linkage-setup.js';
 import { materializeBikeInputs } from './catalog.js';
+import { fmtNum, escapeHtml } from './data-table.js';
 
 /**
  * Returns true if the bike's linkage coordinates match either the
@@ -203,4 +204,70 @@ export function computeAdvanceResults(bike) {
     }
   }
   return out;
+}
+
+const UI = {
+  zh: { title: '数据表（高级）', resultsHeader: '结果' },
+  en: { title: 'Data Table (Advance)', resultsHeader: 'RESULTS' },
+};
+
+function chipClass(n, m) {
+  if (m === 0) return 'dt-count-chip grey';
+  if (n === m) return 'dt-count-chip green';
+  if (n === 0) return 'dt-count-chip grey';
+  return 'dt-count-chip amber';
+}
+
+function renderResultCell(per) {
+  if (per.missing) {
+    const title = `Missing: ${per.missingLeaves.join(', ')}`;
+    return `<td class="dt-missing" title="${escapeHtml(title)}"></td>`;
+  }
+  return `<td>${fmtNum(per.value)}</td>`;
+}
+
+function renderDerivedCell(row, bike) {
+  const v = row.derivedFrom(bike.values);
+  if (v === undefined || v === null || !Number.isFinite(v)) {
+    return `<td class="dt-missing" title="Missing: derived value not available"></td>`;
+  }
+  return `<td>${fmtNum(v)}</td>`;
+}
+
+export function renderDataTableAdvance(state) {
+  const lang = state.lang === 'zh' ? 'zh' : 'en';
+  const t = UI[lang];
+  const bikes = state.advanceBikes || [];
+
+  const perBike = bikes.map(b => computeAdvanceResults(b));
+
+  const headerCells = bikes.map(b => `<th>${escapeHtml(b.name)}</th>`).join('');
+
+  const rowsHtml = ADVANCE_RESULT_ROWS.map((row) => {
+    const label = lang === 'zh' ? row.spec_zh : row.spec;
+    let cells = '';
+    let nReady = 0;
+    for (let i = 0; i < bikes.length; i++) {
+      if (row.computed) {
+        const per = perBike[i][row.computed];
+        if (!per.missing) nReady++;
+        cells += renderResultCell(per);
+      } else if (row.derivedFrom) {
+        const v = row.derivedFrom(bikes[i].values);
+        const ok = v !== undefined && v !== null && Number.isFinite(v);
+        if (ok) nReady++;
+        cells += renderDerivedCell(row, bikes[i]);
+      }
+    }
+    const chip = `<span class="${chipClass(nReady, bikes.length)}">${nReady}/${bikes.length}</span>`;
+    return `<tr><th>${escapeHtml(label)} ${chip}</th>${cells}</tr>`;
+  }).join('');
+
+  return `
+    <h2>${escapeHtml(t.title)}</h2>
+    <table class="dt-advance">
+      <thead><tr><th>${escapeHtml(t.resultsHeader)}</th>${headerCells}</tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  `;
 }

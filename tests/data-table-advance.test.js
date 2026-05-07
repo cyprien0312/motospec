@@ -101,3 +101,23 @@ test('computeAdvanceResults: static at-rest sanity for a complete bike', () => {
   );
   assert.equal(out.WB.value, bike.values.WB);
 });
+
+import { renderDataTableAdvance } from '../src/data-table-advance.js';
+
+test('renderDataTableAdvance: missing cell carries dt-missing class and title', () => {
+  const bikes = defaultBikes().slice(0, 1);
+  bikes[0].components = { ...bikes[0].components, linkage: undefined };
+  const state = { lang: 'en', advanceBikes: bikes };
+
+  const html = renderDataTableAdvance(state);
+
+  assert.match(html, /class="dt-missing"[^>]*title="Missing:[^"]+"/);
+  assert.match(html, new RegExp(`>${bikes[0].values.WB}<`));
+});
+
+test('renderDataTableAdvance: per-row count chip reflects N/M ready bikes', () => {
+  const bikes = defaultBikes().slice(0, 2);
+  const state = { lang: 'en', advanceBikes: bikes };
+  const html = renderDataTableAdvance(state);
+  assert.match(html, /class="dt-count-chip[^"]*"[^>]*>2\/2/);
+});
