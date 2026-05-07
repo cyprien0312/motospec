@@ -88,13 +88,16 @@ const LINKAGE_DEP_NAMES = new Set(LINKAGE_COORD_FIELDS);
 // Result channels whose CALC reads the linkage solver state directly but
 // whose declared `deps: []` doesn't expose those leaves. These must still be
 // flagged missing when the bike has placeholder linkage coords.
+// Rear_Wheel_Rate is included because once Task 9 implements it as
+// `Rear_Spring_Rate / Motion_Ratio²`, leafDepsFor would treat Motion_Ratio
+// (which itself declares deps:[]) as a leaf — so without this allow-list
+// entry the linkage-placeholder check would miss it.
 const LINKAGE_DEPENDENT_RESULTS = new Set([
   'Motion_Ratio',
   'Progression',
   'Rear_Ride_Height',
   'Rear_Wheel_Vertical_Travel',
   'Rear_Wheel_Rate',
-  'Rear_Wheel_Force',
 ]);
 
 // Result keys derived from ADVANCE_RESULT_ROWS — only those with a `computed`
