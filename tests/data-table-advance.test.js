@@ -31,9 +31,12 @@ test('leafDepsFor returns leaves only (no intermediate channels)', () => {
 
 test('leafDepsFor on a leaf-only result still returns the leaves', () => {
   const leaves = leafDepsFor('MotoSPEC_Trail');
+  // MotoSPEC_Trail deps on Rf (leaf), MotoSPEC_Rake (intermediate, expands
+  // to Rake_Static + Pitch's leaves), and O (intermediate aliasing
+  // Yoke_Offset). The walker recurses through intermediates to leaves.
   assert.ok(leaves.includes('Rf'));
-  assert.ok(leaves.includes('O'));
-  // MotoSPEC_Trail deps on MotoSPEC_Rake (intermediate), so the walk
-  // expands it to Rake_Static + Pitch's leaves.
+  assert.ok(leaves.includes('Yoke_Offset'));
   assert.ok(leaves.includes('Rake_Static'));
+  // O is intermediate — it must NOT appear in the leaf set.
+  assert.ok(!leaves.includes('O'), 'O is an intermediate channel, not a leaf');
 });
