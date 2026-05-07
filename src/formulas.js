@@ -331,9 +331,9 @@ export const P = {
   },
   Rear_Wheel_Rate: {
     name:'Rear_Wheel_Rate', label:'后轮综合刚度', unit:'N/mm', type:'channel',
-    desc:'后轮综合弹簧刚度 (轮端)。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'静态下沉点的后轮综合刚度。Motion_Ratio = 轮行程 / 避震行程 (≈2-3)。能量恒等式：Rear_Wheel_Rate = Rear_Spring_Rate / Motion_Ratio²。',
+    formula: ['Rear_Spring_Rate / Motion_Ratio²'],
+    deps: ['Rear_Spring_Rate', 'Motion_Ratio']
   },
   Front_Wheel_Rate: {
     name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
@@ -473,7 +473,13 @@ export const CALC = {
   Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
   Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
   Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
-  Rear_Wheel_Rate:           () => NaN,
+  // Motion_Ratio is wheel/shock (≈2–3). Energy identity:
+  //   K_wheel = K_spring · (x_spring / x_wheel)² = K_spring / Motion_Ratio²
+  Rear_Wheel_Rate: v => {
+    const mr = v.Motion_Ratio;
+    if (!Number.isFinite(mr) || mr === 0) return NaN;
+    return v.Rear_Spring_Rate / (mr * mr);
+  },
   // MR_front: fork compression per unit vertical front-wheel travel
   //   = 1 / cos(Rake_Static); typically 1.05–1.10 for sportbikes.
   // Front_Wheel_Rate = Front_Spring_Rate / MR_front² (energy identity).
