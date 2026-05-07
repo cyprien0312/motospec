@@ -34,7 +34,7 @@ export const ROW_GROUPS = [
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
     { spec: 'Swingarm',                                             spec_zh: '摇臂',                 component: 'swingarm' },
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
-    { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '避震Clevis车高 (mm)',  input: 'Shock_Clevis_RHA', status: 'pending' },
+    { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '避震Clevis车高 (mm)',  input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
     { spec: 'Shock Length (mm)',                                    spec_zh: '避震长度 (mm)',        input: 'Shock_Length', status: 'pending' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Rear_Spring_Rate', status: 'pending' },
@@ -42,10 +42,6 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Rear_Topout_Rate', status: 'pending' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Rear_Topout_Length', status: 'pending' },
     { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
-  ]},
-  { header: 'TIRES', header_zh: '轮胎', rows: [
-    { spec: 'Front Tire',                                           spec_zh: '前胎',                 component: 'front_tire' },
-    { spec: 'Rear Tire',                                            spec_zh: '后胎',                 component: 'rear_tire' },
   ]},
   { header: 'SPROCKETS', header_zh: '链轮', rows: [
     { spec: 'Front Sprocket',                                       spec_zh: '前链轮',              input: 'Front_Sprocket' },
@@ -94,22 +90,21 @@ const STATUS_BADGE = {
 const DASH = '—';
 
 // component bike-key → catalog name
-const COMPONENT_TO_CATALOG = {
+export const COMPONENT_TO_CATALOG = {
   clamp: 'clamps',
   fork: 'forks',
   shock: 'shocks',
   swingarm: 'swingarms',
   linkage: 'linkages',
-  front_tire: 'tires',
-  rear_tire: 'tires',
 };
 
 // All component keys appearing on bike rows (for tests / introspection).
 export const COMPONENT_FIELDS = Object.keys(COMPONENT_TO_CATALOG);
 
+// Convention (per formulas.js a_x desc): braking is POSITIVE, accel is NEGATIVE.
 const DYNAMIC_LOAD_PRESETS = {
   sag:        { a_x: 0,    V: 0,  Cd: 0.4, A: 0.45 },
-  braking:    { a_x: -0.8, V: 25, Cd: 0.4, A: 0.45 },
+  braking:    { a_x: 1.0,  V: 25, Cd: 0.4, A: 0.45 },
   mid_corner: { a_x: 0,    V: 20, Cd: 0.4, A: 0.45 },
 };
 
@@ -124,32 +119,22 @@ const PRESET_LABELS = {
   zh: { sag: '静态下沉', braking: '刹车', mid_corner: '弯中', custom: '自定义' },
 };
 
-function fmtNum(n) {
+export function fmtNum(n) {
   if (n == null || !Number.isFinite(n)) return DASH;
   if (Number.isInteger(n)) return String(n);
   return (Math.round(n * 100) / 100).toString();
 }
 
-function escapeHtml(s) {
+export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[c]);
 }
 
-// Filter a rear-tire catalog to entries that look like rear tires (and
-// vice-versa) when an `axis` field is present. Falls back to all entries
-// for catalogs without an axis tag.
-function catalogEntriesFor(componentKey) {
+export function catalogEntriesFor(componentKey) {
   const catalogName = COMPONENT_TO_CATALOG[componentKey];
   const catalog = CATALOGS[catalogName] || {};
-  const isTire = componentKey === 'front_tire' || componentKey === 'rear_tire';
-  const wantAxis = componentKey === 'front_tire' ? 'front' :
-                   componentKey === 'rear_tire'  ? 'rear'  : null;
-  return Object.entries(catalog).filter(([_, e]) => {
-    if (!isTire) return true;
-    if (!e.axis) return true;
-    return e.axis === wantAxis;
-  });
+  return Object.entries(catalog);
 }
 
 export function defaultBikes() {
