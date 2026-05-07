@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ADVANCE_ROW_GROUPS, ADVANCE_RESULT_ORDER } from '../src/data-table-advance.js';
+import { ADVANCE_ROW_GROUPS, ADVANCE_RESULT_ORDER, leafDepsFor } from '../src/data-table-advance.js';
 import { ROW_GROUPS as LEGACY_ROW_GROUPS } from '../src/data-table.js';
 
 test('advance result rows match legacy RESULTS order exactly', () => {
@@ -15,4 +15,25 @@ test('advance result rows match legacy RESULTS order exactly', () => {
 
 test('ADVANCE_RESULT_ORDER lists all 15 legacy RESULTS rows (CofG % Front + Rear are separate derivedFrom rows)', () => {
   assert.equal(ADVANCE_RESULT_ORDER.length, 15);
+});
+
+test('leafDepsFor returns leaves only (no intermediate channels)', () => {
+  const leaves = leafDepsFor('MotoSPEC_Rake');
+  // MotoSPEC_Rake deps on Rake_Static (leaf) and Pitch (intermediate);
+  // Pitch deps on Travel_Front, Travel_Rear, WB (all leaves).
+  assert.ok(leaves.includes('Rake_Static'));
+  assert.ok(leaves.includes('Travel_Front'));
+  assert.ok(leaves.includes('Travel_Rear'));
+  assert.ok(leaves.includes('WB'));
+  assert.ok(!leaves.includes('Pitch'), 'Pitch is intermediate, not a leaf');
+  assert.ok(!leaves.includes('MotoSPEC_Rake'), 'self should not be in leaves');
+});
+
+test('leafDepsFor on a leaf-only result still returns the leaves', () => {
+  const leaves = leafDepsFor('MotoSPEC_Trail');
+  assert.ok(leaves.includes('Rf'));
+  assert.ok(leaves.includes('O'));
+  // MotoSPEC_Trail deps on MotoSPEC_Rake (intermediate), so the walk
+  // expands it to Rake_Static + Pitch's leaves.
+  assert.ok(leaves.includes('Rake_Static'));
 });

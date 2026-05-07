@@ -3,6 +3,45 @@
 // real computed value or blank — no mocks, no fallbacks, no placeholder coords.
 
 import { ROW_GROUPS as LEGACY_ROW_GROUPS } from './data-table.js';
+import { P } from './formulas.js';
+
+/**
+ * Walk P[name].deps transitively. A name is a "leaf" if it does not appear
+ * as a key in P (i.e., it's a declared input from INPUT_META, not a computed
+ * channel/intermediate).
+ *
+ * Returns a sorted array of leaf input names. Self is excluded.
+ */
+export function leafDepsFor(name) {
+  const seen = new Set();
+  const leaves = new Set();
+
+  function visit(n) {
+    if (seen.has(n)) return;
+    seen.add(n);
+    const node = P[n];
+    if (!node) {
+      // Not in P → it's a leaf input.
+      leaves.add(n);
+      return;
+    }
+    const deps = node.deps || [];
+    if (deps.length === 0) {
+      // No deps → treat as a leaf input (declared in P with type 'input').
+      leaves.add(n);
+      return;
+    }
+    for (const d of deps) visit(d);
+  }
+
+  const root = P[name];
+  if (!root) {
+    // Caller passed a leaf — return it as its own dep.
+    return [name];
+  }
+  for (const d of (root.deps || [])) visit(d);
+  return [...leaves].sort();
+}
 
 const LEGACY_RESULTS = LEGACY_ROW_GROUPS.find(g => g.header === 'RESULTS').rows;
 
