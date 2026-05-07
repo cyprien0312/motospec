@@ -46,19 +46,19 @@ export const P = {
   },
   MotoSPEC_SwgarmAngl: {
     name: 'MotoSPEC_SwgarmAngl', label: '动态摇臂角度', unit: 'deg', type: 'channel',
-    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。通过 4-bar 连杆闭合从避震行程反解 Δβ，再加到静态角上。',
+    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。通过 4-bar 连杆闭合从避震行程 + clevis RHA 反解 Δβ，再加到静态角上。',
     formula: [
-      {ref:'beta_static'}, ' + Δβ(linkage,', {ref:'Travel_Rear'}, ')'
+      {ref:'beta_static'}, ' + Δβ(linkage,', {ref:'Shock_Clevis_RHA'}, ',', {ref:'Travel_Rear'}, ')'
     ],
     deps: [
-      'beta_static', 'Travel_Rear',
+      'beta_static', 'Travel_Rear', 'Shock_Clevis_RHA',
       'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
       'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',
       'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
       'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
       'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
     ],
-    note: 'Δβ 由 swingarmDeltaForShockTravel 经 4-bar 闭合解出，单位度；压缩时 Δβ 为负，摇臂趋于水平。'
+    note: 'Δβ 由 swingarmDeltaForShockTravel 经 4-bar 闭合解出。Shock_Clevis_RHA > 0 把避震机械加长 → 静态摇臂角度被顶到新位置；Travel_Rear 是相对 RHA 调整后的避震行程。'
   },
   MotoSPEC_AntSquat: {
     name: 'MotoSPEC_AntSquat', label: '抗蹲伏百分比', unit: '%', type: 'channel',
@@ -337,9 +337,9 @@ export const P = {
   },
   Front_Wheel_Rate: {
     name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
-    desc:'前轮综合弹簧刚度 (轮端)。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'前轮综合刚度 (轮端)。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = Front_Spring_Rate / MR_front²。',
+    formula: ['Front_Spring_Rate / (1 / cos(Rake_Static))²'],
+    deps: ['Front_Spring_Rate', 'Rake_Static']
   },
 };
 
@@ -432,7 +432,7 @@ export const CALC = {
     // swingarmDeltaForShockTravel returns Δβ in DEGREES, signed (negative on
     // compression because swingarm rotates upward, decreasing the angle below
     // horizontal). Add directly to beta_static.
-    const dBetaDeg = swingarmDeltaForShockTravel(cfg, v.Travel_Rear);
+    const dBetaDeg = swingarmDeltaForShockTravel(cfg, v.Travel_Rear, v.Shock_Clevis_RHA || 0);
     return v.beta_static + dBetaDeg;
   },
   theta_chain_dynamic: v => {
@@ -471,10 +471,16 @@ export const CALC = {
   Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
   Motion_Ratio:              v => motionRatio(v, 0, v.Swingarm_Length, v.beta_static),
   Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
-  Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
-  Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static),
+  Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
+  Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
   Rear_Wheel_Rate:           () => NaN,
-  Front_Wheel_Rate:          () => NaN,
+  // MR_front: fork compression per unit vertical front-wheel travel
+  //   = 1 / cos(Rake_Static); typically 1.05–1.10 for sportbikes.
+  // Front_Wheel_Rate = Front_Spring_Rate / MR_front² (energy identity).
+  Front_Wheel_Rate: v => {
+    const MR_front = 1 / Math.cos(v.Rake_Static * D2R);
+    return v.Front_Spring_Rate / (MR_front * MR_front);
+  },
 };
 
 // Topological order: every entry's deps appear earlier in the list

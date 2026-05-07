@@ -192,6 +192,27 @@ test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
     `Expected new Swingarm Angle < beta_static on compression; got ${out.MotoSPEC_SwgarmAngl} vs ${v.beta_static}`);
 });
 
+test('Shock_Clevis_RHA shifts MotoSPEC_SwgarmAngl and rear ride height', () => {
+  // RHA=0 baseline vs. RHA=+5: lengthening the shock at zero compression
+  // forces the swingarm to a different static angle, changing rear
+  // ride-height. Sign + finiteness check, and Travel_Rear=0 must move
+  // the angle (otherwise RHA isn't wired).
+  const v0 = defaultValues();
+  const v5 = { ...v0, Shock_Clevis_RHA: 5, Travel_Rear: 0 };
+  const r0 = computeAll(v0);
+  const r5 = computeAll(v5);
+  assert.ok(Number.isFinite(r5.MotoSPEC_SwgarmAngl), 'angle must be finite with RHA');
+  assert.notEqual(r0.MotoSPEC_SwgarmAngl, r5.MotoSPEC_SwgarmAngl,
+    'RHA must shift static swingarm angle');
+  assert.notEqual(r0.Rear_Ride_Height, r5.Rear_Ride_Height,
+    'RHA must shift rear ride-height reference');
+  // RHA=0 case must equal a default-values run (regression guard for
+  // formulas.js threading || 0 fallback).
+  const v00 = { ...v0, Shock_Clevis_RHA: 0 };
+  const r00 = computeAll(v00);
+  assert.equal(r00.MotoSPEC_SwgarmAngl, r0.MotoSPEC_SwgarmAngl);
+});
+
 test('theta_chain_dynamic: rear-axle-behind-front-sprocket sanity (H2)', () => {
   // Rear axle level with front sprocket, rear sprocket physically larger:
   // chain top at front is lower than at rear → going front→rear chain rises,
@@ -247,3 +268,14 @@ test('Final_Ratio matches CSV for each reference bike', () => {
   }
 });
 
+
+test('Front_Wheel_Rate = Front_Spring_Rate / (1/cos(Rake_Static))² (energy identity)', () => {
+  const inputs = { ...defaultValues(), Front_Spring_Rate: 9.0, Rake_Static: 24 };
+  const out = computeAll(inputs);
+  // MR_front = 1/cos(24°) ≈ 1.0946; wheel_rate = 9 / MR² = 9 · cos²(24°)
+  const expected = 9.0 * Math.cos(24 * Math.PI / 180) ** 2;
+  assert.ok(
+    Math.abs(out.Front_Wheel_Rate - expected) < 1e-9,
+    `expected ${expected}, got ${out.Front_Wheel_Rate}`
+  );
+});
