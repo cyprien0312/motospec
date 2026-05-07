@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderDataTable, ROW_GROUPS, defaultBikes, PRESET_VALUES } from '../src/data-table.js';
-import { defaultValues } from '../src/formulas.js';
+import { defaultValues, computeAll } from '../src/formulas.js';
 
 function render(extra = {}) {
   const bikes = defaultBikes();
@@ -10,7 +10,7 @@ function render(extra = {}) {
 
 test('table contains every CSV group header', () => {
   const html = render();
-  for (const expected of ['FRONT SETTINGS', 'REAR SETTINGS', 'TIRES', 'SPROCKETS', 'DYNAMIC READINGS', 'RESULTS']) {
+  for (const expected of ['FRONT SETTINGS', 'REAR SETTINGS', 'SPROCKETS', 'DYNAMIC READINGS', 'RESULTS']) {
     assert.match(html, new RegExp(expected));
   }
 });
@@ -40,7 +40,7 @@ test('numeric input rows render <input type="number"> cells per bike', () => {
 
 test('component rows render <select> wired to setBikeComponent', () => {
   const html = render();
-  for (const c of ['clamp', 'fork', 'shock', 'swingarm', 'linkage', 'front_tire', 'rear_tire']) {
+  for (const c of ['clamp', 'fork', 'shock', 'swingarm', 'linkage']) {
     assert.match(html, new RegExp(`onchange="setBikeComponent\\(\\d+, '${c}'`),
       `missing component select for ${c}`);
   }
@@ -80,8 +80,20 @@ test('H3: braking preset drives a_x and V', () => {
   const bikes = defaultBikes();
   const braking = bikes.find(b => b.preset === 'braking');
   assert.ok(braking, 'expected one bike to use the braking preset');
-  assert.equal(braking.values.a_x, -0.8);
+  assert.equal(braking.values.a_x, 1.0);
   assert.equal(braking.values.V, 25);
+});
+
+test('H3: braking preset increases front wheel force vs sag (sign-convention check)', () => {
+  // formulas.js convention: braking is POSITIVE a_x; ΔW > 0 shifts load to front.
+  // If a preset accidentally flips the sign, this test catches it.
+  const out = id => computeAll({ ...defaultValues(), ...PRESET_VALUES[id] });
+  const sag = out('sag');
+  const brk = out('braking');
+  assert.ok(brk.MotoSPEC_FrontForce > sag.MotoSPEC_FrontForce + 500,
+    `expected braking front force ≫ sag; ΔF=${(brk.MotoSPEC_FrontForce - sag.MotoSPEC_FrontForce).toFixed(0)} N`);
+  assert.ok(brk.MotoSPEC_RearForce < sag.MotoSPEC_RearForce,
+    `expected braking rear force < sag; got brk=${brk.MotoSPEC_RearForce.toFixed(0)} sag=${sag.MotoSPEC_RearForce.toFixed(0)}`);
 });
 
 test('H3: dynamic-load + frame-intrinsic input rows exist in ROW_GROUPS', () => {
@@ -109,7 +121,7 @@ test('defaultBikes seeds three bikes with components + preset-aligned dynamic va
     assert.ok(b.name);
     assert.ok(b.values);
     assert.ok(b.components, 'bike must carry component refs');
-    for (const k of ['fork', 'shock', 'swingarm', 'linkage', 'clamp', 'front_tire', 'rear_tire']) {
+    for (const k of ['fork', 'shock', 'swingarm', 'linkage', 'clamp']) {
       assert.ok(b.components[k], `bike ${b.name} missing component ref ${k}`);
     }
     assert.ok(['sag', 'braking', 'mid_corner', 'custom'].includes(b.preset));
@@ -120,4 +132,15 @@ test('defaultBikes seeds three bikes with components + preset-aligned dynamic va
       assert.equal(b.values.Lean_Angle, expected.Lean_Angle);
     }
   }
+});
+
+test('Wheel Rate rows reflect real formulas (no PENDING status)', () => {
+  const results = ROW_GROUPS.find(g => g.header === 'RESULTS').rows;
+  const fr = results.find(r => r.computed === 'Front_Wheel_Rate');
+  const rr = results.find(r => r.computed === 'Rear_Wheel_Rate');
+  // Front Wheel Rate is fully real — no badge.
+  assert.equal(fr.status, undefined);
+  // Rear Wheel Rate depends on Motion_Ratio (which needs real linkage coords)
+  // so it carries the same 'coords' badge as other linkage-dependent rows.
+  assert.equal(rr.status, 'coords');
 });
