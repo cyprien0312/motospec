@@ -65,3 +65,39 @@ test('isPlaceholderCoords: customized coords → false', () => {
   };
   assert.equal(isPlaceholderCoords(inputs), false);
 });
+
+import { computeAdvanceResults } from '../src/data-table-advance.js';
+import { defaultBikes } from '../src/data-table.js';
+
+test('computeAdvanceResults: bike with placeholder linkage → linkage rows missing', () => {
+  const bikes = defaultBikes();
+  const bike = bikes[0];
+  const linkageDependent = [
+    'MotoSPEC_AntSquat',
+    'Motion_Ratio',
+    'Progression',
+    'Rear_Ride_Height',
+    'Rear_Wheel_Vertical_Travel',
+    'MotoSPEC_SwgarmAngl',
+  ];
+  // Force the bike's linkage component to be unselected so the placeholder
+  // path is taken.
+  bike.components = { ...bike.components, linkage: undefined };
+  const out = computeAdvanceResults(bike);
+  for (const k of linkageDependent) {
+    assert.ok(out[k].missing, `${k} should be missing when linkage is placeholder`);
+  }
+});
+
+test('computeAdvanceResults: static at-rest sanity for a complete bike', () => {
+  const bikes = defaultBikes();
+  const bike = bikes.find(b => b.components && b.components.linkage);
+  assert.ok(bike, 'expected at least one reference bike with a linkage selected');
+  const out = computeAdvanceResults(bike);
+  assert.ok(!out.MotoSPEC_Rake.missing);
+  assert.ok(
+    Math.abs(out.MotoSPEC_Rake.value - bike.values.Rake_Static) < 1e-9,
+    `expected Rake≈Rake_Static, got ${out.MotoSPEC_Rake.value} vs ${bike.values.Rake_Static}`
+  );
+  assert.equal(out.WB.value, bike.values.WB);
+});

@@ -3,8 +3,14 @@
 // real computed value or blank — no mocks, no fallbacks, no placeholder coords.
 
 import { ROW_GROUPS as LEGACY_ROW_GROUPS } from './data-table.js';
-import { P } from './formulas.js';
-import { matchesPlaceholder } from './linkage-setup.js';
+import { P, computeAll } from './formulas.js';
+import {
+  matchesPlaceholder,
+  LINKAGE_COORD_FIELDS,
+  LINKAGE_PLACEHOLDER_LINKED,
+  LINKAGE_PLACEHOLDER_PROLINK,
+} from './linkage-setup.js';
+import { materializeBikeInputs } from './catalog.js';
 
 /**
  * Returns true if the bike's linkage coordinates match either the
@@ -76,3 +82,122 @@ export const ADVANCE_RESULT_ORDER = ADVANCE_RESULT_ROWS.map(
 export const ADVANCE_ROW_GROUPS = [
   { header: 'RESULTS', header_zh: '结果', rows: ADVANCE_RESULT_ROWS },
 ];
+
+const LINKAGE_DEP_NAMES = new Set(LINKAGE_COORD_FIELDS);
+
+// Result channels whose CALC reads the linkage solver state directly but
+// whose declared `deps: []` doesn't expose those leaves. These must still be
+// flagged missing when the bike has placeholder linkage coords.
+const LINKAGE_DEPENDENT_RESULTS = new Set([
+  'Motion_Ratio',
+  'Progression',
+  'Rear_Ride_Height',
+  'Rear_Wheel_Vertical_Travel',
+  'Rear_Wheel_Rate',
+  'Rear_Wheel_Force',
+]);
+
+// Result keys derived from ADVANCE_RESULT_ROWS — only those with a `computed`
+// channel run through the validation+computeAll pipeline. Rows with
+// `derivedFrom` (e.g. CofG % Front/Rear) are handled by the renderer in Task 6.
+const COMPUTED_RESULT_KEYS = ADVANCE_ROW_GROUPS
+  .find(g => g.header === 'RESULTS')
+  .rows
+  .filter(r => r.computed)
+  .map(r => r.computed);
+
+/**
+ * Force load case to zero. v1 is static at-rest only.
+ */
+function forceStaticAtRest(inputs) {
+  return {
+    ...inputs,
+    Travel_Front: 0,
+    Travel_Rear: 0,
+    Lean_Angle: 0,
+    a_x: 0,
+    V: 0,
+  };
+}
+
+/**
+ * Returns { missing, missingLeaves } for one result given inputs and
+ * its required leaf set. If the result is linkage-dependent and the
+ * coords are the placeholder set, the linkage coord fields are reported
+ * as missing.
+ */
+function validateInputs(inputs, requiredLeaves, isPlaceholder, key) {
+  const dependsOnLinkage =
+    requiredLeaves.some(l => LINKAGE_DEP_NAMES.has(l)) ||
+    LINKAGE_DEPENDENT_RESULTS.has(key);
+  if (dependsOnLinkage && isPlaceholder) {
+    const linkageMissing = requiredLeaves.filter(l => LINKAGE_DEP_NAMES.has(l));
+    return {
+      missing: true,
+      missingLeaves: linkageMissing.length ? linkageMissing : ['(linkage coords)'],
+    };
+  }
+  const missingLeaves = [];
+  for (const leaf of requiredLeaves) {
+    const v = inputs[leaf];
+    if (v === undefined || v === null || (typeof v === 'number' && !Number.isFinite(v))) {
+      missingLeaves.push(leaf);
+    }
+  }
+  return missingLeaves.length
+    ? { missing: true, missingLeaves }
+    : { missing: false, missingLeaves: [] };
+}
+
+/**
+ * For one bike, return per-result { value, missing, missingLeaves } for each
+ * computed result key. Only rows with a `computed` channel are included;
+ * `derivedFrom` rows (CofG %) are handled by the renderer.
+ */
+export function computeAdvanceResults(bike) {
+  // bike.values (legacy data-table shape) carries the full flat input dict —
+  // including bike geometry, environment, setup, preset overlays, and any
+  // user edits in the data-table UI. materializeBikeInputs covers the
+  // catalog-only shape (geometry/environment/setup branches). Merge both so
+  // either bike shape works.
+  const materialized = materializeBikeInputs(bike);
+  const baseInputs = { ...materialized, ...(bike.values || {}) };
+
+  // If no linkage component is selected, the linkage coord values cached on
+  // bike.values are stale — overwrite them with the placeholder set so that
+  // isPlaceholderCoords detects the missing real coords.
+  if (!bike.components || bike.components.linkage == null) {
+    const mode = baseInputs.Linkage_Mode || 'pro-link';
+    const placeholder = mode === 'pro-link'
+      ? LINKAGE_PLACEHOLDER_PROLINK
+      : LINKAGE_PLACEHOLDER_LINKED;
+    Object.assign(baseInputs, placeholder);
+  }
+
+  const inputs = forceStaticAtRest(baseInputs);
+  const isPlaceholder = isPlaceholderCoords(inputs);
+
+  const validation = {};
+  for (const key of COMPUTED_RESULT_KEYS) {
+    const leaves = leafDepsFor(key);
+    validation[key] = validateInputs(inputs, leaves, isPlaceholder, key);
+  }
+
+  const computed = computeAll(inputs);
+
+  const out = {};
+  for (const key of COMPUTED_RESULT_KEYS) {
+    const v = validation[key];
+    if (v.missing) {
+      out[key] = { value: null, missing: true, missingLeaves: v.missingLeaves };
+      continue;
+    }
+    const value = computed[key];
+    if (value === undefined || value === null || (typeof value === 'number' && !Number.isFinite(value))) {
+      out[key] = { value: null, missing: true, missingLeaves: ['(computation produced non-finite)'] };
+    } else {
+      out[key] = { value, missing: false, missingLeaves: [] };
+    }
+  }
+  return out;
+}
