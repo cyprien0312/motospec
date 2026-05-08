@@ -31,6 +31,68 @@ function leafInputsFor(id) {
   return out;
 }
 
+// Inputs that a saved Chassis profile contributes (matches
+// CHASSIS_SPEC_FIELDS in chassis-setup.js). Duplicated here to keep
+// data-table.js free of cross-file imports — keep in sync if that list
+// grows.
+const CHASSIS_PROVIDED = new Set([
+  'Rake_Static','WB','Swingarm_Length','beta_static',
+  'Yoke_Offset','Fork_Length','Fork_Position',
+  'Mass','H_CG','L_CG','front_weight_dist','rear_weight_dist',
+  'C_f_aero','C_r_aero','Rf',
+  'Front_Sprocket_X','Front_Sprocket_Y','Chain_Pitch',
+]);
+
+// Reverse-index: input-key → which component can supply it. Built fresh
+// per render so user-added catalog entries get picked up. Chassis fields
+// are seeded from CHASSIS_PROVIDED since `data/chassis.json` ships empty.
+function buildProviderMap() {
+  const m = {};
+  for (const cat of Object.keys(CATALOGS)) {
+    if (cat === 'chassis') continue;
+    for (const entry of Object.values(CATALOGS[cat] || {})) {
+      for (const k of Object.keys(entry?.specs || {})) {
+        if (!m[k]) m[k] = cat;
+      }
+    }
+  }
+  for (const k of CHASSIS_PROVIDED) m[k] = 'chassis';
+  m.Front_Sprocket = 'sprocket';
+  m.Rear_Sprocket  = 'sprocket';
+  return m;
+}
+
+const PROVIDER_LABELS = {
+  chassis:  { zh: 'Chassis 配置',  en: 'Chassis profile' },
+  forks:    { zh: 'Fork 规格',     en: 'Fork specs' },
+  shocks:   { zh: 'Shock 规格',    en: 'Shock specs' },
+  swingarms:{ zh: 'Swingarm 规格', en: 'Swingarm specs' },
+  linkages: { zh: 'Linkage 坐标',  en: 'Linkage coords' },
+  clamps:   { zh: 'Clamp 规格',    en: 'Clamp specs' },
+  sprocket: { zh: '链轮齿数',      en: 'Sprocket teeth' },
+  dynamic:  { zh: '动态量（未支持）', en: 'Dynamic input (not wired)' },
+};
+
+// Group missing leaves by which component can supply them, return an
+// object suitable for rendering both a short visible hint and a verbose
+// tooltip.
+function summarizeMissing(missing, providerMap, lang) {
+  const groups = new Map();
+  for (const k of missing) {
+    const prov = providerMap[k] || 'dynamic';
+    if (!groups.has(prov)) groups.set(prov, []);
+    groups.get(prov).push(k);
+  }
+  const ordered = ['chassis','forks','shocks','swingarms','linkages','clamps','sprocket','dynamic']
+    .filter(p => groups.has(p));
+  const shortLabel = (lang === 'en' ? 'Need: ' : '缺：') +
+    ordered.map(p => PROVIDER_LABELS[p][lang]).join(' · ');
+  const verbose = ordered.map(p =>
+    `${PROVIDER_LABELS[p][lang]}（${groups.get(p).join(', ')}）`
+  ).join('\n');
+  return { shortLabel, verbose };
+}
+
 // Set of inputs that the bike has *actually been given* (by chassis /
 // component selection or by the user typing into a cell). Inputs absent
 // from this set fall back to defaultValues() for compute safety, but the
@@ -182,13 +244,15 @@ export function blankBike(idx) {
   };
 }
 
-function inputCell(bikeIdx, key, value) {
+function inputCell(bikeIdx, key, value, missingTitle) {
   const m = INPUT_META[key] || {};
   const step = m.step != null ? m.step : 'any';
   const minAttr = m.min != null ? ` min="${m.min}"` : '';
   const maxAttr = m.max != null ? ` max="${m.max}"` : '';
   const v = value == null || !Number.isFinite(value) ? '' : value;
-  return `<td><input type="number" class="dt-input" value="${v}" step="${step}"${minAttr}${maxAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
+  const titleAttr = missingTitle ? ` title="${escapeHtml(missingTitle)}"` : '';
+  const cls = missingTitle ? 'dt-input dt-input-missing' : 'dt-input';
+  return `<td><input type="number" class="${cls}" value="${v}" step="${step}"${minAttr}${maxAttr}${titleAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
 }
 
 function componentCell(bikeIdx, componentKey, currentId) {
@@ -220,23 +284,32 @@ export function renderDataTable(state) {
   // override). RESULTS cells whose leaf inputs aren't all bound render
   // blank — we don't show numbers built from placeholder defaults.
   const readyByBike = bikes.map(bikeReadyKeys);
-  const blankCell = '<td class="dt-readonly"><span></span></td>';
-  const cellReady = (row, ready) => {
-    if (row.computed) {
-      const leaves = leafInputsFor(row.computed);
-      for (const k of leaves) if (!ready.has(k)) return false;
-      return true;
+  const providerMap = buildProviderMap();
+  // For a given row + per-bike ready-set, return either { ready: true }
+  // or { ready: false, missing: [...leafKeys] } so the caller can render
+  // a "what's missing" hint on the blank cell.
+  const cellStatus = (row, ready) => {
+    let leaves;
+    if (row.computed) leaves = leafInputsFor(row.computed);
+    else if (row.derivedFrom) leaves = new Set(row.requires || []);
+    else return { ready: true };
+    const missing = [];
+    for (const k of leaves) if (!ready.has(k)) missing.push(k);
+    return missing.length === 0 ? { ready: true } : { ready: false, missing };
+  };
+  const blankCellHTML = (missing) => {
+    const { shortLabel, verbose } = summarizeMissing(missing, providerMap, lang);
+    return `<td class="dt-readonly dt-missing" title="${escapeHtml(verbose)}"><span>${escapeHtml(shortLabel)}</span></td>`;
+  };
+  const inputMissingTitle = (key) => {
+    const prov = providerMap[key];
+    if (!prov || prov === 'dynamic') {
+      return lang === 'en' ? 'Type a value, or leave blank' : '直接输入数值，或留空';
     }
-    if (row.derivedFrom) {
-      // derivedFrom rows declare their input deps via `requires:` on the
-      // row schema (since the function body is opaque). If absent, we
-      // assume the row is always ready — only used for the two CofG rows
-      // today.
-      const reqs = row.requires || [];
-      for (const k of reqs) if (!ready.has(k)) return false;
-      return true;
-    }
-    return true;
+    const label = PROVIDER_LABELS[prov][lang];
+    return lang === 'en'
+      ? `Type a value, or load it from a ${label}`
+      : `直接输入数值，或从 ${label} 加载`;
   };
 
   const removeTitle = lang === 'en' ? 'Remove this column' : '删除该列';
@@ -290,17 +363,21 @@ export function renderDataTable(state) {
           cells += componentCell(i, row.component, b.components?.[row.component]);
         } else if (row.input) {
           // Show the value only when it's been actually set; otherwise
-          // leave the cell blank and let the user fill it in.
-          const v = readyByBike[i].has(row.input) ? b.values?.[row.input] : null;
-          cells += inputCell(i, row.input, v);
+          // leave the cell blank and let the user fill it in. A tooltip
+          // hints at where the value would normally come from.
+          const has = readyByBike[i].has(row.input);
+          const v = has ? b.values?.[row.input] : null;
+          cells += inputCell(i, row.input, v, has ? null : inputMissingTitle(row.input));
         } else if (row.derivedFrom) {
-          cells += cellReady(row, readyByBike[i])
+          const st = cellStatus(row, readyByBike[i]);
+          cells += st.ready
             ? readonlyCell(fmtNum(row.derivedFrom(out)))
-            : blankCell;
+            : blankCellHTML(st.missing);
         } else if (row.computed) {
-          cells += cellReady(row, readyByBike[i])
+          const st = cellStatus(row, readyByBike[i]);
+          cells += st.ready
             ? readonlyCell(fmtNum(out[row.computed]))
-            : blankCell;
+            : blankCellHTML(st.missing);
         } else {
           cells += readonlyCell(DASH);
         }

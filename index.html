@@ -24,32 +24,116 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
-    line-height: 1.6; min-height: 100vh;
-    display: grid; grid-template-columns: 280px 1fr;
+    --sidebar-w: 264px;
+    background:
+      radial-gradient(1200px 600px at -10% -10%, rgba(78,161,255,0.08), transparent 60%),
+      radial-gradient(900px 600px at 110% 0%, rgba(255,140,90,0.05), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    line-height: 1.55; min-height: 100vh;
+    display: grid; grid-template-columns: var(--sidebar-w) 1fr;
+    transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  aside {
-    background: var(--panel); border-right: 1px solid var(--border);
-    padding: 20px 16px; height: 100vh; overflow-y: auto; position: sticky; top: 0;
-  }
-  aside h2 {
-    font-size: 12px; font-weight: 600; letter-spacing: 1px;
-    color: var(--text-dim); text-transform: uppercase;
-    margin-bottom: 10px; margin-top: 18px;
-  }
-  aside h2:first-child { margin-top: 0; }
-  .nav-item {
-    display: block; padding: 8px 12px; border-radius: 6px;
-    cursor: pointer; color: var(--text); font-size: 14px;
-    border: 1px solid transparent; transition: all 0.15s;
-    margin-bottom: 4px;
-  }
-  .nav-item:hover { background: var(--panel-2); border-color: var(--border); }
-  .nav-item.active { background: var(--panel-2); border-color: var(--accent); }
-  .nav-item .label { color: var(--text-dim); font-size: 12px; margin-left: 6px; }
+  body.sidebar-collapsed { --sidebar-w: 64px; }
 
-  main { padding: 28px 36px; max-width: 1000px; }
+  aside {
+    background: linear-gradient(180deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 92%, black) 100%);
+    border-right: 1px solid var(--border);
+    padding: 16px 12px; height: 100vh; overflow-y: auto; overflow-x: hidden;
+    position: sticky; top: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-brand .brand-mark {
+    width: 30px; height: 30px; flex-shrink: 0;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--channel) 100%);
+    display: grid; place-items: center;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700; font-size: 15px; color: var(--bg);
+    box-shadow: 0 4px 14px -4px rgba(78,161,255,0.5);
+  }
+  .sidebar-brand .brand-text {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+    color: var(--text); white-space: nowrap; overflow: hidden;
+    transition: opacity 0.18s;
+  }
+  .sidebar-brand .brand-text small {
+    display: block; font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
+    color: var(--text-dim); text-transform: uppercase; margin-top: 1px;
+  }
+  .sidebar-toggle {
+    position: absolute; top: 14px; right: 10px;
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-dim); cursor: pointer; z-index: 10;
+    display: grid; place-items: center;
+    font-size: 12px; line-height: 1; transition: all 0.18s;
+  }
+  body.sidebar-collapsed .sidebar-toggle {
+    position: relative; top: auto; right: auto; margin: 4px auto 0;
+  }
+  .sidebar-toggle:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+  body.sidebar-collapsed .sidebar-toggle { transform: rotate(180deg); }
+  body.sidebar-collapsed .sidebar-toggle:hover { transform: rotate(180deg) scale(1.08); }
+
+  aside h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.18em;
+    color: var(--text-dim); text-transform: uppercase;
+    margin: 12px 4px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 7px;
+    cursor: pointer; color: var(--text); font-size: 13.5px; font-weight: 500;
+    border: 1px solid transparent; transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    margin-bottom: 2px; position: relative; overflow: hidden;
+    white-space: nowrap;
+  }
+  .nav-item .nav-icon {
+    flex-shrink: 0; font-size: 16px; line-height: 1;
+    width: 22px; text-align: center;
+  }
+  .nav-item .nav-text {
+    display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow: hidden;
+    transition: opacity 0.18s;
+  }
+  .nav-item .nav-text strong { font-weight: 600; font-size: 13.5px; }
+  .nav-item .nav-text .label { color: var(--text-dim); font-size: 11px; font-weight: 400; }
+  .nav-item:hover { background: var(--panel-2); border-color: var(--border); }
+  .nav-item:hover .nav-icon { transform: scale(1.1); }
+  .nav-item.active {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, var(--panel-2) 60%);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 3px; background: var(--accent); border-radius: 0 3px 3px 0;
+  }
+
+  body.sidebar-collapsed aside { padding-left: 8px; padding-right: 8px; }
+  body.sidebar-collapsed aside h2,
+  body.sidebar-collapsed .brand-text,
+  body.sidebar-collapsed .nav-text,
+  body.sidebar-collapsed .lang-btn span.lang-full { display: none; }
+  body.sidebar-collapsed .nav-item { justify-content: center; padding: 10px 6px; }
+  body.sidebar-collapsed .nav-item .nav-icon { width: auto; }
+  body.sidebar-collapsed .lang-bar { flex-direction: column; gap: 4px; padding-bottom: 8px; }
+  body.sidebar-collapsed .lang-btn { padding: 5px 0; font-size: 10px; }
+
+  main {
+    padding: 24px clamp(20px, 3vw, 44px);
+    width: 100%; min-width: 0;
+  }
   .breadcrumbs {
     display: flex; flex-wrap: wrap; align-items: center;
     gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--text-dim);
@@ -227,13 +311,35 @@
   .lang-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
   @media (max-width: 768px) {
-    body { grid-template-columns: 1fr; }
+    body { grid-template-columns: 1fr; --sidebar-w: 100%; }
     aside { position: static; height: auto; max-height: 240px; }
     main { padding: 20px 16px; }
     .input-control { grid-template-columns: 1fr; }
+    .sidebar-toggle { display: none; }
+  }
+
+  /* Typography polish — distinctive but legible */
+  h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 600; letter-spacing: -0.02em; font-size: 30px;
+  }
+  .formula-box, .param-chip,
+  .formula-card-name, .formula-card-body,
+  .live-value, .dash-card .dash-name, .dash-card .dash-val,
+  .dep-card .dep-name {
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.16em;
+  }
+  .breadcrumbs {
+    padding: 8px 12px; background: color-mix(in srgb, var(--panel) 70%, transparent);
+    border: 1px solid var(--border); border-radius: 8px;
+    backdrop-filter: blur(6px);
   }
 /* ==== Chassis Setup ==== */
-.chassis-page { max-width: 1100px; }
+.chassis-page { max-width: none; }
 .chassis-desc { color: var(--text-dim, #94a3b8); font-size: 13px; margin: 6px 0 14px; }
 .chassis-readout-strip { margin-bottom: 14px; }
 .chassis-diagram-wrap { background: var(--formula-bg, #0f141b); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 8px; padding: 8px; margin-bottom: 14px; }
@@ -373,6 +479,21 @@ table.dt td.dt-readonly span {
 .dt-status-static  { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
 .dt-status-partial { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
 .dt-status-approx  { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+table.dt td.dt-missing {
+  background: rgba(148, 163, 184, 0.05);
+  cursor: help;
+}
+table.dt td.dt-missing span {
+  color: var(--text-dim);
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+table.dt input.dt-input-missing {
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.4);
+}
 
 /* ==== Catalog editor ==== */
 .cat-wrap { max-width: 100%; }
@@ -429,13 +550,13 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-readout-label { color: var(--text-dim); font-size: 12px; letter-spacing: 0.5px; }
 .linkage-readout-val { color: var(--text); font-size: 20px; font-weight: 600; margin-top: 2px; }
 .linkage-svg {
-  width: 100%; max-width: 720px; height: auto;
+  width: 100%; max-width: none; height: auto;
   background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 8px; display: block;
 }
 .linkage-chart-wrap { margin: 8px 0 14px 0; }
 .linkage-chart {
-  width: 100%; max-width: 720px; height: auto;
+  width: 100%; max-width: 900px; height: auto;
   background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 8px; display: block;
 }
@@ -529,8 +650,12 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 </head>
 <body>
 <aside>
+  <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="折叠 / 展开侧栏">‹</button>
+  <div class="sidebar-brand">
+    <div class="brand-text">J.spec</div>
+  </div>
   <div class="lang-bar">
-    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
     <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
   </div>
   <div id="nav-channels"></div>
@@ -671,6 +796,19 @@ function setLang(l){
   document.documentElement.lang = l === 'en' ? 'en' : 'zh-CN';
   render();
 }
+
+const SIDEBAR_KEY = 'motospec_sidebar_v1';
+function applySidebarState() {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(SIDEBAR_KEY) === 'collapsed'; } catch(e){}
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+}
+function toggleSidebar() {
+  const next = !document.body.classList.contains('sidebar-collapsed');
+  document.body.classList.toggle('sidebar-collapsed', next);
+  try { localStorage.setItem(SIDEBAR_KEY, next ? 'collapsed' : 'open'); } catch(e){}
+}
+applySidebarState();
 
 // ============================================================
 // 几何图示：将参数标注在简化的车架线条图上
@@ -1592,21 +1730,29 @@ function renderNav() {
   // parameters happens by clicking param chips in the formula cards on
   // the dashboard, or via dependency cards on a parameter's detail page.
   const current = stack[stack.length - 1];
-  const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
-    <strong>${escapeHtml(T('dashboard_nav'))}</strong><span class="label">${escapeHtml(T('dashboard_sub'))}</span>
-  </div>
-  <div class="nav-item dashboard ${current === '__datatable' ? 'active' : ''}" onclick="navigateRoot('__datatable')">
-    <strong>${escapeHtml(T('datatable_nav'))}</strong><span class="label">${escapeHtml(T('datatable_sub'))}</span>
-  </div>
-  <div class="nav-item dashboard ${current === '__chassis' ? 'active' : ''}" onclick="navigateRoot('__chassis')">
-    <strong>${escapeHtml(T('chassis_nav'))}</strong><span class="label">${escapeHtml(T('chassis_sub'))}</span>
-  </div>
-  <div class="nav-item dashboard ${current === '__linkage' ? 'active' : ''}" onclick="navigateRoot('__linkage')">
-    <strong>${escapeHtml(T('linkage_nav'))}</strong><span class="label">${escapeHtml(T('linkage_sub'))}</span>
-  </div>
-  <div class="nav-item dashboard ${current === '__catalogs' ? 'active' : ''}" onclick="navigateRoot('__catalogs')">
-    <strong>${escapeHtml(lang === 'en' ? 'Component Library' : '部件库')}</strong><span class="label">${escapeHtml(lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …')}</span>
-  </div>`;
+  // Split a label like "📊 仪表盘" into [icon, text]; first whitespace-delimited
+  // token is treated as the icon glyph for the collapsed sidebar.
+  const splitLabel = (s) => {
+    const m = String(s).match(/^(\S+)\s+(.+)$/);
+    return m ? [m[1], m[2]] : ['•', s];
+  };
+  const navItem = (key, primaryLabel, sub, title) => {
+    const [icon, text] = splitLabel(primaryLabel);
+    const active = current === key ? ' active' : '';
+    return `<div class="nav-item dashboard${active}" onclick="navigateRoot('${key}')" title="${escapeHtml(title || text)}">
+      <span class="nav-icon">${escapeHtml(icon)}</span>
+      <span class="nav-text"><strong>${escapeHtml(text)}</strong><span class="label">${escapeHtml(sub)}</span></span>
+    </div>`;
+  };
+  const catLabel = lang === 'en' ? '🗂 Component Library' : '🗂 部件库';
+  const catSub   = lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …';
+  const dashHTML = [
+    navItem('__dashboard', T('dashboard_nav'), T('dashboard_sub')),
+    navItem('__datatable', T('datatable_nav'), T('datatable_sub')),
+    navItem('__chassis',   T('chassis_nav'),   T('chassis_sub')),
+    navItem('__linkage',   T('linkage_nav'),   T('linkage_sub')),
+    navItem('__catalogs',  catLabel,           catSub),
+  ].join('');
   document.getElementById('nav-channels').innerHTML = dashHTML;
 }
 
@@ -1842,7 +1988,7 @@ function linkageReadoutUp(evt) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary });
+Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary });
 
 render();
 </script>
