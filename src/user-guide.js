@@ -127,6 +127,14 @@ const STR = {
             <li><strong>4-bar 坐标系</strong>：原点在摇臂枢轴，+X 向前，+Y 向上</li>
             <li><strong>Linkage 占位值</strong>：默认坐标只是为了让初次访问也能渲染图形；真要拿数值用必须输入实测值</li>
           </ul>
+          <h4>"_static" 字段的真实含义</h4>
+          <p>页面里很多字段带 <code>_static</code> 后缀（<code>Rake_Static</code>、<code>beta_static</code>、<code>Trail_Static</code> …）。<strong>由于目前没有动态弹簧压缩模拟，模型不假设任何特定参考状态</strong>——这些字段的真实含义是"你在哪个工况下量的，就代入哪个工况"。</p>
+          <ul>
+            <li>想分析<strong>避震完全伸长</strong>的几何 → 按完全伸长状态测量并录入</li>
+            <li>想分析<strong>骑手 sag</strong> → 坐车上量好后录入</li>
+            <li>想分析<strong>制动俯冲极限</strong> → 按俯冲到底的姿态录入</li>
+          </ul>
+          <p>4-bar 反解出的 Δβ 基于你输入的避震行程独立计算并叠加到 <code>beta_static</code> 上 — 你给的 <code>beta_static</code> 是哪个状态的，叠加结果就还是那个状态系下的。换句话说，整个工具本质上是个"静态快照"计算器，"_static" 命名是历史遗留，并不暗示一定是 sag 或一定是空载。</p>
         `,
       },
       'faq': {
@@ -253,6 +261,14 @@ const STR = {
             <li><strong>4-bar reference frame</strong>: origin at the swingarm pivot, +X forward, +Y up</li>
             <li><strong>Linkage placeholders</strong>: default coordinates exist so first-visit pages render — they're not realistic. Always enter measured values before trusting numbers.</li>
           </ul>
+          <h4>What "_static" fields actually mean</h4>
+          <p>Many fields carry a <code>_static</code> suffix (<code>Rake_Static</code>, <code>beta_static</code>, <code>Trail_Static</code>, …). <strong>Because there is no dynamic spring-compression simulation yet, the model assumes no specific reference state</strong> — the real contract is "enter the geometry of whichever configuration you want to analyze."</p>
+          <ul>
+            <li>Want the <strong>fully-extended</strong> geometry? Measure with the suspension topped out and enter those values.</li>
+            <li>Want <strong>rider sag</strong>? Sit on the bike, measure at sag, enter those.</li>
+            <li>Want the <strong>brake-dive limit</strong>? Enter the dove-in geometry.</li>
+          </ul>
+          <p>The 4-bar Δβ from shock travel is computed independently and added to <code>beta_static</code> — so whatever state you fed into <code>beta_static</code>, the stacked result is still in that frame. The whole tool is essentially a "static snapshot" calculator; the <code>_static</code> naming is historical and does <em>not</em> imply sag or unloaded.</p>
         `,
       },
       'faq': {
