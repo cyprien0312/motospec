@@ -98,8 +98,16 @@ function summarizeMissing(missing, providerMap, lang) {
 // from this set fall back to defaultValues() for compute safety, but the
 // corresponding RESULTS cells render blank — we don't pretend a number is
 // real when its inputs are placeholders.
+// Inputs whose default value (typically 0 = "no adjustment") is itself a
+// meaningful real-world value. They stay "ready" even when the user
+// hasn't typed anything, so RESULTS that depend on them don't get
+// incorrectly tagged as needing input.
+const ALWAYS_READY = new Set([
+  'Shock_Clevis_RHA',
+]);
+
 function bikeReadyKeys(bike) {
-  const keys = new Set();
+  const keys = new Set(ALWAYS_READY);
   // Each chosen component contributes its spec keys.
   for (const compKey of Object.keys(COMPONENT_TO_CATALOG)) {
     const cid = bike?.components?.[compKey];
@@ -252,14 +260,17 @@ function inputCell(bikeIdx, key, value, missingTitle) {
   return `<td><input type="number" class="${cls}" value="${v}" step="${step}"${minAttr}${maxAttr}${titleAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
 }
 
-function componentCell(bikeIdx, componentKey, currentId) {
+function componentCell(bikeIdx, componentKey, currentId, lang) {
   const entries = catalogEntriesFor(componentKey);
+  const placeholderLabel = lang === 'en' ? '— pick —' : '— 选择 —';
+  const placeholderSel = currentId ? '' : ' selected';
+  const placeholderOpt = `<option value=""${placeholderSel}>${escapeHtml(placeholderLabel)}</option>`;
   const optionsHtml = entries.map(([id, entry]) => {
     const sel = id === currentId ? ' selected' : '';
     const label = entry.name || id;
     return `<option value="${escapeHtml(id)}"${sel}>${escapeHtml(label)}</option>`;
   }).join('');
-  return `<td><select class="dt-input" onchange="setBikeComponent(${bikeIdx}, '${componentKey}', this.value)">${optionsHtml}</select></td>`;
+  return `<td><select class="dt-input" onchange="setBikeComponent(${bikeIdx}, '${componentKey}', this.value)">${placeholderOpt}${optionsHtml}</select></td>`;
 }
 
 function readonlyCell(value) {
@@ -357,7 +368,7 @@ export function renderDataTable(state) {
         if (row.literal != null) {
           cells += literalCell(row.literal);
         } else if (row.component) {
-          cells += componentCell(i, row.component, b.components?.[row.component]);
+          cells += componentCell(i, row.component, b.components?.[row.component], lang);
         } else if (row.input) {
           // Show the value only when it's been actually set; otherwise
           // leave the cell blank and let the user fill it in. A tooltip

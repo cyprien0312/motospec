@@ -556,7 +556,7 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 }
 .linkage-chart-wrap { margin: 8px 0 14px 0; }
 .linkage-chart {
-  width: 100%; max-width: 900px; height: auto;
+  width: 100%; max-width: none; height: auto;
   background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 8px; display: block;
 }
@@ -1622,11 +1622,18 @@ function resetCatalogs() {
 function setBikeComponent(bikeIdx, componentKey, id) {
   const b = state.bikes[bikeIdx];
   if (!b) return;
+  b.components = b.components || {};
+  // Empty id (placeholder option) clears the slot.
+  if (!id) {
+    delete b.components[componentKey];
+    saveState();
+    renderContent();
+    return;
+  }
   const catalog = CATALOGS[COMPONENT_TO_CATALOG[componentKey]];
   if (!catalog) return;
   const entry = catalog[id];
   if (!entry) return;
-  b.components = b.components || {};
   b.components[componentKey] = id;
   if (entry.specs) Object.assign(b.values, entry.specs);
   saveState();
