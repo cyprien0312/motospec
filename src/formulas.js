@@ -44,6 +44,15 @@ export const P = {
     deps: ['Rf', 'MotoSPEC_Rake', 'Yoke_Offset'],
     note: '使用动态 Rake（已转为弧度）代入。重刹时 Trail 谷底过低 → 前轮反馈模糊。'
   },
+  Normal_Trail: {
+    name: 'Normal_Trail', label: '法向拖曳距', unit: 'mm', type: 'channel',
+    desc: '前轮接地点到转向轴的最短距离（垂直于转向轴量）。等于 Ground_Trail × cos(Rake)。',
+    formula: [
+      {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}
+    ],
+    deps: ['Rf', 'MotoSPEC_Rake', 'Yoke_Offset'],
+    note: 'Normal Trail 是转向力矩臂的真正长度；Ground Trail = Normal_Trail / cos(Rake)。'
+  },
   Swingarm_Angle: {
     name: 'Swingarm_Angle', label: '摇臂角度', unit: 'deg', type: 'channel',
     desc: '后悬挂压缩时摇臂相对水平面的实时夹角。把 4-bar 反解出的 Δβ 加到静态角上。',
@@ -458,6 +467,7 @@ export const CALC = {
     const r = v.MotoSPEC_Rake * D2R;
     return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
+  Normal_Trail: v => v.Rf * Math.sin(v.MotoSPEC_Rake * D2R) - v.Yoke_Offset,
   swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, 0, v.Shock_Clevis_RHA || 0),
   Swingarm_Angle: v => v.beta_static + v.swingarm_delta_solve,
   theta_chain_dynamic: v => {
@@ -517,7 +527,7 @@ export const CALC = {
 // Topological order: every entry's deps appear earlier in the list
 export const TOPO_ORDER = [
   'Trail_Static',
-  'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
+  'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail', 'Normal_Trail',
   'swingarm_delta_solve',
   'Swingarm_Angle', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'Anti_Squat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',

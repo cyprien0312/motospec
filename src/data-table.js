@@ -163,6 +163,7 @@ export const ROW_GROUPS = [
   ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
     { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
+    { spec: 'Normal Trail (mm)',                                    spec_zh: '法向拖曳距 (mm)',     computed: 'Normal_Trail' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
     { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height' },
     { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角度 (度)',       computed: 'Swingarm_Angle' },
