@@ -234,10 +234,13 @@ function chassisGeometry(values) {
     chainBot2 = { x: rearSprocket.x  + rSprR * Math.cos(aBot), y: rearSprocket.y  + rSprR * Math.sin(aBot) };
   }
 
-  // Fork sliders: line from steerHead through front axle, extended a touch.
-  // Lower fork tubes also offset forward by `yoke` from the steering axis.
-  const forkTop    = { x: steerHead.x + yoke * Math.cos(rake), y: steerHead.y };
-  const forkBottom = { x: frontAxle.x, y: frontAxle.y - 40 };
+  // Fork sliders: line parallel to the steering axis that PASSES THROUGH the
+  // front axle (so the fork visibly aligns with the wheel hub regardless of
+  // rake / yoke). Steering-axis direction (head → ground) = (sin(rake), -cos(rake)).
+  // forkTop sits at sh.y so the fork crown is level with the steerHead;
+  // forkBottom extends 40 mm below the axle along the axis direction.
+  const forkTop    = { x: frontAxle.x - (steerHeadHeight - frontAxle.y) * Math.tan(rake), y: steerHeadHeight };
+  const forkBottom = { x: frontAxle.x, y: frontAxle.y };
   // `Fork_Position` raises the lower triple clamp on the tubes — show as a
   // small tick along the upper fork tube.
   const fpRel = Math.min(1, Math.max(0, fp / 30));
@@ -258,7 +261,7 @@ function chassisGeometry(values) {
 
 function renderChassisDiagram(values, lang) {
   const g = chassisGeometry(values);
-  const W = 1200, H = 520; // viewport in pixels (wide so it fills the page)
+  const W = 1200, H = 620; // viewport in pixels (wider aspect so the bike fills more horizontally)
   // Compute mm bounding box. Include the wheel circumferences (axles ± rolling
   // radius) so neither wheel gets clipped, plus headroom for the WB / L_CG
   // dimension lines below ground and the rake arc above the steering head.
@@ -273,7 +276,7 @@ function renderChassisDiagram(values, lang) {
     g.rearAxle.y + g.Rr, g.frontAxle.y + g.Rf,   // wheel top
     g.swingPivot.y, g.steerHead.y + 100, g.cg.y, // +100 for rake arc above head
   ];
-  const padX = 80, padY = 40;                     // mm padding so labels never touch the edge
+  const padX = 60, padY = 30;                     // mm padding so labels never touch the edge (~5% of bike width)
   const minX = Math.min(...xs) - padX, maxX = Math.max(...xs) + padX;
   const minY = Math.min(...ys) - padY, maxY = Math.max(...ys) + padY;
   const mmW = maxX - minX, mmH = maxY - minY;
@@ -319,7 +322,7 @@ function renderChassisDiagram(values, lang) {
   annot.push(`<line x1="${px(g.rearContact.x)}" y1="${wbY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1.5"/>`);
   annot.push(`<line x1="${px(g.rearContact.x)}" y1="${groundY}" x2="${px(g.rearContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1" stroke-dasharray="2 3"/>`);
   annot.push(`<line x1="${px(g.frontContact.x)}" y1="${groundY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#4ea1ff', 12, 'middle', 0, -6));
+  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#4ea1ff', 18, 'middle', 0, -6));
 
   // Rake arc + label (at steering head)
   const rakeArcR = 60;
@@ -330,56 +333,108 @@ function renderChassisDiagram(values, lang) {
     <path d="M ${px(sh.x)},${py(sh.y) + rakeArcR} A ${rakeArcR},${rakeArcR} 0 0 0 ${(px(sh.x) - rakeArcR * Math.sin(g.rake)).toFixed(1)},${(py(sh.y) + rakeArcR * Math.cos(g.rake)).toFixed(1)}" fill="none" stroke="#f472b6" stroke-width="1.5"/>
   `;
   annot.push(rakeArc);
-  annot.push(txt({ x: sh.x, y: sh.y }, `${fmt(g.rake / D2R, 1)}°`, '#f472b6', 11, 'start', -16, 56));
+  annot.push(txt({ x: sh.x, y: sh.y }, `${fmt(g.rake / D2R, 1)}°`, '#f472b6', 18, 'start', -16, 56));
 
-  // Swingarm angle arc (above rear axle, between horizontal and swingarm line)
+  // Swingarm angle β — vertex at the REAR AXLE (where there's open space and
+  // the wheel center is a natural reference). Mirrors the caster-angle indicator
+  // at the front for visual consistency.
   const sa = g.rearAxle, sp = g.swingPivot;
-  const saArcR = 50;
-  annot.push(`<line x1="${px(sa.x)}" y1="${py(sa.y)}" x2="${px(sa.x + 80)}" y2="${py(sa.y)}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(`<path d="M ${(px(sa.x) - saArcR).toFixed(1)},${py(sa.y)} A ${saArcR},${saArcR} 0 0 1 ${(px(sa.x) - saArcR * Math.cos(g.beta)).toFixed(1)},${(py(sa.y) - saArcR * Math.sin(g.beta)).toFixed(1)}" fill="none" stroke="#a78bfa" stroke-width="1.5"/>`);
-  // β label: tucked below-and-forward of the rear axle so the swingarm line
-  // (which goes forward-and-up from the axle) and the β arc above the axle
-  // never sit on top of the text.
-  annot.push(txt({ x: sa.x + 90, y: sa.y - 45 }, `β ${fmt(g.beta / D2R, 1)}°`, '#a78bfa', 12, 'start'));
+  const spx = px(sp.x), spy = py(sp.y);
+  const saxs = px(sa.x), says = py(sa.y);
+  // Direction from axle toward the pivot (forward-and-up in world; up-left on screen).
+  const a2pDx = spx - saxs, a2pDy = spy - says;
+  const a2pLen = Math.hypot(a2pDx, a2pDy) || 1;
+  const a2pUx = a2pDx / a2pLen, a2pUy = a2pDy / a2pLen;
+  const betaArcR = 36;
+  // Horizontal reference: from the axle FORWARD (on screen: leftward, since
+  // +X-mm maps to −X-screen). Dashed in β colour so it reads as a measurement
+  // aid and not a structural member.
+  annot.push(`<line x1="${saxs.toFixed(1)}" y1="${says.toFixed(1)}" x2="${(saxs - betaArcR - 28).toFixed(1)}" y2="${says.toFixed(1)}" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2 3" opacity="0.6"/>`);
+  // Arc: from horizontal-forward end (saxs - R, says) sweeping COUNTER-clockwise
+  // (sweep flag 0; SVG +Y is down → CCW visual = upward) up to the swingarm
+  // direction. End point = axle + R · (axle→pivot unit).
+  const arcEndX = saxs + betaArcR * a2pUx;
+  const arcEndY = says + betaArcR * a2pUy;
+  annot.push(`<path d="M ${(saxs - betaArcR).toFixed(1)},${says.toFixed(1)} A ${betaArcR},${betaArcR} 0 0 0 ${arcEndX.toFixed(1)},${arcEndY.toFixed(1)}" fill="none" stroke="#a78bfa" stroke-width="1.5"/>`);
+  // β label inside the wedge: bisect the two ray directions (horizontal-fwd
+  // = (-1, 0) and axle→pivot = (a2pUx, a2pUy)) and project outward by labelR.
+  let bisectX = -1 + a2pUx, bisectY = 0 + a2pUy;
+  const bLen = Math.hypot(bisectX, bisectY) || 1;
+  bisectX /= bLen; bisectY /= bLen;
+  const labelR = betaArcR + 18;
+  const betaLabelX = saxs + labelR * bisectX;
+  const betaLabelY = says + labelR * bisectY + 4;
+  annot.push(`<text x="${betaLabelX.toFixed(1)}" y="${betaLabelY.toFixed(1)}" fill="#a78bfa" font-size="18" text-anchor="end" font-weight="600" style="${TXT_HALO}">β ${escapeHtml(fmt(g.beta / D2R, 1))}°</text>`);
 
-  // Swingarm-length callout — offset PERPENDICULAR to the swingarm so the
-  // label clears the 4px-wide line regardless of swingarm angle. Perp dir
-  // (in mm world, pointing "above" the line) = (-sinβ, +cosβ); 70 mm gives
-  // ~28 px gap above the stroke at the screen scale.
-  const swMidX = (sa.x + sp.x) / 2 - 70 * Math.sin(g.beta);
-  const swMidY = (sa.y + sp.y) / 2 + 70 * Math.cos(g.beta);
-  annot.push(txt({ x: swMidX, y: swMidY }, `L ${fmt(g.LSA, 0)} mm`, '#a78bfa', 12, 'middle'));
+  // Swingarm-length callout — placed BELOW the swingarm (opposite side from
+  // the chain, which runs above), rotated parallel to the member.
+  const swMidXscr = (saxs + spx) / 2;
+  const swMidYscr = (says + spy) / 2;
+  // Swingarm direction in screen coords: from rear axle to pivot.
+  const swDx = spx - saxs, swDy = spy - says;
+  const swLen = Math.hypot(swDx, swDy) || 1;
+  const swUx = swDx / swLen, swUy = swDy / swLen;
+  // Perp unit: 90° rotation of (swUx, swUy). Choose the one whose Y points
+  // DOWN on screen (positive Y), so the label sits below the swingarm.
+  let perpX = -swUy, perpY = swUx;
+  if (perpY < 0) { perpX = -perpX; perpY = -perpY; }
+  const lOffsetPx = 18;
+  const lLabelX = swMidXscr + perpX * lOffsetPx;
+  const lLabelY = swMidYscr + perpY * lOffsetPx;
+  let armAngDeg = Math.atan2(swUy, swUx) * 180 / Math.PI;
+  if (armAngDeg > 90 || armAngDeg < -90) armAngDeg += 180;
+  annot.push(`<text x="${lLabelX.toFixed(1)}" y="${lLabelY.toFixed(1)}" fill="#a78bfa" font-size="18" text-anchor="middle" font-weight="600" transform="rotate(${armAngDeg.toFixed(1)}, ${lLabelX.toFixed(1)}, ${lLabelY.toFixed(1)})" style="${TXT_HALO}">L ${escapeHtml(fmt(g.LSA, 0))} mm</text>`);
 
   // H_CG vertical
   annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="3 3"/>`);
-  annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#22d3ee', 11, 'start', 6, 4));
+  annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#22d3ee', 18, 'start', 6, 4));
 
   // L_CG horizontal (rear axle ground level → CG vertical line)
   annot.push(`<line x1="${px(g.rearContact.x)}" y1="${py(-30)}" x2="${px(g.cg.x)}" y2="${py(-30)}" stroke="#22d3ee" stroke-width="1.5"/>`);
-  annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#22d3ee', 11, 'middle', 0, -4));
+  annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#22d3ee', 18, 'middle', 0, -4));
 
-  // Yoke offset perpendicular tick
-  // Foot of axis at front axle height
-  const axisFoot = { x: g.frontAxle.x - g.yoke * Math.cos(g.rake), y: g.frontAxle.y };
-  annot.push(`<line x1="${px(axisFoot.x)}" y1="${py(axisFoot.y)}" x2="${px(g.frontAxle.x)}" y2="${py(g.frontAxle.y)}" stroke="#fbbf24" stroke-width="2"/>`);
-  // Yoke label: anchored at axisFoot (the BACK end of the tick) with anchor='end'
-  // so the text extends behind the steering axis foot, away from the fork tube
-  // (which crosses through frontAxle). Bumped 14 px above axle and out 4 px to
-  // the back so the halo never touches the fork stroke.
-  annot.push(txt({ x: axisFoot.x, y: g.frontAxle.y }, `Yoke ${fmt(g.yoke, 0)}`, '#fbbf24', 12, 'end', -4, -14));
+  // Yoke offset indicator — drawn at the FORK CROWN (steering head), not the
+  // axle. Yoke offset is the perpendicular distance from the steering axis
+  // to the fork tube centerline. Tick = perpendicular vector of length yoke
+  // applied at the head: end = sh + yoke * (cosRake, sinRake) [perp unit of
+  // the steering axis, pointing forward-and-slightly-up in world]. Recomputed
+  // from rake & yoke so the indicator self-adjusts when caster or yoke change.
+  // End point lands on the rendered fork crown so the indicator visually
+  // terminates ON the fork tube the user can see in the diagram.
+  const yokeEnd = { x: g.forkTop.x, y: g.forkTop.y };
+  const sh_sx = px(sh.x), sh_sy = py(sh.y);
+  const ye_sx = px(yokeEnd.x), ye_sy = py(yokeEnd.y);
+  // Tick line + small end caps so it reads as a dimension marker.
+  annot.push(`<line x1="${sh_sx.toFixed(1)}" y1="${sh_sy.toFixed(1)}" x2="${ye_sx.toFixed(1)}" y2="${ye_sy.toFixed(1)}" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>`);
+  // End cap dots
+  annot.push(`<circle cx="${sh_sx.toFixed(1)}" cy="${sh_sy.toFixed(1)}" r="2.5" fill="#fbbf24"/>`);
+  annot.push(`<circle cx="${ye_sx.toFixed(1)}" cy="${ye_sy.toFixed(1)}" r="2.5" fill="#fbbf24"/>`);
+  // Label adjacent to the tick midpoint, offset perpendicular to it (in
+  // screen coords, on the upper side: negative-Y direction).
+  const ymidX = (sh_sx + ye_sx) / 2, ymidY = (sh_sy + ye_sy) / 2;
+  let ydx = ye_sx - sh_sx, ydy = ye_sy - sh_sy;
+  const ylen = Math.hypot(ydx, ydy) || 1;
+  // Perp 90° CCW = (-dy, dx) normalized. Pick the side where Y < 0 (above).
+  let ynx = -ydy / ylen, yny = ydx / ylen;
+  if (yny > 0) { ynx = -ynx; yny = -yny; }
+  const yoff = 12;
+  const yokeLabelX = ymidX + ynx * yoff;
+  const yokeLabelY = ymidY + yny * yoff + 4; // +4 baseline correction for font
+  annot.push(`<text x="${yokeLabelX.toFixed(1)}" y="${yokeLabelY.toFixed(1)}" fill="#fbbf24" font-size="18" text-anchor="middle" font-weight="600" style="${TXT_HALO}">Yoke ${escapeHtml(fmt(g.yoke, 0))}</text>`);
 
   // Fork position tick on the fork tube
   annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1"/>`);
 
-  // Weight distribution bar
-  const barX0 = px(maxX - 50), barX1 = px(minX + 50); // bike faces left: bar runs left→right on screen
-  const barY = py(maxY - 80);
-  const splitX = barX0 + (barX1 - barX0) * g.fwd;
+  // Weight distribution — compact pill in the top-right corner. A thin
+  // proportional split rect inside a rounded panel + a single F/R numeric line.
+  const wbW = 130, wbH = 30;
+  const wpX = W - wbW - 14, wpY = 14;
+  const wbSplitX = wpX + 8 + (wbW - 16) * g.fwd;
   annot.push(`
-    <rect x="${Math.min(barX0, barX1)}" y="${barY - 9}" width="${Math.abs(barX1 - barX0)}" height="18" fill="#1f2630" stroke="#5a6878" stroke-width="1"/>
-    <rect x="${Math.min(barX0, splitX)}" y="${barY - 9}" width="${Math.abs(splitX - barX0)}" height="18" fill="#4ea1ff" opacity="0.55"/>
-    <text x="${barX0 + 8}" y="${barY + 4}" fill="#cbd5e1" font-size="10" font-weight="700">F ${fmt(g.fwd * 100, 0)}%</text>
-    <text x="${barX1 - 8}" y="${barY + 4}" fill="#cbd5e1" font-size="10" text-anchor="end" font-weight="700">R ${fmt((1 - g.fwd) * 100, 0)}%</text>
+    <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(15,20,27,0.85)" stroke="#3a4555" stroke-width="1"/>
+    <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#1f2630"/>
+    <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#4ea1ff" opacity="0.85"/>
+    <text x="${wpX + 8}" y="${wpY + 16}" fill="#cbd5e1" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
   `);
 
   return `
@@ -406,7 +461,7 @@ function renderChassisDiagram(values, lang) {
       ${dot(g.swingPivot, 4, '#a78bfa')}
       ${dot(g.cg, 5, '#22d3ee')}
       ${dot(g.steerHead, 4, '#f472b6')}
-      ${txt(g.cg, 'CG', '#22d3ee', 10, 'start', 8, -4)}
+      ${txt(g.cg, 'CG', '#22d3ee', 18, 'start', 8, -4)}
     </svg>
   `;
 }

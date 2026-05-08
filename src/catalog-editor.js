@@ -9,7 +9,6 @@ const CATALOG_LABELS = {
   shocks:    { en: 'Shocks',    zh: '避震' },
   swingarms: { en: 'Swingarms', zh: '摇臂' },
   linkages:  { en: 'Linkages',  zh: '连杆' },
-  clamps:    { en: 'Clamps',    zh: '三星台' },
 };
 
 function escapeHtml(s) {

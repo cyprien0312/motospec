@@ -93,7 +93,7 @@ const STR = {
           <p>多车横向对比工具。列数可变（0–5），通过表头的「+ 新增车型」/「×」按钮增删。</p>
           <h4>行类型</h4>
           <ul>
-            <li><strong>下拉行</strong>（Chassis、Clamp、Fork、Shock、Swingarm、Linkage）：从对应 catalog 选择条目，对应 specs 自动并入该列的 values</li>
+            <li><strong>下拉行</strong>（Chassis、Fork、Shock、Swingarm、Linkage）：从对应 catalog 选择条目，对应 specs 自动并入该列的 values</li>
             <li><strong>输入行</strong>：直接键入数值；空白时显示工具提示告诉你「该字段通常来自 X 配置 / 也可手填」</li>
             <li><strong>RESULTS 行</strong>：只读，根据公式从 values 计算</li>
           </ul>
@@ -109,7 +109,7 @@ const STR = {
       'catalogs': {
         h: '部件库（Component Library）',
         body: `
-          <p>6 个分类：chassis、forks、shocks、swingarms、linkages、clamps。每个分类的有效条目 = 基线 JSON ⊕ 用户覆盖层（localStorage）。</p>
+          <p>5 个分类：chassis、forks、shocks、swingarms、linkages。每个分类的有效条目 = 基线 JSON ⊕ 用户覆盖层（localStorage）。</p>
           <ul>
             <li>用户覆盖可以：新增条目、覆盖 / 扩展已有条目（specs 字段深度合并）、用墓碑对象（<code>{ __deleted: true }</code>）逻辑删除基线条目</li>
             <li>「导出 JSON」只导出覆盖层；「导入 JSON」会替换整个覆盖层</li>
@@ -173,7 +173,7 @@ const STR = {
           <ol>
             <li>On <strong>Chassis Setup</strong>, fill in frame geometry, mass, aero share, and tire data, then click "Save chassis profile".</li>
             <li>On <strong>Linkage Setup</strong>, pick a mode (linked / pro-link), enter the 4-bar coordinates or measured lengths, and click "Save as preset".</li>
-            <li>On <strong>Data Table</strong>, add a bike column, pick the chassis profile + components (fork, shock, swingarm, linkage, clamp) — RESULTS compute live.</li>
+            <li>On <strong>Data Table</strong>, add a bike column, pick the chassis profile + components (fork, shock, swingarm, linkage) — RESULTS compute live.</li>
             <li>A "Need: …" cell in RESULTS means the formula has unbound inputs; the hint names which group is missing.</li>
           </ol>
           <p>Everything persists in browser localStorage. Use the catalog "Export JSON" button to back up your overlay.</p>
@@ -227,7 +227,7 @@ const STR = {
           <p>Side-by-side bike comparison. Columns are variable (0–5), added/removed via the "+ Add Bike" / "×" buttons.</p>
           <h4>Row types</h4>
           <ul>
-            <li><strong>Dropdown rows</strong> (Chassis, Clamp, Fork, Shock, Swingarm, Linkage): pick a catalog entry; its specs merge into that column's values automatically</li>
+            <li><strong>Dropdown rows</strong> (Chassis, Fork, Shock, Swingarm, Linkage): pick a catalog entry; its specs merge into that column's values automatically</li>
             <li><strong>Input rows</strong>: type a number directly; empty cells show a tooltip pointing to the usual provider</li>
             <li><strong>RESULTS rows</strong>: read-only, computed from values</li>
           </ul>
@@ -243,7 +243,7 @@ const STR = {
       'catalogs': {
         h: 'Component Library',
         body: `
-          <p>Six catalogs: chassis, forks, shocks, swingarms, linkages, clamps. Effective entries = baseline JSON ⊕ user overlay (localStorage).</p>
+          <p>Five catalogs: chassis, forks, shocks, swingarms, linkages. Effective entries = baseline JSON ⊕ user overlay (localStorage).</p>
           <ul>
             <li>The user overlay can: add new entries, override or extend baseline ones (deep-merge on <code>specs</code>), or tombstone a baseline entry (<code>{ __deleted: true }</code>)</li>
             <li>"Export JSON" exports just the overlay; "Import JSON" replaces the entire overlay</li>

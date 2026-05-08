@@ -22,9 +22,11 @@ and unbound cells say so honestly.
   chassis profile + components materializes the bike's input dict.
   RESULTS cells render real numbers when their leaf inputs are bound,
   otherwise blank with a "Need: …" hint naming the missing provider.
-- **Component Library** — six catalogs (chassis / forks / shocks /
-  swingarms / linkages / clamps). Baseline ⊕ user overlay model with
-  import / export / reset.
+- **Component Library** — five catalogs (chassis / forks / shocks /
+  swingarms / linkages). Baseline ⊕ user overlay model with
+  import / export / reset. `Yoke_Offset` lives on the chassis profile;
+  the original clamp catalog was dropped because its only spec
+  duplicated that field.
 - **User Guide** — bilingual long-form help with per-page `?` shortcut.
 
 ### Calculations wired
