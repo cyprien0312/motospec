@@ -182,11 +182,8 @@ export const ROW_GROUPS = [
 ];
 
 const STATUS_BADGE = {
-  pending: { en: 'PENDING',  zh: '待实现',     title_en: 'Formula not yet implemented (Phase D research)', title_zh: '公式尚未实现（待 Phase D 研究）' },
-  coords:  { en: 'NEEDS COORDS', zh: '需真实坐标', title_en: 'Real linkage formula, but the linkage coordinates default to placeholders — measured values needed for accuracy',  title_zh: '公式正确，但 linkage 坐标默认是占位值；需要实测坐标才能准确' },
-  static:  { en: 'STATIC',   zh: '静态值',     title_en: 'Echoes the static input value verbatim — does not respond to dynamic compression/load', title_zh: '直接回显静态输入值，不随动态压缩/载荷变化' },
-  partial: { en: 'PARTIAL',  zh: '部分实算',   title_en: 'Real formula, but some inputs (e.g. a_x, V, Cd, weight distribution) are not exposed in the data table and use hidden defaults', title_zh: '公式真实，但部分输入（如 a_x、V、Cd、重量分配）未在表格中暴露，使用隐藏默认值' },
-  approx:  { en: 'APPROX',   zh: '简化近似',   title_en: 'Simplified approximation that bypasses the full linkage/driveline geometry — may disagree with the linkage-based results', title_zh: '简化近似，未走完整 linkage / 传动几何 — 可能与基于 linkage 的结果不一致' },
+  pending: { en: 'PENDING', zh: '待实现', title_en: 'Input is not yet consumed by any RESULTS formula', title_zh: '该输入尚未被任何 RESULTS 公式消费' },
+  static:  { en: 'STATIC',  zh: '静态值', title_en: 'Echoes the static input value verbatim — does not respond to dynamic compression/load', title_zh: '直接回显静态输入值，不随动态压缩/载荷变化' },
 };
 
 const DASH = '—';
