@@ -1219,7 +1219,16 @@ function loadState() {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (s && s.values) {
       const merged = defaultValues();
-      for (const k in s.values) if (k in merged) merged[k] = s.values[k];
+      // Only adopt persisted values that are valid; skip null/NaN/undefined
+      // so we never silently clobber a numeric default with a non-finite
+      // restoration (which would later filter out of buildChassisPresetEntry
+      // and leave the saved chassis profile incomplete).
+      for (const k in s.values) {
+        if (!(k in merged)) continue;
+        const val = s.values[k];
+        if (typeof val === 'number' && Number.isFinite(val)) merged[k] = val;
+        else if (typeof val === 'string' && val.length > 0) merged[k] = val;
+      }
       const bikes = (Array.isArray(s.bikes) && s.bikes.length === 3) ? s.bikes : defaultBikes();
       if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
       const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];

@@ -131,11 +131,19 @@ export function slugifyChassisName(name) {
 }
 
 // Build a chassis catalog entry from current values. `rear_weight_dist` and
-// `C_r_aero` are derived from their primaries at save time.
+// `C_r_aero` are derived from their primaries at save time. Any field that
+// is missing or non-finite in `values` is backfilled from INPUT_META.def
+// so the saved profile is always complete (downstream code reads keys off
+// `entry.specs` to decide which inputs are "bound").
 export function buildChassisPresetEntry(name, values) {
   const specs = {};
   for (const f of CHASSIS_SPEC_FIELDS) {
-    if (values[f] != null && Number.isFinite(values[f])) specs[f] = values[f];
+    const v = values?.[f];
+    if (v != null && Number.isFinite(v)) {
+      specs[f] = v;
+    } else if (INPUT_META[f] && Number.isFinite(INPUT_META[f].def)) {
+      specs[f] = INPUT_META[f].def;
+    }
   }
   // Recompute linked pairs from primaries to guarantee the profile is consistent.
   if (specs.front_weight_dist != null) specs.rear_weight_dist = +(1 - specs.front_weight_dist).toFixed(3);
@@ -250,12 +258,24 @@ function chassisGeometry(values) {
 
 function renderChassisDiagram(values, lang) {
   const g = chassisGeometry(values);
-  const W = 720, H = 420; // viewport in pixels
-  // Compute mm bounding box: include CG and all key points + a little headroom.
-  const xs = [g.rearContact.x, g.frontContact.x, g.swingPivot.x, g.steerHead.x, g.cg.x];
-  const ys = [0, g.rearAxle.y, g.frontAxle.y, g.swingPivot.y, g.steerHead.y, g.cg.y];
-  const minX = Math.min(...xs) - 200, maxX = Math.max(...xs) + 200;
-  const minY = -120, maxY = Math.max(...ys) + 200;
+  const W = 1200, H = 520; // viewport in pixels (wide so it fills the page)
+  // Compute mm bounding box. Include the wheel circumferences (axles ± rolling
+  // radius) so neither wheel gets clipped, plus headroom for the WB / L_CG
+  // dimension lines below ground and the rake arc above the steering head.
+  const xs = [
+    g.rearAxle.x - g.Rr, g.frontAxle.x + g.Rf,   // wheel extents
+    g.rearContact.x, g.frontContact.x,
+    g.swingPivot.x, g.steerHead.x, g.cg.x,
+  ];
+  const ys = [
+    -120,                                          // dimension lines below ground
+    g.rearAxle.y - g.Rr, g.frontAxle.y - g.Rf,   // wheel bottom = ground (already 0)
+    g.rearAxle.y + g.Rr, g.frontAxle.y + g.Rf,   // wheel top
+    g.swingPivot.y, g.steerHead.y + 100, g.cg.y, // +100 for rake arc above head
+  ];
+  const padX = 80, padY = 40;                     // mm padding so labels never touch the edge
+  const minX = Math.min(...xs) - padX, maxX = Math.max(...xs) + padX;
+  const minY = Math.min(...ys) - padY, maxY = Math.max(...ys) + padY;
   const mmW = maxX - minX, mmH = maxY - minY;
   const scale = Math.min((W - 20) / mmW, (H - 20) / mmH);
   // Bike faces LEFT: flip X. SVG +Y is down: flip Y.
@@ -374,21 +394,34 @@ function renderChassisDiagram(values, lang) {
 
 // ----- Page renderer --------------------------------------------------------
 
-function inputCard(field, values, lang) {
-  const m = INPUT_META[field] || {};
-  const v = values[field];
+function fieldHeaderCell(field, lang) {
   const labels = FIELD_LABELS[field] || { en: field, zh: field };
   const label = lang === 'en' ? labels.en : labels.zh;
+  return `<th class="chassis-th">${escapeHtml(label)}</th>`;
+}
+
+function fieldInputCell(field, values) {
+  const m = INPUT_META[field] || {};
+  const v = values[field];
   const step = m.step != null ? m.step : 'any';
   const minA = m.min != null ? ` min="${m.min}"` : '';
   const maxA = m.max != null ? ` max="${m.max}"` : '';
   const val = (v == null || !Number.isFinite(v)) ? '' : v;
+  return `<td class="chassis-td">` +
+    `<input type="number" class="chassis-input" value="${val}" step="${step}"${minA}${maxA}` +
+    ` oninput="setChassisInput('${field}', this.value)"/></td>`;
+}
+
+function groupTable(g, values, lang) {
+  const headers = g.fields.map(f => fieldHeaderCell(f, lang)).join('');
+  const inputs  = g.fields.map(f => fieldInputCell(f, values)).join('');
   return `
-    <label class="chassis-card">
-      <span class="chassis-card-label">${escapeHtml(label)}</span>
-      <input type="number" class="chassis-input" value="${val}" step="${step}"${minA}${maxA}
-             oninput="setChassisInput('${field}', this.value)"/>
-    </label>
+    <div class="chassis-table-wrap">
+      <table class="chassis-table">
+        <thead><tr>${headers}</tr></thead>
+        <tbody><tr>${inputs}</tr></tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -429,9 +462,7 @@ export function renderChassisSetup({ values, lang } = {}) {
   const groupsHtml = CHASSIS_GROUPS.map(g => `
     <section class="chassis-group">
       <h2 class="chassis-group-title">${escapeHtml(L === 'en' ? g.label_en : g.label_zh)}</h2>
-      <div class="chassis-group-grid">
-        ${g.fields.map(f => inputCard(f, v, L)).join('')}
-      </div>
+      ${groupTable(g, v, L)}
     </section>
   `).join('');
 
