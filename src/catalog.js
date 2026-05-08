@@ -15,12 +15,11 @@
 
 import FORKS     from '../data/forks.json'     with { type: 'json' };
 import SHOCKS    from '../data/shocks.json'    with { type: 'json' };
-import SWINGARMS from '../data/swingarms.json' with { type: 'json' };
 import LINKAGES  from '../data/linkages.json'  with { type: 'json' };
 import CHASSIS   from '../data/chassis.json'   with { type: 'json' };
 
 const BASE = Object.freeze({
-  forks: FORKS, shocks: SHOCKS, swingarms: SWINGARMS,
+  forks: FORKS, shocks: SHOCKS,
   linkages: LINKAGES, chassis: CHASSIS,
 });
 
@@ -125,14 +124,13 @@ const COMPONENT_TO_CATALOG = {
   chassis: 'chassis',
   fork: 'forks',
   shock: 'shocks',
-  swingarm: 'swingarms',
   linkage: 'linkages',
 };
 
 // Order matters: chassis baseline first so component-level specs (forks,
 // shocks, …) and per-bike geometry / setup overrides can win.
 const COMPONENT_ORDER = [
-  'chassis', 'fork', 'shock', 'swingarm', 'linkage',
+  'chassis', 'fork', 'shock', 'linkage',
 ];
 
 export const COMPONENT_TO_CATALOG_MAP = COMPONENT_TO_CATALOG;

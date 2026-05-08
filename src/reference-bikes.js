@@ -9,8 +9,8 @@
 // values.
 //
 // To populate a column: pick a chassis profile from the chassis catalog
-// + components from the part catalogs (forks, shocks, swingarms,
-// linkages, clamps), or type values directly into the cells. Real spec
+// + components from the part catalogs (forks, shocks, linkages),
+// or type values directly into the cells. Real spec
 // sheets are tracked in docs/research/chassis-coords.md and
 // docs/research/linkage-coords.md.
 

@@ -66,7 +66,6 @@ const PROVIDER_LABELS = {
   chassis:  { zh: 'Chassis 配置',  en: 'Chassis profile' },
   forks:    { zh: 'Fork 规格',     en: 'Fork specs' },
   shocks:   { zh: 'Shock 规格',    en: 'Shock specs' },
-  swingarms:{ zh: 'Swingarm 规格', en: 'Swingarm specs' },
   linkages: { zh: 'Linkage 坐标',  en: 'Linkage coords' },
   sprocket: { zh: '链轮齿数',      en: 'Sprocket teeth' },
   dynamic:  { zh: '动态量（未支持）', en: 'Dynamic input (not wired)' },
@@ -82,7 +81,7 @@ function summarizeMissing(missing, providerMap, lang) {
     if (!groups.has(prov)) groups.set(prov, []);
     groups.get(prov).push(k);
   }
-  const ordered = ['chassis','forks','shocks','swingarms','linkages','sprocket','dynamic']
+  const ordered = ['chassis','forks','shocks','linkages','sprocket','dynamic']
     .filter(p => groups.has(p));
   const shortLabel = (lang === 'en' ? 'Need: ' : '缺：') +
     ordered.map(p => PROVIDER_LABELS[p][lang]).join(' · ');
@@ -147,7 +146,6 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '前叉回顶弹簧长度 (mm)', input: 'Front_Topout_Length', status: 'pending' },
   ]},
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
-    { spec: 'Swingarm',                                             spec_zh: '摇臂',                 component: 'swingarm' },
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '后避震Clevis调整 (mm)', input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
@@ -191,7 +189,6 @@ export const COMPONENT_TO_CATALOG = {
   chassis: 'chassis',
   fork: 'forks',
   shock: 'shocks',
-  swingarm: 'swingarms',
   linkage: 'linkages',
 };
 

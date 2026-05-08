@@ -69,7 +69,7 @@ test('numeric input rows render <input type="number"> cells per bike', () => {
 
 test('component rows render <select> wired to setBikeComponent', () => {
   const html = render();
-  for (const c of ['fork', 'shock', 'swingarm', 'linkage']) {
+  for (const c of ['fork', 'shock', 'linkage']) {
     assert.match(html, new RegExp(`onchange="setBikeComponent\\(\\d+, '${c}'`),
       `missing component select for ${c}`);
   }

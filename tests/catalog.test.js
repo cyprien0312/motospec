@@ -17,7 +17,7 @@ beforeEach(() => resetUserOverlay());
 test('baseline catalogs load with expected ids', () => {
   assert.ok(CATALOGS.forks.fgk242, 'fgk242 fork present');
   assert.ok(CATALOGS.shocks['ya-589'], 'ya-589 shock present');
-  assert.equal(CATALOG_KEYS.length, 5);
+  assert.equal(CATALOG_KEYS.length, 4);
 });
 
 test('setCatalogEntry adds a new entry visible in CATALOGS', () => {

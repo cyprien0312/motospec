@@ -7,7 +7,6 @@ import { CATALOGS, CATALOG_KEYS } from './catalog.js';
 const CATALOG_LABELS = {
   forks:     { en: 'Forks',     zh: '前叉' },
   shocks:    { en: 'Shocks',    zh: '避震' },
-  swingarms: { en: 'Swingarms', zh: '摇臂' },
   linkages:  { en: 'Linkages',  zh: '连杆' },
 };
 
