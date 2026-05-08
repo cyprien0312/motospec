@@ -6,7 +6,8 @@
 // ============================================================
 
 import { computeAll, INPUT_META } from './formulas.js';
-import { motionRatio } from './linkage.js';
+import { motionRatio, shockLength, rearWheelHeight } from './linkage.js';
+import { CATALOGS } from './catalog.js';
 
 // ----- Length-mode helpers --------------------------------------------------
 // In length mode the user types four rod/arm lengths (rocker arm A, rocker
@@ -206,6 +207,11 @@ export const LINKAGE_SPEC_FIELDS = [
   'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
 ];
 
+// The 10 coordinate fields (mode-dependent geometry only — excludes
+// Linkage_Mode itself). Used to snapshot/restore each mode's coords
+// independently when switching mode in the Linkage Setup page.
+export const LINKAGE_COORD_FIELDS = LINKAGE_SPEC_FIELDS.filter(k => k !== 'Linkage_Mode');
+
 // Slug a user-entered name to a catalog id; if the slug collides with an
 // existing id in `existingIds` (Set or array of strings), a timestamp suffix
 // is appended.
@@ -251,6 +257,8 @@ const UI = {
     title: '连杆几何 / Linkage Setup',
     kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
     save_preset: '💾 保存为预设',
+    load_library: '📚 从组件库加载…',
+    load_library_default: '— 选择库中已有连杆 —',
     desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。图示按右侧视图绘制——车头朝左、+X 在屏幕上向左。占位坐标只为让公式有数值；实测后图示与运动比才有意义。',
     readouts: '实时读数（Live Readouts）',
     chart_title: '运动比曲线',
@@ -287,6 +295,8 @@ const UI = {
     title: 'Linkage Setup',
     kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
     save_preset: '💾 Save as preset',
+    load_library: '📚 Load from Library…',
+    load_library_default: '— Pick a linkage from the library —',
     desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The diagram is a right-side view — bike faces left, so +X-forward points left on screen. Placeholder coords just keep the formulas numerical; the diagram and motion ratio only become meaningful once you enter real measurements.',
     readouts: 'Live Readouts',
     chart_title: 'Motion Ratio Curve',
@@ -332,84 +342,151 @@ function sampleMotionRatio(values, fullBumpDeg = 25, samples = 25) {
   const cfg = { ...values };
   const swingarmLength = values.Swingarm_Length || 580;
   const beta_static = values.beta_static || 14;
+  const kSpring = values.Rear_Spring_Rate || 110;
+  const yStatic = rearWheelHeight(cfg, 0, swingarmLength, beta_static);
   const out = [];
-  let lo = Infinity, hi = -Infinity;
+  let mrLo = Infinity, mrHi = -Infinity;
+  let wrLo = Infinity, wrHi = -Infinity;
   for (let i = 0; i < samples; i++) {
     const deg = (i / (samples - 1)) * fullBumpDeg;
     const mr = motionRatio(cfg, deg, swingarmLength, beta_static);
-    if (Number.isFinite(mr)) {
-      out.push({ deg, mr });
-      if (mr < lo) lo = mr;
-      if (mr > hi) hi = mr;
+    const yNow = rearWheelHeight(cfg, deg, swingarmLength, beta_static);
+    const travel = Math.abs(yNow - yStatic);
+    if (Number.isFinite(mr) && Number.isFinite(travel) && mr > 0) {
+      const wr = kSpring / (mr * mr);
+      out.push({ deg, mr, travel, wr });
+      if (mr < mrLo) mrLo = mr;
+      if (mr > mrHi) mrHi = mr;
+      if (wr < wrLo) wrLo = wr;
+      if (wr > wrHi) wrHi = wr;
     }
   }
-  return { samples: out, min: lo, max: hi };
+  return { samples: out, mrMin: mrLo, mrMax: mrHi, wrMin: wrLo, wrMax: wrHi, kSpring };
 }
 
 function renderMotionRatioChart(values, lang) {
-  const W = 560, H = 200;
-  const padL = 44, padR = 12, padT = 10, padB = 28;
+  const W = 520, H = 520;
+  const padL = 60, padR = 64, padT = 36, padB = 44;
   const data = sampleMotionRatio(values);
-  if (data.samples.length < 2 || !Number.isFinite(data.min) || !Number.isFinite(data.max)) {
-    return `<div class="linkage-chart-empty">${lang === 'en' ? 'No motion-ratio data — check coords.' : '无运动比数据 — 请检查坐标。'}</div>`;
-  }
-  const xMin = 0, xMax = data.samples[data.samples.length - 1].deg;
-  // Pad y range a touch so the line doesn't sit on the edges.
-  const span = Math.max(data.max - data.min, 0.05);
-  const yMin = data.min - span * 0.15;
-  const yMax = data.max + span * 0.15;
+  const empty = `<div class="linkage-chart-empty">${lang === 'en' ? 'No motion-ratio data — check coords.' : '无运动比数据 — 请检查坐标。'}</div>`;
+  if (data.samples.length < 2 || !Number.isFinite(data.mrMin) || !Number.isFinite(data.mrMax)) return empty;
+  const xMin = 0, xMax = data.samples[data.samples.length - 1].travel;
+  if (!(xMax > 0)) return empty;
 
-  const sx = (deg) => padL + (deg - xMin) / (xMax - xMin) * (W - padL - padR);
-  const sy = (mr)  => padT + (1 - (mr - yMin) / (yMax - yMin)) * (H - padT - padB);
+  // Anchor both axes on their static value with the SAME fractional span,
+  // so MR and wheel-rate curves are visually directly comparable —
+  // a flat line means linear, divergent curvature means progression.
+  const mrStatic = data.samples[0].mr;
+  const wrStatic = data.samples[0].wr;
+  const mrFracDown = Math.max(0, (mrStatic - data.mrMin) / mrStatic);
+  const mrFracUp   = Math.max(0, (data.mrMax - mrStatic) / mrStatic);
+  const wrFracDown = Math.max(0, (wrStatic - data.wrMin) / wrStatic);
+  const wrFracUp   = Math.max(0, (data.wrMax - wrStatic) / wrStatic);
+  const fracDown = Math.max(mrFracDown, wrFracDown, 0.005) + 0.015;
+  const fracUp   = Math.max(mrFracUp,   wrFracUp,   0.005) + 0.015;
+  const mrYMin = mrStatic * (1 - fracDown), mrYMax = mrStatic * (1 + fracUp);
+  const wrYMin = wrStatic * (1 - fracDown), wrYMax = wrStatic * (1 + fracUp);
 
-  // Grid + axis labels
+  const sx  = (travel) => padL + (travel - xMin) / (xMax - xMin) * (W - padL - padR);
+  // Both curves share one screen-space mapping (the fractional position).
+  const sy = (frac)   => padT + (1 - frac) * (H - padT - padB);
+  const fracOf = (v, lo, hi) => (v - lo) / (hi - lo);
+  const syMR = (mr) => sy(fracOf(mr, mrYMin, mrYMax));
+  const syWR = (wr) => sy(fracOf(wr, wrYMin, wrYMax));
+
+  // Grid + axis labels (1 decimal; share grid lines, label with each axis's value)
   const yTicks = 4, xTicks = 5;
   let grid = '';
   for (let i = 0; i <= yTicks; i++) {
-    const v = yMin + (i / yTicks) * (yMax - yMin);
-    const y = sy(v);
+    const frac = i / yTicks;
+    const y = sy(frac);
+    const mrV = mrYMin + frac * (mrYMax - mrYMin);
+    const wrV = wrYMin + frac * (wrYMax - wrYMin);
     grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#2a3340" stroke-width="1"/>`;
-    grid += `<text x="${padL - 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="end">${v.toFixed(2)}</text>`;
+    grid += `<text x="${padL - 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="end">${mrV.toFixed(1)}</text>`;
+    grid += `<text x="${W - padR + 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="start">${wrV.toFixed(1)}</text>`;
   }
   for (let i = 0; i <= xTicks; i++) {
     const v = xMin + (i / xTicks) * (xMax - xMin);
     const x = sx(v);
     grid += `<line x1="${x}" y1="${H - padB}" x2="${x}" y2="${H - padB + 3}" stroke="#5a6878" stroke-width="1"/>`;
-    grid += `<text x="${x}" y="${H - padB + 16}" fill="#5a6878" font-size="10" text-anchor="middle">${v.toFixed(0)}°</text>`;
+    grid += `<text x="${x}" y="${H - padB + 16}" fill="#5a6878" font-size="10" text-anchor="middle">${v.toFixed(0)}</text>`;
   }
 
   // Axis titles
-  const xTitle = lang === 'en' ? 'Swingarm Travel (°)' : '摇臂行程 (°)';
-  const yTitle = lang === 'en' ? 'Motion Ratio (wheel/shock)' : '运动比 (轮/避震)';
+  const xTitle  = lang === 'en' ? 'Rear Wheel Vertical Travel (mm)' : '后轮垂直行程 (mm)';
+  const yTitleL = lang === 'en' ? 'Motion Ratio (wheel/shock)' : '运动比 (轮/避震)';
+  const yTitleR = lang === 'en' ? 'Wheel Rate (N/mm)' : '后轮综合刚度 (N/mm)';
   const axisTitles = `
-    <text x="${(W + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
-    <text x="14" y="${(H + padT - padB) / 2}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600"
-          transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitle)}</text>
+    <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
+    <text x="14" y="${(H + padT - padB) / 2}" fill="#4ea1ff" font-size="11" text-anchor="middle" font-weight="600"
+          transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitleL)}</text>
+    <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#f472b6" font-size="11" text-anchor="middle" font-weight="600"
+          transform="rotate(90, ${W - 14}, ${(H + padT - padB) / 2})">${escapeHtml(yTitleR)}</text>
   `;
 
-  // Line + filled area
-  const points = data.samples.map(p => `${sx(p.deg).toFixed(1)},${sy(p.mr).toFixed(1)}`).join(' ');
-  const area = `M ${sx(data.samples[0].deg)},${H - padB} L ${data.samples.map(p => `${sx(p.deg).toFixed(1)},${sy(p.mr).toFixed(1)}`).join(' L ')} L ${sx(data.samples[data.samples.length-1].deg)},${H - padB} Z`;
+  // MR line + soft fill
+  const mrPts = data.samples.map(p => `${sx(p.travel).toFixed(1)},${syMR(p.mr).toFixed(1)}`).join(' ');
+  const mrArea = `M ${sx(data.samples[0].travel)},${H - padB} L ${data.samples.map(p => `${sx(p.travel).toFixed(1)},${syMR(p.mr).toFixed(1)}`).join(' L ')} L ${sx(data.samples[data.samples.length-1].travel)},${H - padB} Z`;
+  // Wheel-rate line (no fill, dashed for clarity)
+  const wrPts = data.samples.map(p => `${sx(p.travel).toFixed(1)},${syWR(p.wr).toFixed(1)}`).join(' ');
 
-  // Marker at static (deg=0)
-  const x0 = sx(data.samples[0].deg), y0 = sy(data.samples[0].mr);
+  // Marker starts at travel = 0 (static); drag updates it.
+  const x0 = sx(data.samples[0].travel);
+  const y0mr = syMR(mrStatic), y0wr = syWR(wrStatic);
 
   // Progression annotation
-  const prog = (data.max - data.min) / (data.min || 1) * 100;
+  const prog = (data.mrMax - data.mrMin) / (data.mrMin || 1) * 100;
   const progText = lang === 'en'
-    ? `Progression: ${prog.toFixed(1)}%   |   MR @ static: ${data.samples[0].mr.toFixed(3)}`
-    : `渐进性：${prog.toFixed(1)}%   |   静态运动比：${data.samples[0].mr.toFixed(3)}`;
+    ? `Progression: ${prog.toFixed(1)}%   |   K = ${data.kSpring} N/mm`
+    : `渐进性：${prog.toFixed(1)}%   |   K = ${data.kSpring} N/mm`;
+  const readoutText = lang === 'en'
+    ? `Travel: ${(0).toFixed(0)} mm   |   MR: ${mrStatic.toFixed(2)}   |   Wheel Rate: ${wrStatic.toFixed(1)} N/mm`
+    : `行程: ${(0).toFixed(0)} mm   |   MR: ${mrStatic.toFixed(2)}   |   轮刚度: ${wrStatic.toFixed(1)} N/mm`;
+  // Compact sample blob for the drag handler — { t: travels, m: MRs, w: WRs }.
+  const blob = JSON.stringify({
+    t: data.samples.map(p => +p.travel.toFixed(3)),
+    m: data.samples.map(p => +p.mr.toFixed(5)),
+    w: data.samples.map(p => +p.wr.toFixed(3)),
+  });
+
+  // Legend
+  const legend = `
+    <g font-size="10" font-weight="600">
+      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 26}" y2="${padT + 8}" stroke="#4ea1ff" stroke-width="2.2"/>
+      <text x="${padL + 30}" y="${padT + 11}" fill="#4ea1ff">MR</text>
+      <line x1="${padL + 60}" y1="${padT + 8}" x2="${padL + 80}" y2="${padT + 8}" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="5 3"/>
+      <text x="${padL + 84}" y="${padT + 11}" fill="#f472b6">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
+    </g>
+  `;
 
   return `
-    <svg class="linkage-chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Motion ratio curve">
+    <svg id="linkage-chart-svg" class="linkage-chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-label="Motion ratio + wheel rate vs rear wheel travel"
+         data-pad-l="${padL}" data-pad-r="${padR}" data-pad-t="${padT}" data-pad-b="${padB}"
+         data-w="${W}" data-h="${H}" data-x-max="${xMax.toFixed(3)}"
+         data-mr-y-min="${mrYMin.toFixed(5)}" data-mr-y-max="${mrYMax.toFixed(5)}"
+         data-wr-y-min="${wrYMin.toFixed(3)}" data-wr-y-max="${wrYMax.toFixed(3)}"
+         data-samples='${blob}'
+         style="touch-action: none;">
       <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #0f141b)"/>
       ${grid}
-      <path d="${area}" fill="rgba(78,161,255,0.16)" stroke="none"/>
-      <polyline points="${points}" fill="none" stroke="#4ea1ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${x0.toFixed(1)}" cy="${y0.toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1.5"/>
-      <text x="${x0 + 8}" y="${y0 - 6}" fill="#fbbf24" font-size="10" font-weight="700">static</text>
+      <path d="${mrArea}" fill="rgba(78,161,255,0.14)" stroke="none"/>
+      <polyline points="${mrPts}" fill="none" stroke="#4ea1ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${wrPts}" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="5 3" stroke-linejoin="round" stroke-linecap="round"/>
+      <line id="linkage-readout-vline" x1="${x0.toFixed(1)}" y1="${padT}" x2="${x0.toFixed(1)}" y2="${H - padB}" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+      <circle id="linkage-readout-dot-mr" cx="${x0.toFixed(1)}" cy="${y0mr.toFixed(1)}" r="6" fill="#fbbf24" stroke="#0c1116" stroke-width="1.8" style="cursor: ew-resize;"/>
+      <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#fbbf24" stroke="#0c1116" stroke-width="1.8" style="cursor: ew-resize;"/>
       ${axisTitles}
-      <text x="${W - padR - 4}" y="${padT + 12}" fill="#cbd5e1" font-size="11" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
+      ${legend}
+      <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#fbbf24" font-size="11" font-weight="700">${escapeHtml(readoutText)}</text>
+      <text x="${W - padR - 4}" y="${padT - 12}" fill="#cbd5e1" font-size="11" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
+      <rect x="${padL}" y="${padT}" width="${(W - padL - padR).toFixed(0)}" height="${(H - padT - padB).toFixed(0)}"
+            fill="transparent" style="cursor: ew-resize;"
+            onpointerdown="linkageReadoutDown(event)"
+            onpointermove="linkageReadoutMove(event)"
+            onpointerup="linkageReadoutUp(event)"
+            onpointercancel="linkageReadoutUp(event)"/>
     </svg>
   `;
 }
@@ -494,6 +571,9 @@ function renderTopologySVG(values, mode = 'linked') {
       <pattern id="lk-frame-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
         <line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1.4"/>
       </pattern>
+      <pattern id="lk-swg-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#4ade80" stroke-width="1.4"/>
+      </pattern>
     </defs>
     <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#3a4555" stroke-width="1.5" stroke-dasharray="6,4"/>
     <text x="${W-30}" y="${groundY-6}" fill="#5a6878" font-size="11" text-anchor="end">ground (reference)</text>
@@ -513,12 +593,23 @@ function renderTopologySVG(values, mode = 'linked') {
 
   // The frame-anchored point (drawn with ground hatch around the bolt).
   const frameAnchor = proLink ? P.dSwg : P.fRocker;
+  // The swingarm-anchored linkage attachment (mirror of frameAnchor): in
+  // linked mode it's the drag-to-swingarm bolt; in pro-link mode it's the
+  // rocker pivot bolt that lives on the swingarm body.
+  const swingarmAnchor = proLink ? P.fRocker : P.dSwg;
 
   // Small "frame ground" hatch around a frame-fixed pivot — visual cue that
   // this bolt does NOT move with the swingarm.
   const groundHatch = (p, r = 14) => `
     <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#lk-frame-hatch)" opacity="0.45"/>
     <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+  `;
+  // Same idea but tinted swingarm-green: marks a fixed bolt on the swingarm
+  // body (its XY relative to the swingarm pivot is user-input and constant,
+  // even though the world position rotates with the swingarm).
+  const swingarmHatch = (p, r = 14) => `
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#lk-swg-hatch)" opacity="0.45"/>
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
   `;
 
   const lines = `
@@ -538,10 +629,12 @@ function renderTopologySVG(values, mode = 'linked') {
     <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#fff5" stroke-width="1" stroke-dasharray="2,4"/>
   `;
 
-  // Frame-anchor hatches (drawn under the dots) for points fixed to the frame.
+  // Anchor hatches (drawn under the dots) — gray for frame-fixed, green
+  // for swingarm-fixed. Both kinds are user-input anchor points.
   const frameAnchors = `
     ${groundHatch(frameAnchor)}
     ${groundHatch(P.fShock)}
+    ${swingarmHatch(swingarmAnchor)}
   `;
 
   const dot = (p, color, r = 5) =>
@@ -678,11 +771,17 @@ export function renderLinkageSetup(state) {
   const values = (state && state.values) || {};
   const out = computeAll({ ...values });
 
+  // Inline geometric helper: 4↔7 distance at β=0 (RHA=0). This is the
+  // baseline the shock body should physically match at static — surface it
+  // so the user can sanity-check their measured eye-to-eye against the
+  // coords they entered.
+  out.Static_Shock_Length = shockLength({ ...values }, 0);
+
   const readouts = [
     { id: 'Motion_Ratio',                label_zh: '运动比',           label_en: 'Motion Ratio',         unit: '' },
     { id: 'Progression',                 label_zh: '渐进性',           label_en: 'Progression',          unit: '%' },
-    { id: 'Rear_Wheel_Vertical_Travel',  label_zh: '后轮垂直行程',     label_en: 'Rear Vertical Travel', unit: 'mm' },
     { id: 'Rear_Ride_Height',            label_zh: '后部车高参考',     label_en: 'Rear Ride Height',     unit: 'mm' },
+    { id: 'Static_Shock_Length',         label_zh: '静态避震长度 (4↔7)', label_en: 'Static Shock Length (4↔7)', unit: 'mm' },
   ];
 
   const readoutHTML = readouts.map(r => `
@@ -776,9 +875,18 @@ export function renderLinkageSetup(state) {
         </ul>
       </details>
 
-      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="preset-btn reset" onclick="resetLinkagePlaceholder()">${escapeHtml(str.reset)}</button>
         <button class="preset-btn" onclick="saveLinkageAsPreset()">${escapeHtml(str.save_preset)}</button>
+        <label style="display:flex; gap:6px; align-items:center;">
+          <span>${escapeHtml(str.load_library)}</span>
+          <select class="dt-input" onchange="loadLinkageFromLibrary(this.value); this.value='';">
+            <option value="">${escapeHtml(str.load_library_default)}</option>
+            ${Object.entries(CATALOGS.linkages || {}).map(([id, e]) =>
+              `<option value="${escapeHtml(id)}">${escapeHtml(e.name || id)}</option>`
+            ).join('')}
+          </select>
+        </label>
       </div>
     </div>
   `;

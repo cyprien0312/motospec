@@ -24,7 +24,7 @@ test('linkage-setup: page contains all 10 coordinate inputs', () => {
 
 test('linkage-setup: page contains live readouts for derived metrics', () => {
   const html = renderLinkageSetup({ values: defaultValues() });
-  for (const id of ['Motion_Ratio', 'Progression', 'Rear_Wheel_Vertical_Travel', 'Rear_Ride_Height']) {
+  for (const id of ['Motion_Ratio', 'Progression', 'Rear_Ride_Height']) {
     assert.match(html, new RegExp(`data-live="${id}"`), `missing live readout for ${id}`);
   }
 });

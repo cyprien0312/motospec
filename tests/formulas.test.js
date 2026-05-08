@@ -177,11 +177,11 @@ for (const b of REFERENCE_BIKES) {
 test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
   // With the default pro-link placeholder coords and Travel_Rear=25, the
   // linkage-routed swingarm angle should differ noticeably from the legacy
-  // asin(Travel_Rear/L_SA) approximation. >0.5° guarantees we're not still
+  // asin(Travel_Rear/Swingarm_Length) approximation. >0.5° guarantees we're not still
   // computing the asin shortcut by accident.
   const v = { ...defaultValues(), Travel_Rear: 25 };
   const out = computeAll(v);
-  const oldApprox = v.beta_static - Math.asin(v.Travel_Rear / v.L_SA) * 180 / Math.PI;
+  const oldApprox = v.beta_static - Math.asin(v.Travel_Rear / v.Swingarm_Length) * 180 / Math.PI;
   const diff = Math.abs(out.MotoSPEC_SwgarmAngl - oldApprox);
   assert.ok(Number.isFinite(out.MotoSPEC_SwgarmAngl),
     `MotoSPEC_SwgarmAngl not finite: ${out.MotoSPEC_SwgarmAngl}`);
@@ -259,10 +259,12 @@ test('MotoSPEC_AntSquat now routes through dynamic chain angle (H2)', () => {
   assert.equal(INPUT_META.theta_chain, undefined, 'theta_chain should be removed from INPUT_META');
 });
 
-test('Final_Ratio matches CSV for each reference bike', () => {
+test('Final_Ratio matches Rear_Sprocket / Front_Sprocket for each reference bike with sprockets set', () => {
   for (const b of REFERENCE_BIKES) {
-    const out = computeAll({ ...defaultValues(), ...b.inputs });
-    const expected = b.inputs.Rear_Sprocket / b.inputs.Front_Sprocket;
+    const inputs = { ...defaultValues(), ...b.inputs };
+    if (!Number.isFinite(inputs.Front_Sprocket) || !Number.isFinite(inputs.Rear_Sprocket)) continue;
+    const out = computeAll(inputs);
+    const expected = inputs.Rear_Sprocket / inputs.Front_Sprocket;
     assert.ok(Math.abs(out.Final_Ratio - expected) < 1e-9,
       `${b.id}: got ${out.Final_Ratio}, expected ${expected}`);
   }

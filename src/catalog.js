@@ -18,11 +18,11 @@ import SHOCKS    from '../data/shocks.json'    with { type: 'json' };
 import SWINGARMS from '../data/swingarms.json' with { type: 'json' };
 import LINKAGES  from '../data/linkages.json'  with { type: 'json' };
 import CLAMPS    from '../data/clamps.json'    with { type: 'json' };
-import TIRES     from '../data/tires.json'     with { type: 'json' };
+import CHASSIS   from '../data/chassis.json'   with { type: 'json' };
 
 const BASE = Object.freeze({
   forks: FORKS, shocks: SHOCKS, swingarms: SWINGARMS,
-  linkages: LINKAGES, clamps: CLAMPS, tires: TIRES,
+  linkages: LINKAGES, clamps: CLAMPS, chassis: CHASSIS,
 });
 
 export const CATALOG_KEYS = Object.keys(BASE);
@@ -123,17 +123,18 @@ export function resetUserOverlay() {
 // ----- Bike materialization (Phase 1) -----
 
 const COMPONENT_TO_CATALOG = {
+  chassis: 'chassis',
   clamp: 'clamps',
   fork: 'forks',
   shock: 'shocks',
   swingarm: 'swingarms',
   linkage: 'linkages',
-  front_tire: 'tires',
-  rear_tire: 'tires',
 };
 
+// Order matters: chassis baseline first so component-level specs (forks,
+// shocks, …) and per-bike geometry / setup overrides can win.
 const COMPONENT_ORDER = [
-  'clamp', 'fork', 'shock', 'swingarm', 'linkage', 'front_tire', 'rear_tire',
+  'chassis', 'clamp', 'fork', 'shock', 'swingarm', 'linkage',
 ];
 
 export const COMPONENT_TO_CATALOG_MAP = COMPONENT_TO_CATALOG;

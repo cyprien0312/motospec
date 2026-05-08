@@ -13,6 +13,7 @@ import { CATALOGS } from './catalog.js';
 // computed read-only cells.
 export const ROW_GROUPS = [
   { header: 'FRAME GEOMETRY', header_zh: '车架几何', rows: [
+    { spec: 'Chassis',                                              spec_zh: '底盘',                 component: 'chassis' },
     { spec: 'Front Weight Distribution',                            spec_zh: '前轮静态重量分配',    input: 'front_weight_dist' },
     { spec: 'Rear Weight Distribution',                             spec_zh: '后轮静态重量分配',    input: 'rear_weight_dist' },
     { spec: 'Front Aero Downforce Share',                           spec_zh: '前轮气动下压力分配',  input: 'C_f_aero' },
@@ -48,18 +49,6 @@ export const ROW_GROUPS = [
     { spec: 'Rear Sprocket',                                        spec_zh: '后链轮',              input: 'Rear_Sprocket' },
     { spec: 'Final Ratio',                                          spec_zh: '最终传动比',          computed: 'Final_Ratio' },
   ]},
-  { header: 'DYNAMIC READINGS', header_zh: '动态读数', rows: [
-    { spec: 'Preset',                                               spec_zh: '动态预设',            preset: true },
-    { spec: 'Front Potentiometer (mm)',                             spec_zh: '前电位计 (mm)',       input: 'Travel_Front' },
-    { spec: 'Rear Potentiometer (mm)',                              spec_zh: '后电位计 (mm)',       input: 'Travel_Rear' },
-    { spec: 'Lean Angle (degrees)',                                 spec_zh: '倾角 (度)',           input: 'Lean_Angle', status: 'pending' },
-  ]},
-  { header: 'DYNAMIC LOAD', header_zh: '动态载荷', rows: [
-    { spec: 'Longitudinal Acceleration (g)',                        spec_zh: '纵向加速度 (g)',      input: 'a_x' },
-    { spec: 'Velocity (m/s)',                                       spec_zh: '实时车速 (m/s)',      input: 'V' },
-    { spec: 'Drag Coefficient',                                     spec_zh: '阻力系数',            input: 'Cd' },
-    { spec: 'Frontal Area (m²)',                                    spec_zh: '迎风面积 (m²)',       input: 'A' },
-  ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
     { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
@@ -91,6 +80,7 @@ const DASH = '—';
 
 // component bike-key → catalog name
 export const COMPONENT_TO_CATALOG = {
+  chassis: 'chassis',
   clamp: 'clamps',
   fork: 'forks',
   shock: 'shocks',

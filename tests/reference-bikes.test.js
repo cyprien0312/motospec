@@ -17,9 +17,11 @@ test('each bike has id, name, inputs, dynamic_presets, expected', () => {
   }
 });
 
-test('each bike has at least one populated expected preset', () => {
+// Bikes start as neutral placeholders (Bike A/B/C) with empty `expected`
+// blocks. Numeric-pin tests are gated on real spec sheets being sourced
+// into the chassis + linkage catalogs (see docs/research/).
+test('each bike carries an `expected` dict (may be empty until spec sheets are sourced)', () => {
   for (const b of REFERENCE_BIKES) {
-    const populated = Object.values(b.expected || {}).filter(v => v != null).length;
-    assert.ok(populated >= 1, `${b.id} has no populated expected preset`);
+    assert.ok(b.expected != null && typeof b.expected === 'object', `${b.id} missing expected dict`);
   }
 });

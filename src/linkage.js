@@ -136,10 +136,20 @@ export function progression(cfg, swingarmLength, betaStaticDeg, fullBumpDeltaDeg
   return (maxMR - minMR) / minMR * 100;
 }
 
-// Given a measured shock displacement (mm shorter than static), find Δβ.
-export function swingarmDeltaForShockTravel(cfg, shockTravel) {
+// Given a measured shock displacement (mm shorter than baseline) and an
+// optional clevis ride-height adjustment (RHA, mm of mechanical lengthening
+// of the shock assembly), find the Δβ that closes the linkage.
+//
+// Target geometric distance ④→⑦ = Lstatic + rha − shockTravel
+//   - RHA > 0 lengthens the shock body → at zero compression the
+//     swingarm must rotate so 4↔7 distance is larger.
+//   - shockTravel > 0 shortens the shock body (bump compression) → swingarm
+//     rotates the other way.
+// Both are signed and combine linearly in the constraint, even though the
+// resulting Δβ is nonlinear (one bisection covers the combined effect).
+export function swingarmDeltaForShockTravel(cfg, shockTravel, rha = 0) {
   const Lstatic = shockLength(cfg, 0);
-  const target = Lstatic - shockTravel; // shock shortens on bump
+  const target = Lstatic + rha - shockTravel;
   let lo = -45, hi = 45;
   let fLo = shockLength(cfg, lo) - target;
   let fHi = shockLength(cfg, hi) - target;
@@ -156,16 +166,20 @@ export function swingarmDeltaForShockTravel(cfg, shockTravel) {
   return 0.5 * (lo + hi);
 }
 
-// Rear vertical wheel travel given a measured shock displacement.
-export function rearVerticalTravel(cfg, shockTravel, swingarmLength, betaStaticDeg) {
-  const delta = swingarmDeltaForShockTravel(cfg, shockTravel);
-  const yNow    = rearWheelHeight(cfg, delta, swingarmLength, betaStaticDeg);
-  const yStatic = rearWheelHeight(cfg, 0,     swingarmLength, betaStaticDeg);
+// Rear vertical wheel travel given a measured shock displacement, relative
+// to the RHA-adjusted static reference (NOT relative to RHA=0).
+export function rearVerticalTravel(cfg, shockTravel, swingarmLength, betaStaticDeg, rha = 0) {
+  const dStatic = swingarmDeltaForShockTravel(cfg, 0,           rha);
+  const dNow    = swingarmDeltaForShockTravel(cfg, shockTravel, rha);
+  const yStatic = rearWheelHeight(cfg, dStatic, swingarmLength, betaStaticDeg);
+  const yNow    = rearWheelHeight(cfg, dNow,    swingarmLength, betaStaticDeg);
   return Math.abs(yNow - yStatic);
 }
 
 // Rear ride height: signed negative chassis-to-axle reference (axle below pivot).
-export function rearRideHeight(cfg, shockTravel, swingarmLength, betaStaticDeg) {
-  const delta = swingarmDeltaForShockTravel(cfg, shockTravel);
+// RHA lengthens the shock → swingarm rotates further from horizontal → axle
+// drops, raising the rear ride-height reference.
+export function rearRideHeight(cfg, shockTravel, swingarmLength, betaStaticDeg, rha = 0) {
+  const delta = swingarmDeltaForShockTravel(cfg, shockTravel, rha);
   return -rearWheelHeight(cfg, delta, swingarmLength, betaStaticDeg);
 }

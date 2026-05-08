@@ -10,16 +10,15 @@ function render(extra = {}) {
 
 test('table contains every CSV group header', () => {
   const html = render();
-  for (const expected of ['FRONT SETTINGS', 'REAR SETTINGS', 'SPROCKETS', 'DYNAMIC READINGS', 'RESULTS']) {
+  for (const expected of ['FRONT SETTINGS', 'REAR SETTINGS', 'SPROCKETS', 'RESULTS']) {
     assert.match(html, new RegExp(expected));
   }
 });
 
 test('table contains 3 editable bike-name inputs', () => {
   const html = render();
-  for (const name of ['Yamaha R7', 'Suzuki GSX-8R', 'Aprilia RS 660']) {
-    assert.match(html, new RegExp(`<input[^>]*class="[^"]*dt-bike-name[^"]*"[^>]*value="${name}[^"]*"`));
-  }
+  const matches = html.match(/<input[^>]*class="[^"]*dt-bike-name[^"]*"/g) || [];
+  assert.equal(matches.length, 3, 'expected exactly 3 editable bike-name inputs');
 });
 
 test('table has no Current column', () => {
@@ -46,12 +45,6 @@ test('component rows render <select> wired to setBikeComponent', () => {
   }
   // datalists are gone — no more text-input profile cells
   assert.doesNotMatch(html, /id="dt-options-/);
-});
-
-test('DYNAMIC READINGS section contains a preset selector per bike column', () => {
-  const html = render();
-  const matches = html.match(/onchange="applyBikePreset\(\d+/g) || [];
-  assert.equal(matches.length, 3);
 });
 
 test('RESULTS rows are read-only spans, not inputs', () => {
@@ -96,9 +89,9 @@ test('H3: braking preset increases front wheel force vs sag (sign-convention che
     `expected braking rear force < sag; got brk=${brk.MotoSPEC_RearForce.toFixed(0)} sag=${sag.MotoSPEC_RearForce.toFixed(0)}`);
 });
 
-test('H3: dynamic-load + frame-intrinsic input rows exist in ROW_GROUPS', () => {
+test('H3: frame-intrinsic input rows exist in ROW_GROUPS', () => {
   const allRows = ROW_GROUPS.flatMap(g => g.rows);
-  for (const k of ['a_x', 'V', 'Cd', 'A', 'front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
+  for (const k of ['front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
     assert.ok(allRows.some(r => r.input === k), `missing input row for ${k}`);
   }
 });
@@ -113,17 +106,14 @@ test('H3: MotoSPEC_FrontForce / RearForce rows no longer carry status: partial',
   assert.notEqual(rearForce.status, 'partial');
 });
 
-test('defaultBikes seeds three bikes with components + preset-aligned dynamic values', () => {
+test('defaultBikes seeds three neutral placeholder bikes', () => {
   const bikes = defaultBikes();
   assert.equal(bikes.length, 3);
   for (const b of bikes) {
     assert.ok(b.id);
     assert.ok(b.name);
     assert.ok(b.values);
-    assert.ok(b.components, 'bike must carry component refs');
-    for (const k of ['fork', 'shock', 'swingarm', 'linkage', 'clamp']) {
-      assert.ok(b.components[k], `bike ${b.name} missing component ref ${k}`);
-    }
+    assert.ok(b.components, 'bike must carry a components dict (may be empty)');
     assert.ok(['sag', 'braking', 'mid_corner', 'custom'].includes(b.preset));
     const expected = PRESET_VALUES[b.preset];
     if (expected) {

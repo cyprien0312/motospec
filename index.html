@@ -204,6 +204,23 @@
     main { padding: 20px 16px; }
     .input-control { grid-template-columns: 1fr; }
   }
+/* ==== Chassis Setup ==== */
+.chassis-page { max-width: 1100px; }
+.chassis-desc { color: var(--text-dim, #94a3b8); font-size: 13px; margin: 6px 0 14px; }
+.chassis-readout-strip { margin-bottom: 14px; }
+.chassis-diagram-wrap { background: var(--formula-bg, #0f141b); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 8px; padding: 8px; margin-bottom: 14px; }
+.chassis-diagram { width: 100%; height: auto; display: block; }
+.chassis-actions { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.chassis-library, .chassis-btn { background: #1f2630; color: var(--text); border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.chassis-library:hover, .chassis-btn:hover { border-color: #4ea1ff; }
+.chassis-group { margin-bottom: 18px; background: var(--panel); border: 1px solid rgba(148,163,184,0.15); border-radius: 8px; padding: 14px; }
+.chassis-group-title { font-size: 15px; font-weight: 600; margin: 0 0 10px; color: #cbd5e1; }
+.chassis-group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.chassis-card { display: flex; flex-direction: column; gap: 4px; }
+.chassis-card-label { font-size: 12px; color: #94a3b8; }
+.chassis-input { background: #0f141b; color: var(--text); border: 1px solid rgba(148,163,184,0.25); border-radius: 5px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
+.chassis-input:focus { outline: none; border-color: #4ea1ff; }
+
 /* Data Table */
 .dt-wrap { overflow-x: auto; max-width: 100%; }
 table.dt {
@@ -309,23 +326,6 @@ table.dt td.dt-readonly span {
 .dt-status-static  { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
 .dt-status-partial { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
 .dt-status-approx  { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
-
-table.dt-advance { border-collapse: collapse; width: 100%; }
-table.dt-advance th, table.dt-advance td { padding: 6px 10px; border: 1px solid rgba(148, 163, 184, 0.2); text-align: right; }
-table.dt-advance thead th { background: rgba(148, 163, 184, 0.08); text-align: center; }
-table.dt-advance tbody th { text-align: left; font-weight: 500; }
-table.dt-advance .dt-missing { background: rgba(148, 163, 184, 0.06); cursor: help; }
-.dt-count-chip {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.dt-count-chip.green { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-.dt-count-chip.amber { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.dt-count-chip.grey  { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 
 /* ==== Catalog editor ==== */
 .cat-wrap { max-width: 100%; }
@@ -501,10 +501,10 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, PRESET_VALUES } from './src/data-table.js';
-import { renderDataTableAdvance } from './src/data-table-advance.js';
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
+import { renderChassisSetup, CHASSIS_SPEC_FIELDS, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
 
 
 // ============================================================
@@ -557,7 +557,7 @@ const UI = {
     nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
     dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
     datatable_nav: '📋 数据表', datatable_sub: '参考车型对照',
-    datatable_advance_nav: '📐 数据表（高级）', datatable_advance_sub: '仅显示真实计算结果',
+    chassis_nav: '🏗 底盘设置', chassis_sub: '车架几何 · 重心 · 气动',
     linkage_nav: '🔧 连杆几何', linkage_sub: '后悬挂点位测量',
     linkage_kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
     linkage_desc: '所有坐标以摇臂枢轴为原点 (+X 朝前、+Y 朝上、单位 mm)。',
@@ -579,7 +579,7 @@ const UI = {
     nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
     dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
     datatable_nav: '📋 Data Table', datatable_sub: 'Reference bike comparison',
-    datatable_advance_nav: '📐 Data Table (Advance)', datatable_advance_sub: 'Genuine results only',
+    chassis_nav: '🏗 Chassis Setup', chassis_sub: 'Frame · CG · aero',
     linkage_nav: '🔧 Linkage Setup', linkage_sub: 'Rear suspension geometry',
     linkage_kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
     linkage_desc: 'All coords use the swingarm pivot as origin (+X forward, +Y up, mm).',
@@ -1078,7 +1078,6 @@ function saveState() {
 const state = loadState() || { values: defaultValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0] };
 if (!Array.isArray(state.bikes) || state.bikes.length !== 3) state.bikes = defaultBikes();
 if (!state.catalogTab) state.catalogTab = CATALOG_KEYS[0];
-if (!Array.isArray(state.advanceBikes) || state.advanceBikes.length !== 3) state.advanceBikes = defaultBikes();
 // Per-mode coord drafts: each mode keeps its own snapshot of the 10
 // linkage XY fields, so swapping modes never overwrites the user's
 // measurements for the inactive mode.
@@ -1258,6 +1257,61 @@ function patchLinkageView() {
   swap('.linkage-readout-strip');
   swap('.linkage-chart-wrap');
 }
+
+// ---- Chassis Setup handlers ----
+function patchChassisView() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderChassisSetup({ values: state.values, lang });
+  const swap = (sel) => {
+    const next = tmp.querySelector(sel);
+    const cur  = content.querySelector(sel);
+    if (next && cur) cur.replaceWith(next);
+  };
+  swap('.chassis-readout-strip');
+  swap('.chassis-diagram-wrap');
+}
+function setChassisInput(key, raw) {
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) return;
+  const m = INPUT_META[key];
+  const v = m ? Math.max(m.min, Math.min(m.max, n)) : n;
+  state.values[key] = v;
+  if (key === 'front_weight_dist') state.values.rear_weight_dist = +(1 - v).toFixed(3);
+  if (key === 'rear_weight_dist')  state.values.front_weight_dist = +(1 - v).toFixed(3);
+  if (key === 'C_f_aero')          state.values.C_r_aero          = +(1 - v).toFixed(3);
+  if (key === 'C_r_aero')          state.values.C_f_aero          = +(1 - v).toFixed(3);
+  saveState();
+  clearCache();
+  syncControls(key);
+  updateLiveValues();
+  if (stack[stack.length - 1] === '__chassis') patchChassisView();
+}
+function saveChassisAsPreset() {
+  const name = (typeof prompt === 'function')
+    ? prompt(lang === 'en' ? 'Name this chassis profile (e.g. "Yamaha R7 (2022)")' : '为该底盘配置命名（例如 "Yamaha R7 (2022)"）')
+    : null;
+  if (!name) return;
+  const id = slugifyChassisName(name);
+  const entry = buildChassisPresetEntry(name, state.values);
+  setCatalogEntry('chassis', id, entry);
+  saveState();
+  if (stack[stack.length - 1] === '__chassis') renderContent();
+}
+function loadChassisFromLibrary(id) {
+  if (!id) return;
+  const entry = (CATALOGS.chassis || {})[id];
+  if (!entry || !entry.specs) return;
+  for (const f of CHASSIS_SPEC_FIELDS) {
+    if (entry.specs[f] != null && Number.isFinite(entry.specs[f])) {
+      state.values[f] = entry.specs[f];
+    }
+  }
+  saveState();
+  clearCache();
+  if (stack[stack.length - 1] === '__chassis') renderContent();
+}
 function setBikeInput(bikeIdx, key, raw) {
   const b = state.bikes[bikeIdx];
   if (!b) return;
@@ -1413,7 +1467,7 @@ function typeLabel(t) {
 }
 
 function navigateTo(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && id !== '__datatable_advance' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__chassis' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
   if (stack[stack.length - 1] === id) return;
   const idx = stack.indexOf(id);
   if (idx >= 0) stack = stack.slice(0, idx + 1);
@@ -1422,7 +1476,7 @@ function navigateTo(id) {
 }
 
 function navigateRoot(id) {
-  if (id !== '__dashboard' && id !== '__datatable' && id !== '__datatable_advance' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
+  if (id !== '__dashboard' && id !== '__datatable' && id !== '__chassis' && id !== '__linkage' && id !== '__catalogs' && !P[id]) return;
   stack = [id];
   render();
 }
@@ -1456,8 +1510,8 @@ function renderNav() {
   <div class="nav-item dashboard ${current === '__datatable' ? 'active' : ''}" onclick="navigateRoot('__datatable')">
     <strong>${escapeHtml(T('datatable_nav'))}</strong><span class="label">${escapeHtml(T('datatable_sub'))}</span>
   </div>
-  <div class="nav-item dashboard ${current === '__datatable_advance' ? 'active' : ''}" onclick="navigateRoot('__datatable_advance')">
-    <strong>${escapeHtml(T('datatable_advance_nav'))}</strong><span class="label">${escapeHtml(T('datatable_advance_sub'))}</span>
+  <div class="nav-item dashboard ${current === '__chassis' ? 'active' : ''}" onclick="navigateRoot('__chassis')">
+    <strong>${escapeHtml(T('chassis_nav'))}</strong><span class="label">${escapeHtml(T('chassis_sub'))}</span>
   </div>
   <div class="nav-item dashboard ${current === '__linkage' ? 'active' : ''}" onclick="navigateRoot('__linkage')">
     <strong>${escapeHtml(T('linkage_nav'))}</strong><span class="label">${escapeHtml(T('linkage_sub'))}</span>
@@ -1484,7 +1538,7 @@ function renderBreadcrumbs() {
     const onClick = isLast ? '' : `onclick="navigateTo('${id}')"`;
     const label = id === '__dashboard' ? T('dashboard_nav')
                 : id === '__datatable' ? T('datatable_nav')
-                : id === '__datatable_advance' ? T('datatable_advance_nav')
+                : id === '__chassis' ? T('chassis_nav')
                 : id === '__linkage' ? T('linkage_nav')
                 : id === '__catalogs' ? (lang === 'en' ? 'Component Library' : '部件库')
                 : P[id].name;
@@ -1542,8 +1596,8 @@ function renderContent() {
     document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, lang });
     return;
   }
-  if (id === '__datatable_advance') {
-    document.getElementById('content').innerHTML = renderDataTableAdvance({ lang, advanceBikes: state.advanceBikes });
+  if (id === '__chassis') {
+    document.getElementById('content').innerHTML = renderChassisSetup({ values: state.values, lang });
     return;
   }
   if (id === '__linkage') {
@@ -1640,9 +1694,72 @@ function escapeHtml(s) {
   }[c]));
 }
 
+// Linkage live-readout drag: lets the user pull the yellow marker along
+// the chart to read MR / Wheel Rate at any rear-wheel-travel position.
+let __linkageReadoutDragging = false;
+function linkageReadoutPointerToTravel(evt, svg) {
+  const padL = +svg.dataset.padL, padR = +svg.dataset.padR;
+  const W    = +svg.dataset.w;
+  const xMax = +svg.dataset.xMax;
+  const rect = svg.getBoundingClientRect();
+  const xPx = ((evt.clientX - rect.left) / rect.width) * W;
+  const f = Math.max(0, Math.min(1, (xPx - padL) / (W - padL - padR)));
+  return f * xMax;
+}
+function linkageReadoutUpdate(svg, travelMm) {
+  const padL = +svg.dataset.padL, padR = +svg.dataset.padR;
+  const padT = +svg.dataset.padT, padB = +svg.dataset.padB;
+  const W = +svg.dataset.w, H = +svg.dataset.h;
+  const xMax = +svg.dataset.xMax;
+  const mrYMin = +svg.dataset.mrYMin, mrYMax = +svg.dataset.mrYMax;
+  const wrYMin = +svg.dataset.wrYMin, wrYMax = +svg.dataset.wrYMax;
+  const s = JSON.parse(svg.dataset.samples);
+  // nearest sample by travel
+  let bi = 0, bd = Infinity;
+  for (let i = 0; i < s.t.length; i++) {
+    const d = Math.abs(s.t[i] - travelMm);
+    if (d < bd) { bd = d; bi = i; }
+  }
+  const t = s.t[bi], mr = s.m[bi], wr = s.w[bi];
+  const x = padL + (t / (xMax || 1)) * (W - padL - padR);
+  const yMR = padT + (1 - (mr - mrYMin) / (mrYMax - mrYMin)) * (H - padT - padB);
+  const yWR = padT + (1 - (wr - wrYMin) / (wrYMax - wrYMin)) * (H - padT - padB);
+  const dotMR = svg.querySelector('#linkage-readout-dot-mr');
+  const dotWR = svg.querySelector('#linkage-readout-dot-wr');
+  const vline = svg.querySelector('#linkage-readout-vline');
+  const txt   = svg.querySelector('#linkage-readout-text');
+  if (dotMR) { dotMR.setAttribute('cx', x.toFixed(1)); dotMR.setAttribute('cy', yMR.toFixed(1)); }
+  if (dotWR) { dotWR.setAttribute('cx', x.toFixed(1)); dotWR.setAttribute('cy', yWR.toFixed(1)); }
+  if (vline) { vline.setAttribute('x1', x.toFixed(1)); vline.setAttribute('x2', x.toFixed(1)); }
+  if (txt) {
+    txt.textContent = lang === 'en'
+      ? `Travel: ${t.toFixed(0)} mm   |   MR: ${mr.toFixed(2)}   |   Wheel Rate: ${wr.toFixed(1)} N/mm`
+      : `行程: ${t.toFixed(0)} mm   |   MR: ${mr.toFixed(2)}   |   轮刚度: ${wr.toFixed(1)} N/mm`;
+  }
+}
+function linkageReadoutDown(evt) {
+  const svg = evt.currentTarget.ownerSVGElement || document.getElementById('linkage-chart-svg');
+  if (!svg) return;
+  __linkageReadoutDragging = true;
+  evt.currentTarget.setPointerCapture && evt.currentTarget.setPointerCapture(evt.pointerId);
+  linkageReadoutUpdate(svg, linkageReadoutPointerToTravel(evt, svg));
+}
+function linkageReadoutMove(evt) {
+  if (!__linkageReadoutDragging) return;
+  const svg = evt.currentTarget.ownerSVGElement || document.getElementById('linkage-chart-svg');
+  if (!svg) return;
+  linkageReadoutUpdate(svg, linkageReadoutPointerToTravel(evt, svg));
+}
+function linkageReadoutUp(evt) {
+  __linkageReadoutDragging = false;
+  if (evt.currentTarget && evt.currentTarget.releasePointerCapture && evt.pointerId != null) {
+    try { evt.currentTarget.releasePointerCapture(evt.pointerId); } catch (e) {}
+  }
+}
+
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, applyBikePreset, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs });
+Object.assign(window, { setLang, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, applyBikePreset, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary });
 
 render();
 </script>

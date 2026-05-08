@@ -463,6 +463,19 @@ Goal: implement a 4-bar suspension linkage solver that computes `Motion_Ratio`, 
 
 This is the hardest physics in the plan. Tasks are ordered: pure-math kernel first, then registry wiring, then validation.
 
+### Phase C status (as of 2026-05-07)
+
+| Task | Status | Note |
+|---|---|---|
+| C1 — Source real linkage coords for the 3 reference bikes | **Outstanding** | The only true blocker. Until done, every `NEEDS COORDS` badge stays. See "Library-population strategy" below for the broader content backlog this opens up. |
+| C2 — 4-bar closure kernel (`closeFourBar` Newton-Raphson) | ✅ Done | `src/linkage.js`. Pro-Link is implemented as linked + β negated; do not fork the solver. |
+| C3 — `motionRatio` + `progression` | ✅ Done | Finite-difference of (Δy_wheel / Δshock) at static. |
+| C4 — `rearVerticalTravel` + `rearRideHeight` | ✅ Done | Both threaded with `Shock_Clevis_RHA` (RHA-adjusted static reference). |
+| C5 — Data Table renders Phase C results | ✅ Done | Rows show real numerics; badges remain `NEEDS COORDS` pending C1. |
+
+**Held items linked to C1**:
+- The Linkage Setup input UX (manual XY for ③⑥⑦ is impractical without a workshop rig). Decision 2026-05-07: don't build alternative input modes (polar, photo-trace) yet — instead lean harder on the Library so most users never measure. Polar / photo-trace stay on wishlist; revisit only if the Library can't grow fast enough.
+
 ## Task C1: Source real linkage coordinates for the three reference bikes
 
 **This is a research task, not a coding task.** The placeholder coordinates in Task A1 will produce nonsense Motion Ratios. Real coordinates come from one of:
@@ -499,11 +512,30 @@ If real coordinates cannot be found for a bike, document that explicitly and exc
 
 - [ ] **Step 2: Update `src/reference-bikes.js` with the real coordinates**
 
+  As of the catalog refactor, real linkage coords belong in `data/linkages.json` (one entry per OEM linkage, e.g. `yamaha-r7-stock`), not directly in `reference-bikes.js`. The bike entry in `reference-bikes.js` references the linkage by id (`components.linkage`) and `materializeBikeInputs` flattens the linkage's `specs` into the bike's input dict. Step 2 is therefore: edit the corresponding entries in `data/linkages.json` to use the sourced coords; verify each bike's effective inputs via the Library dropdown on the Linkage Setup page.
+
 - [ ] **Step 3: Commit**
 
 ```bash
 git commit -am "research: source real linkage coordinates for reference bikes"
 ```
+
+### Library-population strategy (post-C1, ongoing)
+
+C1 covers the 3 reference bikes. Long-term goal: **populate `data/linkages.json` with real coords for every common bike**, so 95%+ of users never have to measure their own. Rationale (added 2026-05-07): in practice, points ③⑥⑦ (rocker pivot, drag anchor, frame shock top) are not measurable from the swingarm pivot without a workshop rig — naive XY entry is hostile UX. Manual measurement (lengths-only mode, polar input, photo-trace) should remain available for custom builds, but the default path must be "pick from Library."
+
+Sources to mine over time:
+- OEM service-manual exploded views (highest authority).
+- Aftermarket linkage replacements (Lightech, Bonamici, K-Tech) — they publish geometry for the bikes they make parts for.
+- Owner forums with CAD models / measured rigs.
+- Direct measurement on shop bikes when the above aren't available.
+
+Workflow when adding a new linkage:
+1. Add an entry to `data/linkages.json` keyed by a stable id (`<manufacturer>-<model>-<year>-stock` etc.). Include `Linkage_Mode`, the 10 coord fields, and a `source` field with citation.
+2. Cross-check the geometric `Static Shock Length (4↔7)` shown in Linkage Setup against the OEM shock spec — they should match within a few mm.
+3. (Optional) Add to the relevant bike's `components.linkage` reference in `src/reference-bikes.js` if it's a reference bike.
+
+This is intentionally not a single discrete task — it's a content backlog the project carries indefinitely. Track contributions in commit messages (`data: add CBR1000RR-R Pro-Link coords (source: ...)`), not in this plan file.
 
 ## Task C2: 4-bar linkage closure kernel
 

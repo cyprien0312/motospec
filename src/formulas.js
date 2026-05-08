@@ -101,9 +101,9 @@ export const P = {
     name: 'Δβ', label: '摇臂角度变化量', unit: 'rad', type: 'intermediate',
     desc: '后轮垂直位移引起的摇臂角度变化量（弧度制）。',
     formula: [
-      'arcsin( ', {ref:'Travel_Rear'}, ' / ', {ref:'L_SA'}, ' )'
+      'arcsin( ', {ref:'Travel_Rear'}, ' / ', {ref:'Swingarm_Length'}, ' )'
     ],
-    deps: ['Travel_Rear', 'L_SA']
+    deps: ['Travel_Rear', 'Swingarm_Length']
   },
   theta_thrust: {
     name: 'θ_Thrust', label: '驱动力推力角', unit: 'rad', type: 'intermediate',
@@ -193,9 +193,6 @@ export const P = {
   beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
     desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
     typical:'10° – 18°' },
-  L_SA: { name:'L_SA', label:'摇臂有效长度', unit:'mm', type:'input',
-    desc:'摇臂轴心到后轮轴心的距离。', source:'车架手册',
-    typical:'550 – 600 mm' },
   H_CG: { name:'H_CG', label:'重心高度', unit:'mm', type:'input',
     desc:'人车综合重心距地面的垂直高度。', source:'称重台 + 倾斜法实测',
     typical:'600 – 700 mm（含车手）' },
@@ -353,7 +350,6 @@ export const INPUT_META = {
   WB:                { def: 1400,  min: 1300,  max: 1550,  step: 1 },
   Rf:                { def: 310,   min: 290,   max: 330,   step: 1 },
   beta_static:       { def: 14,    min: 5,     max: 25,    step: 0.1 },
-  L_SA:              { def: 580,   min: 500,   max: 650,   step: 1 },
   H_CG:              { def: 650,   min: 500,   max: 800,   step: 1 },
   L_CG:              { def: 750,   min: 600,   max: 900,   step: 1 },
   Mass:              { def: 265,   min: 180,   max: 380,   step: 1 },
@@ -409,7 +405,7 @@ export const CALC = {
     return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
   },
   Pitch:         v => Math.atan((v.Travel_Front - v.Travel_Rear) / v.WB),
-  delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.L_SA))),
+  delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.Swingarm_Length))),
   MotoSPEC_Rake: v => v.Rake_Static - v.Pitch * R2D,
   MotoSPEC_Trail: v => {
     const r = v.MotoSPEC_Rake * D2R;
