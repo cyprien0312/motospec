@@ -4,7 +4,7 @@
 
 import {
   motionRatio, progression,
-  rearVerticalTravel, rearRideHeight,
+  rearVerticalTravel,
   swingarmDeltaForShockTravel,
 } from './linkage.js';
 
@@ -46,19 +46,12 @@ export const P = {
   },
   MotoSPEC_SwgarmAngl: {
     name: 'MotoSPEC_SwgarmAngl', label: '动态摇臂角度', unit: 'deg', type: 'channel',
-    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。通过 4-bar 连杆闭合从避震行程 + clevis RHA 反解 Δβ，再加到静态角上。',
+    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。把 4-bar 反解出的 Δβ 加到静态角上。',
     formula: [
-      {ref:'beta_static'}, ' + Δβ(linkage,', {ref:'Shock_Clevis_RHA'}, ',', {ref:'Travel_Rear'}, ')'
+      {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}
     ],
-    deps: [
-      'beta_static', 'Travel_Rear', 'Shock_Clevis_RHA',
-      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
-      'Rocker_To_Shock_X', 'Rocker_To_Shock_Y',
-      'Rocker_To_Drag_X', 'Rocker_To_Drag_Y',
-      'Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
-      'Frame_Shock_Top_X', 'Frame_Shock_Top_Y',
-    ],
-    note: 'Δβ 由 swingarmDeltaForShockTravel 经 4-bar 闭合解出。Shock_Clevis_RHA > 0 把避震机械加长 → 静态摇臂角度被顶到新位置；Travel_Rear 是相对 RHA 调整后的避震行程。'
+    deps: ['beta_static', 'swingarm_delta_solve'],
+    note: 'Δβ 由 swingarm_delta_solve 经 4-bar 闭合解出（点开看完整算法）。Shock_Clevis_RHA > 0 把避震机械加长 → 静态摇臂角度被顶到新位置；Travel_Rear 是相对 RHA 调整后的避震行程。'
   },
   MotoSPEC_AntSquat: {
     name: 'MotoSPEC_AntSquat', label: '抗蹲伏百分比', unit: '%', type: 'channel',
@@ -302,14 +295,36 @@ export const P = {
     formula: [{ref:'Rear_Sprocket'}, ' / ', {ref:'Front_Sprocket'}],
     deps: ['Front_Sprocket', 'Rear_Sprocket']
   },
+  swingarm_delta_solve: {
+    name: 'Δβ_solve', label: '4-bar 反解（避震行程 → 摇臂角变化）', unit: 'deg', type: 'intermediate',
+    desc:'给定当前 Travel_Rear 和 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对静态位的旋转角 Δβ。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 MotoSPEC_SwgarmAngl / Rear_Ride_Height / Rear_Wheel_Vertical_Travel 共用。',
+    formula: [
+      ['Δβ = δ*  s.t.  shock(δ*) = L_target'],
+      ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}, ' − ', {ref:'Travel_Rear'}],
+      ['外层: 二分搜索 δ ∈ [−45°, +45°]，每步评估 shock(δ_mid)'],
+      ['shock(δ) = | rocker_shock_end(δ) − ', {ref:'Frame_Shock_Top_X'}, ',', {ref:'Frame_Shock_Top_Y'}, ' |'],
+      ['rocker_shock_end(δ) = ', {ref:'Frame_Rocker_Pivot_X'}, ',', {ref:'Frame_Rocker_Pivot_Y'}, ' + R(Δφ)·(', {ref:'Rocker_To_Shock_X'}, ',', {ref:'Rocker_To_Shock_Y'}, ')'],
+      ['内层: Newton-Raphson 解 Δφ  s.t.  | rocker_drag_end(Δφ) − swingarm_drag_end(δ) | = L_drag_static'],
+      ['rocker_drag_end(Δφ) = R(Δφ) 旋转 ', {ref:'Rocker_To_Drag_X'}, ',', {ref:'Rocker_To_Drag_Y'}, ' 绕 frame_rocker_pivot'],
+      ['swingarm_drag_end(δ) = R(δ) 旋转 ', {ref:'Drag_To_Swingarm_X'}, ',', {ref:'Drag_To_Swingarm_Y'}, ' 绕原点'],
+      ['Pro-Link 模式：β 取负，Frame_Shock_Top 在摇臂坐标系中反向旋转一次'],
+    ],
+    deps: [
+      'Shock_Clevis_RHA', 'Travel_Rear',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '正负约定：避震压缩 (Travel_Rear>0) → shock 长度变短 → 摇臂上移 → δ 为负（角度减小，摇臂趋于水平）。RHA>0 把 shock 物理加长 → 摇臂被顶下 → 静态 δ 为正。'
+  },
   Motion_Ratio: {
     name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',
     desc:'后轮垂直位移对避震行程的瞬时比值，在静态点 δ=0 用 4-bar 连杆闭合数值微分求得。后轮高度 y_w = Swingarm_Length·sin(beta_static + δ)；避震长度 shock(δ) 由 closeFourBar 在每个摇臂角下解 rocker→shock 端点到 Frame_Shock_Top 的距离。',
     formula: [
-      '|d ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+δ) / dδ|',
-      ' ÷ ',
-      '|d shock(δ; 4-bar) / dδ|',
-      '  |  δ = 0'
+      ['|d ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+δ) / dδ|  ÷  |d shock(δ; 4-bar) / dδ|'],
+      ['where: δ = 0  (在静态点求微分)'],
     ],
     deps: [
       'Swingarm_Length', 'beta_static',
@@ -325,8 +340,8 @@ export const P = {
     name:'Progression', label:'渐进性 (%)', unit:'%', type:'intermediate',
     desc:'后悬挂全行程的运动比变化幅度，相对最小值的百分比。摇臂角从 0° 扫到全行程角，逐点求 Motion_Ratio。',
     formula: [
-      '(MR_max − MR_min) / MR_min × 100',
-      '  |  δ ∈ [0°, 25°]'
+      ['(MR_max − MR_min) / MR_min × 100'],
+      ['where: δ ∈ [0°, 25°]  (摇臂角扫描区间)'],
     ],
     deps: [
       'Swingarm_Length', 'beta_static',
@@ -342,37 +357,24 @@ export const P = {
     name:'Rear_Ride_Height', label:'后部车高参考', unit:'mm', type:'intermediate',
     desc:'后轮轴心相对摇臂枢轴的有符号垂直坐标（轮在枢轴下方为负）。Shock_Clevis_RHA 把避震加长 → 摇臂转得更远离水平 → 后轮下沉，该值更负 → 实际车尾抬高。',
     formula: [
-      '− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + Δβ_now)',
-      '  |  Δβ_now = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, ' + ', {ref:'Travel_Rear'}, ')'
+      ['− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ')'],
+      ['静态简化 (Travel_Rear=0, RHA=0):  − ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ')'],
     ],
-    deps: [
-      'Swingarm_Length', 'beta_static', 'Shock_Clevis_RHA', 'Travel_Rear',
-      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
-      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
-      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
-      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
-      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
-    ],
-    note: '静态时 (Travel_Rear=0、RHA=0)，简化为 −Swingarm_Length·sin(beta_static)。RHA 改变 4-bar 静态参考点。'
+    deps: ['Swingarm_Length', 'beta_static', 'swingarm_delta_solve'],
+    note: 'RHA > 0 把避震机械加长 → 摇臂转得更远离水平 → 后轮下沉，该值更负，实际车尾抬高。点开 swingarm_delta_solve 看 Δβ 的完整反解算法。'
   },
   Rear_Wheel_Vertical_Travel: {
     name:'Rear_Wheel_Vertical_Travel', label:'后轮垂直行程', unit:'mm', type:'intermediate',
     desc:'当前避震位下的轮位相对 RHA 调整后静态参考点的垂直位移幅度（恒为非负）。约等于 shock 行程 × Motion_Ratio（在 MR 的局部线性段成立）。',
     formula: [
-      '| ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+Δβ_now)',
-      ' − ',
-      {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+Δβ_static) |',
-      '  |  Δβ_now = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, '+', {ref:'Travel_Rear'}, '),  Δβ_static = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, ')'
+      ['| ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ')  −  ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, ' + Δβ_static) |'],
+      ['where: Δβ_static = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, ', Travel_Rear=0)  (RHA 调整后的静态摇臂角)'],
+      ['局部线性近似:  ', {ref:'Travel_Rear'}, ' × ', {ref:'Motion_Ratio'}],
     ],
     deps: [
-      'Swingarm_Length', 'beta_static', 'Shock_Clevis_RHA', 'Travel_Rear',
-      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
-      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
-      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
-      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
-      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+      'Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'Shock_Clevis_RHA', 'Travel_Rear',
     ],
-    note: 'Travel_Rear=0 时恒为 0。非线性渐进连杆下，wheel 行程 / shock 行程不等于静态 Motion_Ratio。'
+    note: 'Travel_Rear=0 时恒为 0。非线性渐进连杆下，wheel 行程 / shock 行程不等于静态 Motion_Ratio。点开 swingarm_delta_solve 看 Δβ 的完整反解算法。'
   },
   Rear_Wheel_Rate: {
     name:'Rear_Wheel_Rate', label:'后轮综合刚度', unit:'N/mm', type:'channel',
@@ -459,26 +461,8 @@ export const CALC = {
     const r = v.MotoSPEC_Rake * D2R;
     return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
   },
-  MotoSPEC_SwgarmAngl: v => {
-    const cfg = {
-      Linkage_Mode: v.Linkage_Mode,
-      Frame_Rocker_Pivot_X: v.Frame_Rocker_Pivot_X,
-      Frame_Rocker_Pivot_Y: v.Frame_Rocker_Pivot_Y,
-      Rocker_To_Shock_X:    v.Rocker_To_Shock_X,
-      Rocker_To_Shock_Y:    v.Rocker_To_Shock_Y,
-      Rocker_To_Drag_X:     v.Rocker_To_Drag_X,
-      Rocker_To_Drag_Y:     v.Rocker_To_Drag_Y,
-      Drag_To_Swingarm_X:   v.Drag_To_Swingarm_X,
-      Drag_To_Swingarm_Y:   v.Drag_To_Swingarm_Y,
-      Frame_Shock_Top_X:    v.Frame_Shock_Top_X,
-      Frame_Shock_Top_Y:    v.Frame_Shock_Top_Y,
-    };
-    // swingarmDeltaForShockTravel returns Δβ in DEGREES, signed (negative on
-    // compression because swingarm rotates upward, decreasing the angle below
-    // horizontal). Add directly to beta_static.
-    const dBetaDeg = swingarmDeltaForShockTravel(cfg, v.Travel_Rear, v.Shock_Clevis_RHA || 0);
-    return v.beta_static + dBetaDeg;
-  },
+  swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, v.Travel_Rear, v.Shock_Clevis_RHA || 0),
+  MotoSPEC_SwgarmAngl: v => v.beta_static + v.swingarm_delta_solve,
   theta_chain_dynamic: v => {
     // Sprocket pitch radii (mm): r = pitch / (2·sin(π/N))
     const rF = v.Chain_Pitch / (2 * Math.sin(Math.PI / v.Front_Sprocket));
@@ -515,7 +499,7 @@ export const CALC = {
   Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
   Motion_Ratio:              v => motionRatio(v, 0, v.Swingarm_Length, v.beta_static),
   Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
-  Rear_Ride_Height:          v => rearRideHeight(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
+  Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R),
   Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
   // Motion_Ratio is wheel/shock (≈2–3). Energy identity:
   //   K_wheel = K_spring · (x_spring / x_wheel)² = K_spring / Motion_Ratio²
@@ -538,6 +522,7 @@ export const TOPO_ORDER = [
   'O',
   'Trail_Static',
   'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
+  'swingarm_delta_solve',
   'MotoSPEC_SwgarmAngl', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',

@@ -194,6 +194,8 @@
   .formula-card-label { color: var(--text-dim); font-size: 12px; }
   .formula-card-unit  { color: var(--text-dim); font-size: 11px; margin-left: auto; }
   .formula-card-body  { font-family: "SF Mono", Monaco, monospace; font-size: 13px; line-height: 1.7; color: var(--text); word-break: break-word; }
+  .formula-line { display: block; margin: 2px 0; }
+  .formula-line.formula-line-aux { color: var(--text-dim); font-size: 0.92em; padding-left: 12px; border-left: 2px solid var(--border); margin-top: 6px; }
 
   .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
   .preset-btn {
@@ -1143,6 +1145,7 @@ const DYNAMIC_INPUTS = new Set([
 const STATIC_DISPLAY_WHITELIST = new Set([
   'Rear_Ride_Height',
   'Rear_Wheel_Vertical_Travel',
+  'swingarm_delta_solve',
 ]);
 const _isDynCache = new Map();
 function isDynamicParam(id) {
@@ -1729,9 +1732,22 @@ function renderContent() {
 }
 
 function renderFormula(formula) {
-  return formula.map(seg => {
+  if (!Array.isArray(formula)) return '';
+  // Multi-line formula: every element is itself an array, each inner
+  // array is rendered as its own line. Used when a formula has a
+  // primary expression plus one or more "where:" / sub-definition lines.
+  const isMulti = formula.length > 0 && formula.every(s => Array.isArray(s));
+  if (isMulti) {
+    return formula.map((line, i) =>
+      `<div class="formula-line${i === 0 ? '' : ' formula-line-aux'}">${renderFormulaSegments(line)}</div>`
+    ).join('');
+  }
+  return renderFormulaSegments(formula);
+}
+function renderFormulaSegments(segs) {
+  return segs.map(seg => {
     if (typeof seg === 'string') return escapeHtml(seg);
-    if (seg.ref && P[seg.ref]) {
+    if (seg && seg.ref && P[seg.ref]) {
       const p = P[seg.ref];
       return `<span class="param-chip ${p.type}" onclick="navigateTo('${seg.ref}')" title="${escapeHtml(tr(seg.ref,'label'))}${escapeHtml(T('drill_hint'))}">${escapeHtml(p.name)}</span>`;
     }
