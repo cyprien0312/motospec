@@ -1111,6 +1111,49 @@ function fmtVal(id) {
   return `${v.toFixed(dec)}${u}`;
 }
 
+// Static-first: hide every parameter whose dep chain reaches a dynamic /
+// operating-point input. These leaves are kept in INPUT_META so the
+// chassis / linkage / data-table compute paths still get sane defaults,
+// but the dashboard, sidebar, and drill-down pages don't surface them.
+const DYNAMIC_INPUTS = new Set([
+  'Travel_Front', 'Travel_Rear', 'Lean_Angle',
+  'a_x', 'V', 'Cd', 'A', 'rho',
+]);
+const _isDynCache = new Map();
+function isDynamicParam(id) {
+  if (_isDynCache.has(id)) return _isDynCache.get(id);
+  if (DYNAMIC_INPUTS.has(id)) { _isDynCache.set(id, true); return true; }
+  const p = P[id];
+  if (!p || !Array.isArray(p.deps) || p.deps.length === 0) { _isDynCache.set(id, false); return false; }
+  // Mark provisionally false to break cycles.
+  _isDynCache.set(id, false);
+  for (const d of p.deps) {
+    if (isDynamicParam(d)) { _isDynCache.set(id, true); return true; }
+  }
+  return false;
+}
+// Where each static input gets edited — pointer shown on its drill-down page.
+const STATIC_INPUT_HOME = {
+  Rake_Static: 'chassis', WB: 'chassis', Rf: 'chassis', beta_static: 'chassis',
+  H_CG: 'chassis', L_CG: 'chassis', Mass: 'chassis',
+  front_weight_dist: 'chassis', rear_weight_dist: 'chassis',
+  C_f_aero: 'chassis', C_r_aero: 'chassis',
+  Yoke_Offset: 'chassis', Fork_Position: 'chassis',
+  Swingarm_Length: 'chassis',
+  Front_Sprocket_X: 'chassis', Front_Sprocket_Y: 'chassis', Chain_Pitch: 'chassis',
+  Front_Spring_Rate: 'datatable', Front_Spring_Preload: 'datatable',
+  Front_Oil_Level: 'datatable', Front_Topout_Rate: 'datatable', Front_Topout_Length: 'datatable',
+  Shock_Clevis_RHA: 'datatable', Shock_Length: 'datatable',
+  Rear_Spring_Rate: 'datatable', Rear_Spring_Preload: 'datatable',
+  Rear_Topout_Rate: 'datatable', Rear_Topout_Length: 'datatable',
+  Front_Sprocket: 'datatable', Rear_Sprocket: 'datatable',
+  Frame_Rocker_Pivot_X: 'linkage', Frame_Rocker_Pivot_Y: 'linkage',
+  Rocker_To_Shock_X: 'linkage',   Rocker_To_Shock_Y: 'linkage',
+  Rocker_To_Drag_X: 'linkage',    Rocker_To_Drag_Y: 'linkage',
+  Drag_To_Swingarm_X: 'linkage',  Drag_To_Swingarm_Y: 'linkage',
+  Frame_Shock_Top_X: 'linkage',   Frame_Shock_Top_Y: 'linkage',
+};
+
 const LINKAGE_FIXED_KEYS = new Set([
   'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
   'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
@@ -1500,9 +1543,12 @@ function applyUIChrome() {
 }
 
 function renderNav() {
-  const channels = Object.keys(P).filter(k => P[k].type === 'channel');
-  const intermediates = Object.keys(P).filter(k => P[k].type === 'intermediate');
-  const inputs = Object.keys(P).filter(k => P[k].type === 'input');
+  // Static-first: dynamic / operating-point parameters are hidden from the
+  // sidebar, dashboard, and drill-down. Their leaves still feed defaults
+  // for the chassis / linkage compute paths.
+  const channels = Object.keys(P).filter(k => P[k].type === 'channel' && !isDynamicParam(k));
+  const intermediates = Object.keys(P).filter(k => P[k].type === 'intermediate' && !isDynamicParam(k));
+  const inputs = Object.keys(P).filter(k => P[k].type === 'input' && !isDynamicParam(k));
   const current = stack[stack.length - 1];
   const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
     <strong>${escapeHtml(T('dashboard_nav'))}</strong><span class="label">${escapeHtml(T('dashboard_sub'))}</span>
@@ -1554,34 +1600,24 @@ function renderDashboard() {
   </div>`;
   html += `<div class="desc">${escapeHtml(T('dashboard_desc'))}</div>`;
 
-  html += `<div class="section-title">${escapeHtml(T('presets'))}</div>`;
-  html += `<div class="preset-bar">`;
-  PRESET_LIST.forEach((preset, i) => {
-    html += `<button class="preset-btn" onclick="applyPreset(${i})">${escapeHtml(presetName(i))}</button>`;
-  });
-  html += `<button class="preset-btn reset" onclick="resetDefaults()">${escapeHtml(T('reset'))}</button>`;
-  html += `</div>`;
-
   html += `<div class="section-title">${escapeHtml(T('main_channels'))}</div>`;
   html += `<div class="dash-grid">`;
-  Object.keys(P).filter(k => P[k].type === 'channel').forEach(id => {
+  Object.keys(P).filter(k => P[k].type === 'channel' && !isDynamicParam(k)).forEach(id => {
     const p = P[id];
     html += `<div class="dash-card" onclick="navigateRoot('${id}')">
       <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
       <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
-      <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
     </div>`;
   });
   html += `</div>`;
 
   html += `<div class="section-title" style="margin-top:24px">${escapeHtml(T('intermediates'))}</div>`;
   html += `<div class="dash-grid">`;
-  Object.keys(P).filter(k => P[k].type === 'intermediate').forEach(id => {
+  Object.keys(P).filter(k => P[k].type === 'intermediate' && !isDynamicParam(k)).forEach(id => {
     const p = P[id];
     html += `<div class="dash-card intermediate" onclick="navigateRoot('${id}')">
       <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
       <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
-      <div class="dash-val" data-live="${id}">${fmtVal(id)}</div>
     </div>`;
   });
   html += `</div>`;
@@ -1611,13 +1647,11 @@ function renderContent() {
   const p = P[id];
   let html = '';
 
-  const liveBadge = `<span class="live-value ${p.type}" data-live="${id}">${fmtVal(id)}</span>`;
   html += `<div class="header">
     <span class="badge ${p.type}">${typeLabel(p.type)}</span>
     <h1>${escapeHtml(p.name)}</h1>
     <span class="label-zh">${escapeHtml(tr(id,'label'))}</span>
     <span class="unit">[ ${escapeHtml(p.unit)} ]</span>
-    ${liveBadge}
   </div>`;
 
   html += `<div class="desc">${escapeHtml(tr(id,'desc'))}</div>`;
@@ -1628,16 +1662,15 @@ function renderContent() {
   }
 
   if (p.type === 'input') {
-    if (INPUT_META[id]) {
-      const m = INPUT_META[id], v = state.values[id];
-      html += `<div class="section-title">${escapeHtml(T('live_input'))}</div>`;
-      html += `<div class="input-control">
-        <div>
-          <input type="range" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
-          <div class="range-label"><span>${m.min}</span><span>${m.max}</span></div>
-        </div>
-        <input type="number" data-input="${id}" min="${m.min}" max="${m.max}" step="${m.step}" value="${v}" oninput="setInputValue('${id}', this.value)"/>
-      </div>`;
+    // Static-first: no in-page sliders. Point to the page that owns the field.
+    const home = STATIC_INPUT_HOME[id];
+    if (home) {
+      const homeNav = home === 'chassis' ? '__chassis' : home === 'linkage' ? '__linkage' : '__datatable';
+      const homeLabel = lang === 'en'
+        ? (home === 'chassis' ? 'Chassis Setup' : home === 'linkage' ? 'Linkage Setup' : 'Data Table')
+        : (home === 'chassis' ? '底盘设置' : home === 'linkage' ? '连杆几何' : '数据表');
+      const editHere = lang === 'en' ? 'Edit on' : '编辑入口：';
+      html += `<div class="footnote">📍 ${escapeHtml(editHere)} <a href="javascript:void(0)" onclick="navigateRoot('${homeNav}')" style="color:var(--channel)">${escapeHtml(homeLabel)}</a></div>`;
     }
     html += `<div class="section-title">${escapeHtml(T('param_info'))}</div>`;
     html += `<dl class="info-grid">
@@ -1659,13 +1692,13 @@ function renderContent() {
     html += `<div class="deps-list">`;
     for (const depId of p.deps) {
       const d = P[depId];
+      if (!d || isDynamicParam(depId)) continue;
       html += `<div class="dep-card" onclick="navigateTo('${depId}')">
         <div>
           <span class="dep-name">${escapeHtml(d.name)}</span>
           <span class="dep-label">${escapeHtml(tr(depId,'label'))} · ${escapeHtml(d.unit)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span class="live-value ${d.type}" data-live="${depId}" style="font-size:13px;padding:3px 9px">${fmtVal(depId)}</span>
           <span class="badge ${d.type}">${typeLabel(d.type)}</span>
           <span class="dep-arrow">›</span>
         </div>
