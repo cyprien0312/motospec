@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderDataTable, ROW_GROUPS, defaultBikes, PRESET_VALUES } from '../src/data-table.js';
-import { defaultValues, computeAll } from '../src/formulas.js';
+import { renderDataTable, ROW_GROUPS, defaultBikes } from '../src/data-table.js';
+import { defaultValues } from '../src/formulas.js';
 
 function render(extra = {}) {
   const bikes = defaultBikes();
@@ -61,32 +61,12 @@ test('NaN computed cells render as em-dash', () => {
   assert.match(html, /—/);
 });
 
-test('every ROW_GROUPS row has at least one of input/computed/component/literal/preset/derivedFrom', () => {
+test('every ROW_GROUPS row has at least one of input/computed/component/literal/derivedFrom', () => {
   for (const g of ROW_GROUPS) for (const r of g.rows) {
     const has = r.input != null || r.computed != null || r.component != null
-             || r.literal != null || r.preset != null || r.derivedFrom != null;
+             || r.literal != null || r.derivedFrom != null;
     assert.ok(has, `row "${r.spec}" has no value source`);
   }
-});
-
-test('H3: braking preset drives a_x and V', () => {
-  const bikes = defaultBikes();
-  const braking = bikes.find(b => b.preset === 'braking');
-  assert.ok(braking, 'expected one bike to use the braking preset');
-  assert.equal(braking.values.a_x, 1.0);
-  assert.equal(braking.values.V, 25);
-});
-
-test('H3: braking preset increases front wheel force vs sag (sign-convention check)', () => {
-  // formulas.js convention: braking is POSITIVE a_x; ΔW > 0 shifts load to front.
-  // If a preset accidentally flips the sign, this test catches it.
-  const out = id => computeAll({ ...defaultValues(), ...PRESET_VALUES[id] });
-  const sag = out('sag');
-  const brk = out('braking');
-  assert.ok(brk.MotoSPEC_FrontForce > sag.MotoSPEC_FrontForce + 500,
-    `expected braking front force ≫ sag; ΔF=${(brk.MotoSPEC_FrontForce - sag.MotoSPEC_FrontForce).toFixed(0)} N`);
-  assert.ok(brk.MotoSPEC_RearForce < sag.MotoSPEC_RearForce,
-    `expected braking rear force < sag; got brk=${brk.MotoSPEC_RearForce.toFixed(0)} sag=${sag.MotoSPEC_RearForce.toFixed(0)}`);
 });
 
 test('H3: frame-intrinsic input rows exist in ROW_GROUPS', () => {
@@ -114,13 +94,10 @@ test('defaultBikes seeds three neutral placeholder bikes', () => {
     assert.ok(b.name);
     assert.ok(b.values);
     assert.ok(b.components, 'bike must carry a components dict (may be empty)');
-    assert.ok(['sag', 'braking', 'mid_corner', 'custom'].includes(b.preset));
-    const expected = PRESET_VALUES[b.preset];
-    if (expected) {
-      assert.equal(b.values.Travel_Front, expected.Travel_Front);
-      assert.equal(b.values.Travel_Rear, expected.Travel_Rear);
-      assert.equal(b.values.Lean_Angle, expected.Lean_Angle);
-    }
+    // Bikes no longer carry a `preset` field — values come only from
+    // chassis / linkage / component selections, not from hard-coded preset
+    // injections.
+    assert.equal(b.preset, undefined);
   }
 });
 

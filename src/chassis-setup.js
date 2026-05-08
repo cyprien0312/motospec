@@ -22,7 +22,7 @@ export const CHASSIS_GROUPS = [
     key: 'setup',
     label_zh: '车架设定',
     label_en: 'Chassis Setup',
-    fields: ['Yoke_Offset', 'Fork_Position'],
+    fields: ['Yoke_Offset', 'Fork_Length', 'Fork_Position'],
   },
   {
     key: 'mass_cg',
@@ -54,7 +54,7 @@ export const CHASSIS_GROUPS = [
 // C_r_aero) are derived from their primaries on save.
 export const CHASSIS_SPEC_FIELDS = [
   'Rake_Static', 'WB', 'Swingarm_Length', 'beta_static',
-  'Yoke_Offset', 'Fork_Position',
+  'Yoke_Offset', 'Fork_Length', 'Fork_Position',
   'Mass', 'H_CG', 'L_CG', 'front_weight_dist', 'rear_weight_dist',
   'C_f_aero', 'C_r_aero',
   'Rf',
@@ -67,6 +67,7 @@ const FIELD_LABELS = {
   Swingarm_Length:    { en: 'Swingarm Length (mm)',            zh: '摇臂长度 (mm)' },
   beta_static:        { en: 'Static Swingarm Angle (deg)',     zh: '静态摇臂角 (度)' },
   Yoke_Offset:        { en: 'Yoke Offset (mm)',                zh: '三星台偏移 (mm)' },
+  Fork_Length:        { en: 'Fork Length (mm)',                zh: '前叉总长 (mm)' },
   Fork_Position:      { en: 'Fork Position (mm)',              zh: '前叉伸出量 (mm)' },
   Mass:               { en: 'Mass — bike + rider (kg)',        zh: '总质量 (kg)' },
   H_CG:               { en: 'CG Height (mm)',                  zh: '重心高度 (mm)' },

@@ -221,6 +221,8 @@ export const P = {
   // ===== 新增输入参数 (Phase A: linkage / spring / drivetrain / dynamic) =====
   Yoke_Offset:          { name:'Yoke_Offset',          label:'三星台偏移量', unit:'mm', type:'input',
     desc:'三星台联板偏移量。', source:'三星台规格', typical:'25 – 40 mm' },
+  Fork_Length:          { name:'Fork_Length',          label:'前叉总长 (静态)', unit:'mm', type:'input',
+    desc:'前叉装车后从上三星台到前轮轴心的有效长度（静态、不计前轮压缩）。决定车头高度与转向头管位置之间的几何约束。', source:'前叉规格 / 实测', typical:'720 – 820 mm（运动车型）' },
   Fork_Position:        { name:'Fork_Position',        label:'前叉伸出量', unit:'mm', type:'input',
     desc:'前叉管伸出三星台的长度。', source:'实测', typical:'0 – 15 mm' },
   Front_Spring_Rate:    { name:'Front_Spring_Rate',    label:'前叉弹簧刚度', unit:'N/mm', type:'input',
@@ -410,6 +412,7 @@ export const INPUT_META = {
 
   // ===== Phase A new inputs =====
   Yoke_Offset:          { def: 32,    min: 20,    max: 45,    step: 0.5 },
+  Fork_Length:          { def: 770,   min: 600,   max: 850,   step: 1   },
   Fork_Position:        { def: 5,     min: 0,     max: 20,    step: 0.5 },
   Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.1 },
   Front_Spring_Preload: { def: 10.0,  min: 0,     max: 25,    step: 0.5 },

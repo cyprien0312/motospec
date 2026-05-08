@@ -89,24 +89,6 @@ export const COMPONENT_TO_CATALOG = {
 // All component keys appearing on bike rows (for tests / introspection).
 export const COMPONENT_FIELDS = Object.keys(COMPONENT_TO_CATALOG);
 
-// Convention (per formulas.js a_x desc): braking is POSITIVE, accel is NEGATIVE.
-const DYNAMIC_LOAD_PRESETS = {
-  sag:        { a_x: 0,    V: 0,  Cd: 0.4, A: 0.45 },
-  braking:    { a_x: 1.0,  V: 25, Cd: 0.4, A: 0.45 },
-  mid_corner: { a_x: 0,    V: 20, Cd: 0.4, A: 0.45 },
-};
-
-export const PRESET_VALUES = {
-  sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0,  ...DYNAMIC_LOAD_PRESETS.sag },
-  braking:    { Travel_Front: 120, Travel_Rear: 2,  Lean_Angle: 0,  ...DYNAMIC_LOAD_PRESETS.braking },
-  mid_corner: { Travel_Front: 80,  Travel_Rear: 20, Lean_Angle: 55, ...DYNAMIC_LOAD_PRESETS.mid_corner },
-};
-
-const PRESET_LABELS = {
-  en: { sag: 'Sag', braking: 'Braking', mid_corner: 'Mid-Corner', custom: 'Custom' },
-  zh: { sag: '静态下沉', braking: '刹车', mid_corner: '弯中', custom: '自定义' },
-};
-
 export function fmtNum(n) {
   if (n == null || !Number.isFinite(n)) return DASH;
   if (Number.isInteger(n)) return String(n);
@@ -126,18 +108,14 @@ export function catalogEntriesFor(componentKey) {
 }
 
 export function defaultBikes() {
-  const presetByIndex = ['sag', 'braking', 'mid_corner'];
   return REFERENCE_BIKES.map((b, i) => {
     const baseValues = defaultValues();
     const values = { ...baseValues, ...(b.inputs || {}) };
-    const presetName = presetByIndex[i] || 'sag';
-    Object.assign(values, PRESET_VALUES[presetName]);
     return {
       id: `col-${i}`,
       name: b.name,
       values,
       components: { ...(b.components || {}) },
-      preset: presetName,
     };
   });
 }
@@ -159,16 +137,6 @@ function componentCell(bikeIdx, componentKey, currentId) {
     return `<option value="${escapeHtml(id)}"${sel}>${escapeHtml(label)}</option>`;
   }).join('');
   return `<td><select class="dt-input" onchange="setBikeComponent(${bikeIdx}, '${componentKey}', this.value)">${optionsHtml}</select></td>`;
-}
-
-function presetCell(bikeIdx, current, lang) {
-  const labels = PRESET_LABELS[lang] || PRESET_LABELS.en;
-  const opts = ['sag', 'braking', 'mid_corner', 'custom'];
-  const optionsHtml = opts.map(p => {
-    const sel = p === current ? ' selected' : '';
-    return `<option value="${p}"${sel}>${escapeHtml(labels[p])}</option>`;
-  }).join('');
-  return `<td><select class="dt-input" onchange="applyBikePreset(${bikeIdx}, this.value)">${optionsHtml}</select></td>`;
 }
 
 function readonlyCell(value) {
@@ -210,8 +178,6 @@ export function renderDataTable(state) {
         const out = outs[i];
         if (row.literal != null) {
           cells += literalCell(row.literal);
-        } else if (row.preset) {
-          cells += presetCell(i, b.preset || 'custom', lang);
         } else if (row.component) {
           cells += componentCell(i, row.component, b.components?.[row.component]);
         } else if (row.input) {
