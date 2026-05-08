@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderDataTable, ROW_GROUPS, defaultBikes } from '../src/data-table.js';
+import { renderDataTable, ROW_GROUPS, defaultBikes, blankBike, MAX_BIKES } from '../src/data-table.js';
 import { defaultValues } from '../src/formulas.js';
 
 function render(extra = {}) {
@@ -25,9 +25,39 @@ test('table has no Current column', () => {
   const html = render();
   assert.doesNotMatch(html, /dt-current/);
   assert.doesNotMatch(html, />Current</);
-  // group header colspan is now 4 (param + 3 bikes), not 5
+  // Group header colspan = 1 (Parameter) + bikes.length. Default 3 bikes → 4.
   assert.match(html, /colspan="4"/);
-  assert.doesNotMatch(html, /colspan="5"/);
+});
+
+test('column add/remove: header has + Add button (when < MAX_BIKES) and × per column', () => {
+  const html = render();
+  assert.match(html, /class="dt-col-add"[^>]*onclick="addBike\(\)"/);
+  const removeMatches = html.match(/onclick="removeBike\(\d+\)"/g) || [];
+  assert.equal(removeMatches.length, 3, 'expected one × per bike column');
+});
+
+test('column add/remove: empty bikes array renders empty-state hint', () => {
+  const html = renderDataTable({ values: defaultValues(), bikes: [], lang: 'en' });
+  assert.match(html, /No bikes yet/);
+  assert.match(html, /onclick="addBike\(\)"/);
+  // No rows should render
+  assert.doesNotMatch(html, /<tr class="dt-group">/);
+});
+
+test('column add/remove: at MAX_BIKES the + Add header is gone', () => {
+  const bikes = Array.from({ length: MAX_BIKES }, (_, i) => blankBike(i));
+  const html = renderDataTable({ values: defaultValues(), bikes, lang: 'en' });
+  assert.doesNotMatch(html, /onclick="addBike\(\)"/);
+  // group header colspan = 1 + 5 = 6
+  assert.match(html, /colspan="6"/);
+});
+
+test('blankBike: returns a usable bike with INPUT_META defaults', () => {
+  const b = blankBike(7);
+  assert.ok(b.id);
+  assert.equal(typeof b.name, 'string');
+  assert.ok(b.values && Number.isFinite(b.values.WB));
+  assert.deepEqual(b.components, {});
 });
 
 test('numeric input rows render <input type="number"> cells per bike', () => {

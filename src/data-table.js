@@ -107,6 +107,8 @@ export function catalogEntriesFor(componentKey) {
   return Object.entries(catalog);
 }
 
+export const MAX_BIKES = 5;
+
 export function defaultBikes() {
   return REFERENCE_BIKES.map((b, i) => {
     const baseValues = defaultValues();
@@ -118,6 +120,16 @@ export function defaultBikes() {
       components: { ...(b.components || {}) },
     };
   });
+}
+
+// Build a fresh blank bike with default values for new columns.
+export function blankBike(idx) {
+  return {
+    id: `col-${idx}-${Date.now()}`,
+    name: `Bike ${String.fromCharCode(65 + idx)}`,
+    values: defaultValues(),
+    components: {},
+  };
 }
 
 function inputCell(bikeIdx, key, value) {
@@ -149,23 +161,47 @@ function literalCell(text) {
 
 export function renderDataTable(state) {
   const lang = state?.lang || 'zh';
-  const bikes = (state && Array.isArray(state.bikes) && state.bikes.length === 3)
+  const bikes = (state && Array.isArray(state.bikes) && state.bikes.length >= 0 && state.bikes.length <= MAX_BIKES)
     ? state.bikes
     : defaultBikes();
 
   const outs = bikes.map(b => computeAll({ ...b.values }));
 
+  const removeTitle = lang === 'en' ? 'Remove this column' : '删除该列';
+  const addLabel    = lang === 'en' ? '+ Add Bike' : '+ 新增车型';
+  const emptyHint   = lang === 'en'
+    ? 'No bikes yet — click "+ Add Bike" above to start a comparison column.'
+    : '当前没有车型——点击上方"+ 新增车型"添加对比列。';
+
   const bikeHeaders = bikes.map((b, i) =>
-    `<th><input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)"></th>`
+    `<th class="dt-bike-head">
+      <button class="dt-col-remove" title="${escapeHtml(removeTitle)}" onclick="removeBike(${i})">×</button>
+      <input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)">
+    </th>`
   ).join('');
+  const addHeader = bikes.length < MAX_BIKES
+    ? `<th class="dt-bike-add"><button class="dt-col-add" onclick="addBike()">${escapeHtml(addLabel)}</button></th>`
+    : '';
   const specHeader = lang === 'en' ? 'Parameter' : '参数';
+  // Group rows span Parameter + all bike columns (the optional "+ Add" header
+  // sits in its own column on the header row only).
+  const groupColspan = 1 + bikes.length;
+
+  if (bikes.length === 0) {
+    return `
+      <div class="dt-wrap">
+        <div class="dt-empty"><button class="dt-col-add" onclick="addBike()">${escapeHtml(addLabel)}</button></div>
+        <p class="dt-empty-hint">${escapeHtml(emptyHint)}</p>
+      </div>
+    `;
+  }
 
   let body = '';
   for (const group of ROW_GROUPS) {
     const groupLabel = lang === 'en'
       ? group.header
       : `${group.header} (${group.header_zh})`;
-    body += `<tr class="dt-group"><th colspan="4">${escapeHtml(groupLabel)}</th></tr>`;
+    body += `<tr class="dt-group"><th colspan="${groupColspan}">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
       const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
       const badge = row.status && STATUS_BADGE[row.status]
@@ -201,6 +237,7 @@ export function renderDataTable(state) {
           <tr>
             <th class="dt-spec">${escapeHtml(specHeader)}</th>
             ${bikeHeaders}
+            ${addHeader}
           </tr>
         </thead>
         <tbody>
