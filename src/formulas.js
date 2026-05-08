@@ -21,10 +21,10 @@ export const P = {
     name: 'Trail_Static', label: '静态拖曳距', unit: 'mm', type: 'channel',
     desc: '前轮接地点到转向轴地面交点的水平距离。静态测量基础值，决定直行稳定性与转向反馈。',
     formula: [
-      '( ', {ref:'Rf'}, ' × sin(', {ref:'Rake_Static'}, ') − ', {ref:'O'}, ' ) / cos(', {ref:'Rake_Static'}, ')'
+      '( ', {ref:'Rf'}, ' × sin(', {ref:'Rake_Static'}, ') − ', {ref:'Yoke_Offset'}, ' ) / cos(', {ref:'Rake_Static'}, ')'
     ],
-    deps: ['Rf', 'Rake_Static', 'O'],
-    note: 'Rake 转弧度后代入。增大 Rake 或减小 Offset 都会增大 Trail，提高直行稳定性但降低转向轻巧度。'
+    deps: ['Rf', 'Rake_Static', 'Yoke_Offset'],
+    note: 'Rake 转弧度后代入。增大 Rake 或减小 Yoke_Offset 都会增大 Trail，提高直行稳定性但降低转向轻巧度。'
   },
   MotoSPEC_Rake: {
     name: 'MotoSPEC_Rake', label: '动态后倾角', unit: 'deg', type: 'channel',
@@ -39,13 +39,13 @@ export const P = {
     name: 'MotoSPEC_Trail', label: '动态拖曳距', unit: 'mm', type: 'channel',
     desc: '前轮接地点到转向轴地面交点的距离。Rake 变小时 Trail 急剧缩短，是前轮"路感"的核心来源。',
     formula: [
-      '( ', {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'O'}, ' ) / cos(', {ref:'MotoSPEC_Rake'}, ')'
+      '( ', {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}, ' ) / cos(', {ref:'MotoSPEC_Rake'}, ')'
     ],
-    deps: ['Rf', 'MotoSPEC_Rake', 'O'],
+    deps: ['Rf', 'MotoSPEC_Rake', 'Yoke_Offset'],
     note: '使用动态 Rake（已转为弧度）代入。重刹时 Trail 谷底过低 → 前轮反馈模糊。'
   },
-  MotoSPEC_SwgarmAngl: {
-    name: 'MotoSPEC_SwgarmAngl', label: '动态摇臂角度', unit: 'deg', type: 'channel',
+  Swingarm_Angle: {
+    name: 'Swingarm_Angle', label: '摇臂角度', unit: 'deg', type: 'channel',
     desc: '后悬挂压缩时摇臂相对水平面的实时夹角。把 4-bar 反解出的 Δβ 加到静态角上。',
     formula: [
       {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}
@@ -53,8 +53,8 @@ export const P = {
     deps: ['beta_static', 'swingarm_delta_solve'],
     note: 'Δβ 由 swingarm_delta_solve 经 4-bar 闭合解出（点开看完整算法）。Shock_Clevis_RHA > 0 把避震机械加长 → 静态摇臂角度被顶到新位置；Travel_Rear 是相对 RHA 调整后的避震行程。'
   },
-  MotoSPEC_AntSquat: {
-    name: 'MotoSPEC_AntSquat', label: '抗蹲伏百分比', unit: '%', type: 'channel',
+  Anti_Squat: {
+    name: 'Anti_Squat', label: '抗蹲百分比', unit: '%', type: 'channel',
     desc: '加速时几何对车尾下沉的抵消程度。100% = 车尾高度不变；>100% = 车尾升起；<100% = 车尾下沉。',
     formula: [
       '( tan(', {ref:'theta_thrust'}, ') / tan(', {ref:'theta_cg'}, ') ) × 100'
@@ -102,23 +102,23 @@ export const P = {
     name: 'θ_Thrust', label: '驱动力推力角', unit: 'rad', type: 'intermediate',
     desc: '链条拉力与摇臂线合成的瞬时推力方向。tan 值 = 链条角 tan + 摇臂角 tan。',
     formula: [
-      'arctan( tan(', {ref:'theta_chain_dynamic'}, ') + tan(', {ref:'MotoSPEC_SwgarmAngl'}, ') )'
+      'arctan( tan(', {ref:'theta_chain_dynamic'}, ') + tan(', {ref:'Swingarm_Angle'}, ') )'
     ],
-    deps: ['theta_chain_dynamic', 'MotoSPEC_SwgarmAngl'],
+    deps: ['theta_chain_dynamic', 'Swingarm_Angle'],
     note: '注意：标准切线法直接对 tan 求和，再求反正切。链条角现由 sprocket 几何动态求出 (H2)。'
   },
   theta_chain_dynamic: {
     name: 'θ_Chain_Dyn', label: '动态链条拉力角', unit: 'deg', type: 'intermediate',
-    desc: '前小齿轮顶端 → 后大齿轮顶端的上方外切线相对水平面的夹角，正值代表"链条向前侧上扬"（产生抗蹲）。前链轮坐标固定于车架；后链轮中心随摇臂以 Swingarm_Length × MotoSPEC_SwgarmAngl 摆动。',
+    desc: '前小齿轮顶端 → 后大齿轮顶端的上方外切线相对水平面的夹角，正值代表"链条向前侧上扬"（产生抗蹲）。前链轮坐标固定于车架；后链轮中心随摇臂以 Swingarm_Length × Swingarm_Angle 摆动。',
     formula: [
       'atan2(Cf.y − Cr.y, Cf.x − Cr.x) + arcsin((r_f − r_r) / |Cf − Cr|)',
     ],
     deps: [
       'Front_Sprocket_X', 'Front_Sprocket_Y',
       'Front_Sprocket', 'Rear_Sprocket', 'Chain_Pitch',
-      'Swingarm_Length', 'MotoSPEC_SwgarmAngl',
+      'Swingarm_Length', 'Swingarm_Angle',
     ],
-    note: '链节距 15.875 mm 适用于 520/525/530 链条。后链轮中心: (−L·cos(β), −L·sin(β))，β 为 MotoSPEC_SwgarmAngl 度数。'
+    note: '链节距 15.875 mm 适用于 520/525/530 链条。后链轮中心: (−L·cos(β), −L·sin(β))，β 为 Swingarm_Angle 度数。'
   },
   theta_cg: {
     name: 'θ_CG', label: '重心角', unit: 'rad', type: 'intermediate',
@@ -178,11 +178,6 @@ export const P = {
   Rf: { name:'Rf', label:'前轮滚动半径', unit:'mm', type:'input',
     desc:'前轮在载荷下的实际滚动半径（含轮胎形变修正）。', source:'轮胎规格 + 形变系数',
     typical:'300 – 320 mm（17 寸轮）' },
-  O: { name:'O', label:'总偏移量 (Offset)', unit:'mm', type:'channel',
-    desc:'转向轴到前轮接地中心的垂直偏移量。等同于三星台偏移（轮芯偏移按 0 处理）。',
-    formula: [ {ref:'Yoke_Offset'} ],
-    deps: ['Yoke_Offset'],
-    note: '三星台偏移改变 → O 改变 → Trail 改变；Rake 不受影响（Rake 由车架转向头管角度决定）。' },
   beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
     desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
     typical:'10° – 18°' },
@@ -297,7 +292,7 @@ export const P = {
   },
   swingarm_delta_solve: {
     name: 'Δβ_solve', label: '4-bar 反解（避震行程 → 摇臂角变化）', unit: 'deg', type: 'intermediate',
-    desc:'给定当前 Travel_Rear 和 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对静态位的旋转角 Δβ。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 MotoSPEC_SwgarmAngl / Rear_Ride_Height / Rear_Wheel_Vertical_Travel 共用。',
+    desc:'给定当前 Travel_Rear 和 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对静态位的旋转角 Δβ。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 Swingarm_Angle / Rear_Ride_Height / Rear_Wheel_Vertical_Travel 共用。',
     formula: [
       ['Δβ = δ*  s.t.  shock(δ*) = L_target'],
       ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}, ' − ', {ref:'Travel_Rear'}],
@@ -449,20 +444,19 @@ export const INPUT_META = {
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
 export const CALC = {
-  O:             v => v.Yoke_Offset,
   Trail_Static: v => {
     const r = v.Rake_Static * D2R;
-    return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
+    return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
   Pitch:         v => Math.atan((v.Travel_Front - v.Travel_Rear) / v.WB),
   delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.Swingarm_Length))),
   MotoSPEC_Rake: v => v.Rake_Static - v.Pitch * R2D,
   MotoSPEC_Trail: v => {
     const r = v.MotoSPEC_Rake * D2R;
-    return (v.Rf * Math.sin(r) - v.O) / Math.cos(r);
+    return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
   swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, v.Travel_Rear, v.Shock_Clevis_RHA || 0),
-  MotoSPEC_SwgarmAngl: v => v.beta_static + v.swingarm_delta_solve,
+  Swingarm_Angle: v => v.beta_static + v.swingarm_delta_solve,
   theta_chain_dynamic: v => {
     // Sprocket pitch radii (mm): r = pitch / (2·sin(π/N))
     const rF = v.Chain_Pitch / (2 * Math.sin(Math.PI / v.Front_Sprocket));
@@ -472,7 +466,7 @@ export const CALC = {
     const Cfy = v.Front_Sprocket_Y;
     // Rear sprocket center: rear axle, on swingarm. Swingarm extends backward
     // (-X) and downward by the dynamic swingarm angle below horizontal.
-    const beta = v.MotoSPEC_SwgarmAngl * D2R;
+    const beta = v.Swingarm_Angle * D2R;
     const Crx = -v.Swingarm_Length * Math.cos(beta);
     const Cry = -v.Swingarm_Length * Math.sin(beta);
     const dx = Cfx - Crx, dy = Cfy - Cry;
@@ -485,9 +479,9 @@ export const CALC = {
     const offset = Math.asin((rF - rR) / d);
     return (baseAngle + offset) * R2D;
   },
-  theta_thrust:  v => Math.atan(Math.tan(v.theta_chain_dynamic * D2R) + Math.tan(v.MotoSPEC_SwgarmAngl * D2R)),
+  theta_thrust:  v => Math.atan(Math.tan(v.theta_chain_dynamic * D2R) + Math.tan(v.Swingarm_Angle * D2R)),
   theta_cg:      v => Math.atan(v.H_CG / v.L_CG),
-  MotoSPEC_AntSquat: v => Math.tan(v.theta_thrust) / Math.tan(v.theta_cg) * 100,
+  Anti_Squat: v => Math.tan(v.theta_thrust) / Math.tan(v.theta_cg) * 100,
   delta_W:       v => v.Mass * v.a_x * 9.81 * (v.H_CG / v.WB),
   F_Aero:        v => 0.5 * v.rho * v.V ** 2 * v.Cd * v.A,
   W_F_Static:    v => v.Mass * 9.81 * v.front_weight_dist,
@@ -519,11 +513,10 @@ export const CALC = {
 
 // Topological order: every entry's deps appear earlier in the list
 export const TOPO_ORDER = [
-  'O',
   'Trail_Static',
   'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail',
   'swingarm_delta_solve',
-  'MotoSPEC_SwgarmAngl', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'MotoSPEC_AntSquat',
+  'Swingarm_Angle', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'Anti_Squat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
   // Phase A additions

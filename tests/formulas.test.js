@@ -174,7 +174,7 @@ for (const b of REFERENCE_BIKES) {
   }
 }
 
-test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
+test('Swingarm_Angle is routed through the linkage (H1)', () => {
   // With the default pro-link placeholder coords and Travel_Rear=25, the
   // linkage-routed swingarm angle should differ noticeably from the legacy
   // asin(Travel_Rear/Swingarm_Length) approximation. >0.5° guarantees we're not still
@@ -182,17 +182,17 @@ test('MotoSPEC_SwgarmAngl is routed through the linkage (H1)', () => {
   const v = { ...defaultValues(), Travel_Rear: 25 };
   const out = computeAll(v);
   const oldApprox = v.beta_static - Math.asin(v.Travel_Rear / v.Swingarm_Length) * 180 / Math.PI;
-  const diff = Math.abs(out.MotoSPEC_SwgarmAngl - oldApprox);
-  assert.ok(Number.isFinite(out.MotoSPEC_SwgarmAngl),
-    `MotoSPEC_SwgarmAngl not finite: ${out.MotoSPEC_SwgarmAngl}`);
+  const diff = Math.abs(out.Swingarm_Angle - oldApprox);
+  assert.ok(Number.isFinite(out.Swingarm_Angle),
+    `Swingarm_Angle not finite: ${out.Swingarm_Angle}`);
   assert.ok(diff > 0.5,
-    `Expected linkage-routed Swingarm Angle to differ from the asin approximation by >0.5°; got diff=${diff.toFixed(3)}° (new=${out.MotoSPEC_SwgarmAngl.toFixed(3)}, old=${oldApprox.toFixed(3)})`);
+    `Expected linkage-routed Swingarm Angle to differ from the asin approximation by >0.5°; got diff=${diff.toFixed(3)}° (new=${out.Swingarm_Angle.toFixed(3)}, old=${oldApprox.toFixed(3)})`);
   // On compression, swingarm angle below horizontal should decrease.
-  assert.ok(out.MotoSPEC_SwgarmAngl < v.beta_static,
-    `Expected new Swingarm Angle < beta_static on compression; got ${out.MotoSPEC_SwgarmAngl} vs ${v.beta_static}`);
+  assert.ok(out.Swingarm_Angle < v.beta_static,
+    `Expected new Swingarm Angle < beta_static on compression; got ${out.Swingarm_Angle} vs ${v.beta_static}`);
 });
 
-test('Shock_Clevis_RHA shifts MotoSPEC_SwgarmAngl and rear ride height', () => {
+test('Shock_Clevis_RHA shifts Swingarm_Angle and rear ride height', () => {
   // RHA=0 baseline vs. RHA=+5: lengthening the shock at zero compression
   // forces the swingarm to a different static angle, changing rear
   // ride-height. Sign + finiteness check, and Travel_Rear=0 must move
@@ -201,8 +201,8 @@ test('Shock_Clevis_RHA shifts MotoSPEC_SwgarmAngl and rear ride height', () => {
   const v5 = { ...v0, Shock_Clevis_RHA: 5, Travel_Rear: 0 };
   const r0 = computeAll(v0);
   const r5 = computeAll(v5);
-  assert.ok(Number.isFinite(r5.MotoSPEC_SwgarmAngl), 'angle must be finite with RHA');
-  assert.notEqual(r0.MotoSPEC_SwgarmAngl, r5.MotoSPEC_SwgarmAngl,
+  assert.ok(Number.isFinite(r5.Swingarm_Angle), 'angle must be finite with RHA');
+  assert.notEqual(r0.Swingarm_Angle, r5.Swingarm_Angle,
     'RHA must shift static swingarm angle');
   assert.notEqual(r0.Rear_Ride_Height, r5.Rear_Ride_Height,
     'RHA must shift rear ride-height reference');
@@ -210,7 +210,7 @@ test('Shock_Clevis_RHA shifts MotoSPEC_SwgarmAngl and rear ride height', () => {
   // formulas.js threading || 0 fallback).
   const v00 = { ...v0, Shock_Clevis_RHA: 0 };
   const r00 = computeAll(v00);
-  assert.equal(r00.MotoSPEC_SwgarmAngl, r0.MotoSPEC_SwgarmAngl);
+  assert.equal(r00.Swingarm_Angle, r0.Swingarm_Angle);
 });
 
 test('theta_chain_dynamic: rear-axle-behind-front-sprocket sanity (H2)', () => {
@@ -243,16 +243,16 @@ test('theta_chain_dynamic at default state is finite and small (H2)', () => {
     `chain angle out of range: ${out.theta_chain_dynamic.toFixed(3)}°`);
 });
 
-test('MotoSPEC_AntSquat now routes through dynamic chain angle (H2)', () => {
+test('Anti_Squat now routes through dynamic chain angle (H2)', () => {
   // theta_chain (the static input) is gone; AntiSquat must come from
-  // theta_chain_dynamic + MotoSPEC_SwgarmAngl. Verify both that AntiSquat
+  // theta_chain_dynamic + Swingarm_Angle. Verify both that AntiSquat
   // is finite and that perturbing a sprocket-geometry input changes it
   // (proof the new path is wired in, not a stale static value).
   const base = computeAll(defaultValues());
   const perturbed = computeAll({ ...defaultValues(), Front_Sprocket_X: 200 });
-  assert.ok(Number.isFinite(base.MotoSPEC_AntSquat),
-    `AntSquat not finite: ${base.MotoSPEC_AntSquat}`);
-  assert.notEqual(base.MotoSPEC_AntSquat, perturbed.MotoSPEC_AntSquat,
+  assert.ok(Number.isFinite(base.Anti_Squat),
+    `AntSquat not finite: ${base.Anti_Squat}`);
+  assert.notEqual(base.Anti_Squat, perturbed.Anti_Squat,
     'AntiSquat unchanged when Front_Sprocket_X moved → dynamic chain angle not wired');
   // Ensure theta_chain (legacy static input) is fully removed.
   assert.equal(P.theta_chain, undefined, 'theta_chain should be removed from P');

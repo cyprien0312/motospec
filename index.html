@@ -534,8 +534,8 @@ const P_EN = {
   Trail_Static: { label:'Static Trail', desc:'Horizontal distance from the front contact patch to where the steering axis meets the ground. Static baseline — sets straight-line stability and steering feel.', note:'Convert Rake to radians first. Larger Rake or smaller Offset both grow Trail, increasing stability at the cost of nimbleness.' },
   MotoSPEC_Rake: { label:'Dynamic Rake', desc:'The instantaneous steering-axis rake angle while the bike is moving. When the fork compresses and the rear extends, the front drops and Rake decreases.', note:'arctan returns Pitch in radians; multiply by 180/π to convert to degrees before subtracting.' },
   MotoSPEC_Trail:{ label:'Dynamic Trail', desc:'Distance from the front contact patch to where the steering axis meets the ground. Trail collapses sharply when Rake decreases — this is the core source of front-end "feel".', note:'Use the dynamic Rake (in radians). Under heavy braking, Trail bottoming out causes vague front-end feedback.' },
-  MotoSPEC_SwgarmAngl:{ label:'Dynamic Swingarm Angle', desc:'Live angle between the swingarm and horizontal as the rear suspension compresses. Compression makes the angle smaller (more horizontal).', note:'On corner exit, an almost-horizontal swingarm collapses mechanical grip and the bike pushes wide.' },
-  MotoSPEC_AntSquat:{ label:'Anti-Squat %', desc:'Geometric resistance to rear squat under acceleration. 100% = rear ride height stays; >100% = rear lifts; <100% = rear squats.', note:'The soul metric of corner-exit setup. 120% plants the rear; 140% over-extends the shock and invites high-sides.' },
+  Swingarm_Angle:{ label:'Swingarm Angle', desc:'Angle between the swingarm and horizontal at the current shock state. Compression makes the angle smaller (more horizontal).', note:'On corner exit, an almost-horizontal swingarm collapses mechanical grip and the bike pushes wide.' },
+  Anti_Squat:{ label:'Anti-Squat %', desc:'Geometric resistance to rear squat under acceleration. 100% = rear ride height stays; >100% = rear lifts; <100% = rear squats.', note:'The soul metric of corner-exit setup. 120% plants the rear; 140% over-extends the shock and invites high-sides.' },
   MotoSPEC_FrontForce:{ label:'Front Vertical Load', desc:'Normal force on the front contact patch. Rises under braking, falls under acceleration. Sets the front grip ceiling.', note:'If FrontForce spikes too fast on entry, the front overloads and locks.' },
   MotoSPEC_RearForce:{ label:'Rear Vertical Load', desc:'Normal force on the rear contact patch. Rises under acceleration, falls under braking.', note:'A sudden drop in RearForce at the exit point means the rear is about to spin up.' },
   Pitch:{ label:'Chassis Pitch', desc:'Pitch angle of the chassis relative to horizontal. Positive when the front sinks more than the rear (brake nose-dive).' },
@@ -583,7 +583,7 @@ const UI = {
     linkage_reset: '↺ 恢复占位坐标',
     dashboard_title: '仪表盘', dashboard_kicker: '公式参考 · Channels + Intermediates',
     dashboard_desc: '所有计算公式一览。点击任意公式中的参数 chip 可跳转到该参数的详细页（公式 / 依赖 / 图示）。数值在 底盘设置 / 连杆几何 / 数据表 中输入。',
-    presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
+    presets: '场景预设', main_channels: '主通道', intermediates: '中间量',
     reset: '↺ 重置默认',
     type_channel: '主通道', type_intermediate: '中间量', type_input: '输入参数',
     diagram_title: '图示（参数在车架上的位置）',
@@ -604,7 +604,7 @@ const UI = {
     linkage_reset: '↺ Reset to placeholder',
     dashboard_title: 'Dashboard', dashboard_kicker: 'Formula reference · channels + intermediates',
     dashboard_desc: 'Every calculation formula at a glance. Click any parameter chip in a formula to drill into that parameter (formula / deps / diagram). Numerical inputs are entered on Chassis Setup / Linkage Setup / Data Table.',
-    presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
+    presets: 'Scenario Presets', main_channels: 'Core Channels', intermediates: 'Intermediates',
     reset: '↺ Reset Defaults',
     type_channel: 'Channel', type_intermediate: 'Intermediate', type_input: 'Input',
     diagram_title: 'Diagram (parameter on chassis)',
@@ -789,23 +789,6 @@ DIAGRAMS.Rf = () => {
     <text x="${fa.x-30}" y="${b.groundY+18}" fill="${SC.hi}" font-size="10" opacity="0.75">Contact</text>`;
 };
 
-// === Offset O ===
-DIAGRAMS.O = () => {
-  const b = BIKE, sh = b.steeringHead, fa = b.frontAxle;
-  const Ovis = 22;
-  const vfa = { x: fa.x - Ovis, y: fa.y };
-  const vsh = { x: sh.x - Ovis, y: sh.y };
-  return `
-    <line x1="${vfa.x}" y1="${vfa.y}" x2="${vsh.x}" y2="${vsh.y}" stroke="${SC.hi}" stroke-width="2" stroke-dasharray="6,3" opacity="0.85"/>
-    <line x1="${fa.x}" y1="${fa.y}" x2="${sh.x}" y2="${sh.y}" stroke="${SC.hi}" stroke-width="2.5"/>
-    <line x1="${vfa.x}" y1="${fa.y-30}" x2="${fa.x}" y2="${fa.y-30}" stroke="${SC.hi}" stroke-width="2" marker-start="url(#ar-s)" marker-end="url(#ar)"/>
-    <line x1="${vfa.x}" y1="${fa.y-35}" x2="${vfa.x}" y2="${fa.y-25}" stroke="${SC.hi}" stroke-width="1" opacity="0.6"/>
-    <line x1="${fa.x}" y1="${fa.y-35}" x2="${fa.x}" y2="${fa.y-25}" stroke="${SC.hi}" stroke-width="1" opacity="0.6"/>
-    <text x="${(vfa.x+fa.x)/2-5}" y="${fa.y-38}" fill="${SC.hi}" font-size="13" font-weight="bold">O</text>
-    <text x="${vsh.x-90}" y="${vsh.y-5}" fill="${SC.hi}" font-size="10" opacity="0.85">Steering Axis</text>
-    <text x="${sh.x+8}" y="${sh.y-13}" fill="${SC.hi}" font-size="10" opacity="0.75">Fork tube</text>`;
-};
-
 // === Swingarm angle ===
 const _swing = () => {
   const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle;
@@ -820,7 +803,7 @@ const _swing = () => {
     <text x="${(sp.x+ra.x)/2-25}" y="${(sp.y+ra.y)/2+18}" fill="${SC.hi}" font-size="11">Swingarm</text>`;
 };
 DIAGRAMS.beta_static = _swing;
-DIAGRAMS.MotoSPEC_SwgarmAngl = _swing;
+DIAGRAMS.Swingarm_Angle = _swing;
 DIAGRAMS.delta_beta = _swing;
 
 // === L_SA ===
@@ -1035,8 +1018,8 @@ DIAGRAMS.theta_thrust = () => {
     <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi3}"/>`;
 };
 
-// === MotoSPEC_AntSquat ===
-DIAGRAMS.MotoSPEC_AntSquat = () => {
+// === Anti_Squat ===
+DIAGRAMS.Anti_Squat = () => {
   const b = BIKE, sp = b.swingarmPivot, ra = b.rearAxle, cg = b.cg;
   const ct1 = { x: ra.x, y: ra.y - b.rearSprocketR };
   const ct2 = { x: sp.x, y: sp.y - b.frontSprocketR };
