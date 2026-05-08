@@ -667,7 +667,7 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
-import { renderDataTable, defaultBikes, blankBike, MAX_BIKES } from './src/data-table.js';
+import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG } from './src/data-table.js';
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
@@ -1229,7 +1229,7 @@ function loadState() {
         if (typeof val === 'number' && Number.isFinite(val)) merged[k] = val;
         else if (typeof val === 'string' && val.length > 0) merged[k] = val;
       }
-      const bikes = (Array.isArray(s.bikes) && s.bikes.length === 3) ? s.bikes : defaultBikes();
+      const bikes = (Array.isArray(s.bikes) && s.bikes.length <= MAX_BIKES) ? s.bikes : defaultBikes();
       if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
       const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];
       const linkageDraft = (s.linkageDraft && typeof s.linkageDraft === 'object') ? s.linkageDraft : null;
@@ -1559,10 +1559,6 @@ function setBikeInput(bikeIdx, key, raw) {
   saveState();
   renderContent();
 }
-const COMPONENT_TO_CATALOG = {
-  clamp: 'clamps', fork: 'forks', shock: 'shocks', swingarm: 'swingarms',
-  linkage: 'linkages',
-};
 function setCatalogTab(catalogKey) {
   if (!CATALOG_KEYS.includes(catalogKey)) return;
   state.catalogTab = catalogKey;
