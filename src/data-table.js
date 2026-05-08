@@ -3,9 +3,57 @@
 // Mirrors motospec-style-table.csv structure
 // ============================================================
 
-import { computeAll, INPUT_META, defaultValues } from './formulas.js';
+import { computeAll, INPUT_META, defaultValues, P } from './formulas.js';
 import { REFERENCE_BIKES } from './reference-bikes.js';
 import { CATALOGS } from './catalog.js';
+
+// Walk P[id].deps transitively to all leaf inputs the formula consumes.
+// Used to decide whether a RESULTS cell can be computed for a given bike,
+// or should be left blank because some required input isn't bound to any
+// component / chassis profile / user override.
+const _leafCache = new Map();
+function leafInputsFor(id) {
+  if (_leafCache.has(id)) return _leafCache.get(id);
+  const out = new Set();
+  const seen = new Set();
+  const walk = (k) => {
+    if (seen.has(k)) return;
+    seen.add(k);
+    const p = P[k];
+    if (!p) { out.add(k); return; }
+    if (p.type === 'input' || !Array.isArray(p.deps) || p.deps.length === 0) {
+      out.add(k); return;
+    }
+    for (const d of p.deps) walk(d);
+  };
+  walk(id);
+  _leafCache.set(id, out);
+  return out;
+}
+
+// Set of inputs that the bike has *actually been given* (by chassis /
+// component selection or by the user typing into a cell). Inputs absent
+// from this set fall back to defaultValues() for compute safety, but the
+// corresponding RESULTS cells render blank — we don't pretend a number is
+// real when its inputs are placeholders.
+function bikeReadyKeys(bike) {
+  const keys = new Set();
+  // Each chosen component contributes its spec keys.
+  for (const compKey of Object.keys(COMPONENT_TO_CATALOG)) {
+    const cid = bike?.components?.[compKey];
+    if (!cid) continue;
+    const catName = COMPONENT_TO_CATALOG[compKey];
+    const entry = (CATALOGS[catName] || {})[cid];
+    if (!entry?.specs) continue;
+    for (const k of Object.keys(entry.specs)) keys.add(k);
+  }
+  // Sprocket teeth count is stored on `components`, not on a catalog.
+  if (bike?.components?.front_sprocket != null) keys.add('Front_Sprocket');
+  if (bike?.components?.rear_sprocket  != null) keys.add('Rear_Sprocket');
+  // Per-bike user overrides (typed into a cell).
+  for (const k of Object.keys(bike?.overrides || {})) keys.add(k);
+  return keys;
+}
 
 // Rows tagged with `component: 'fork' | 'shock' | …` render as a
 // <select> sourced from the matching catalog. Rows tagged with `input:`
@@ -61,8 +109,8 @@ export const ROW_GROUPS = [
     { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate',            status: 'coords' },
     { spec: 'Front Wheel Force (N)',                                spec_zh: '前轮垂直载荷 (N)',    computed: 'MotoSPEC_FrontForce' },
     { spec: 'Rear Wheel Force (N)',                                 spec_zh: '后轮垂直载荷 (N)',    computed: 'MotoSPEC_RearForce' },
-    { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100, status: 'static' },
-    { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100,  status: 'static' },
+    { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100, requires: ['front_weight_dist'], status: 'static' },
+    { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100,  requires: ['rear_weight_dist'],  status: 'static' },
   ]},
 ];
 
@@ -118,6 +166,7 @@ export function defaultBikes() {
       name: b.name,
       values,
       components: { ...(b.components || {}) },
+      overrides: {},
     };
   });
 }
@@ -129,6 +178,7 @@ export function blankBike(idx) {
     name: `Bike ${String.fromCharCode(65 + idx)}`,
     values: defaultValues(),
     components: {},
+    overrides: {},
   };
 }
 
@@ -166,6 +216,28 @@ export function renderDataTable(state) {
     : defaultBikes();
 
   const outs = bikes.map(b => computeAll({ ...b.values }));
+  // Per-bike set of inputs that are actually bound (env / catalog /
+  // override). RESULTS cells whose leaf inputs aren't all bound render
+  // blank — we don't show numbers built from placeholder defaults.
+  const readyByBike = bikes.map(bikeReadyKeys);
+  const blankCell = '<td class="dt-readonly"><span></span></td>';
+  const cellReady = (row, ready) => {
+    if (row.computed) {
+      const leaves = leafInputsFor(row.computed);
+      for (const k of leaves) if (!ready.has(k)) return false;
+      return true;
+    }
+    if (row.derivedFrom) {
+      // derivedFrom rows declare their input deps via `requires:` on the
+      // row schema (since the function body is opaque). If absent, we
+      // assume the row is always ready — only used for the two CofG rows
+      // today.
+      const reqs = row.requires || [];
+      for (const k of reqs) if (!ready.has(k)) return false;
+      return true;
+    }
+    return true;
+  };
 
   const removeTitle = lang === 'en' ? 'Remove this column' : '删除该列';
   const addLabel    = lang === 'en' ? '+ Add Bike' : '+ 新增车型';
@@ -217,11 +289,18 @@ export function renderDataTable(state) {
         } else if (row.component) {
           cells += componentCell(i, row.component, b.components?.[row.component]);
         } else if (row.input) {
-          cells += inputCell(i, row.input, b.values?.[row.input]);
+          // Show the value only when it's been actually set; otherwise
+          // leave the cell blank and let the user fill it in.
+          const v = readyByBike[i].has(row.input) ? b.values?.[row.input] : null;
+          cells += inputCell(i, row.input, v);
         } else if (row.derivedFrom) {
-          cells += readonlyCell(fmtNum(row.derivedFrom(out)));
+          cells += cellReady(row, readyByBike[i])
+            ? readonlyCell(fmtNum(row.derivedFrom(out)))
+            : blankCell;
         } else if (row.computed) {
-          cells += readonlyCell(fmtNum(out[row.computed]));
+          cells += cellReady(row, readyByBike[i])
+            ? readonlyCell(fmtNum(out[row.computed]))
+            : blankCell;
         } else {
           cells += readonlyCell(DASH);
         }

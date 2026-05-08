@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MotoSPEC Formula Explorer · 公式探索器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1419;
@@ -240,10 +243,12 @@
 .chassis-library:hover, .chassis-btn:hover { border-color: #4ea1ff; }
 .chassis-group { margin-bottom: 18px; background: var(--panel); border: 1px solid rgba(148,163,184,0.15); border-radius: 8px; padding: 14px; }
 .chassis-group-title { font-size: 15px; font-weight: 600; margin: 0 0 10px; color: #cbd5e1; }
-.chassis-group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-.chassis-card { display: flex; flex-direction: column; gap: 4px; }
-.chassis-card-label { font-size: 12px; color: #94a3b8; }
-.chassis-input { background: #0f141b; color: var(--text); border: 1px solid rgba(148,163,184,0.25); border-radius: 5px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
+.chassis-table-wrap { overflow-x: auto; max-width: 100%; }
+.chassis-table { border-collapse: collapse; width: auto; font-size: 12px; background: var(--panel); color: var(--text); }
+.chassis-table th, .chassis-table td { border: 1px solid var(--border); padding: 2px 6px; line-height: 1.25; text-align: left; vertical-align: middle; white-space: nowrap; }
+.chassis-table thead th { background: var(--panel); color: var(--accent); font-weight: 600; font-size: 11px; }
+.chassis-table .chassis-input { width: 100%; min-width: 70px; box-sizing: border-box; background: var(--formula-bg, #111); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; font: inherit; font-size: 12px; }
+.chassis-table .chassis-input:focus { outline: none; border-color: var(--accent); }
 .chassis-input:focus { outline: none; border-color: #4ea1ff; }
 
 /* Data Table */
@@ -1391,9 +1396,19 @@ function setBikeInput(bikeIdx, key, raw) {
   if (isNaN(n)) return;
   const m = INPUT_META[key];
   if (m) n = Math.max(m.min, Math.min(m.max, n));
+  if (!b.overrides) b.overrides = {};
+  // Track that the user explicitly set this field — drives the
+  // "blank until inputs are real" logic in the data table.
+  b.overrides[key] = n;
   b.values[key] = n;
-  if (key === 'front_weight_dist') b.values.rear_weight_dist  = +(1 - n).toFixed(3);
-  if (key === 'rear_weight_dist')  b.values.front_weight_dist = +(1 - n).toFixed(3);
+  if (key === 'front_weight_dist') {
+    b.overrides.rear_weight_dist = +(1 - n).toFixed(3);
+    b.values.rear_weight_dist    = b.overrides.rear_weight_dist;
+  }
+  if (key === 'rear_weight_dist') {
+    b.overrides.front_weight_dist = +(1 - n).toFixed(3);
+    b.values.front_weight_dist    = b.overrides.front_weight_dist;
+  }
   saveState();
   renderContent();
 }
