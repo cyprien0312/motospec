@@ -193,6 +193,38 @@ function chassisGeometry(values) {
   // CG dot:
   const cg = { x: rearAxle.x + LCG, y: HCG };
 
+  // Chain geometry: front sprocket sits in the frame at (swingPivot + Fsx, +Fsy);
+  // rear sprocket follows the rear axle. Pitch radii from tooth count + chain
+  // pitch. r = pitch / (2 sin(π / N)) — standard sprocket pitch-circle formula.
+  const fsx        = +v.Front_Sprocket_X || 50;
+  const fsy        = +v.Front_Sprocket_Y || 10;
+  const chainPitch = +v.Chain_Pitch      || 15.875;
+  const teethF     = Math.max(8,  +v.Front_Sprocket || 16);
+  const teethR     = Math.max(20, +v.Rear_Sprocket  || 42);
+  const sprocketRadius = (N) => chainPitch / (2 * Math.sin(Math.PI / N));
+  const rSprF = sprocketRadius(teethF);
+  const rSprR = sprocketRadius(teethR);
+  const frontSprocket = { x: swingPivot.x + fsx, y: swingPivot.y + fsy };
+  const rearSprocket  = { x: rearAxle.x,         y: rearAxle.y };
+  // Upper external tangent of the two sprockets — this is the loaded chain run,
+  // the line whose angle drives theta_chain / AntiSquat.
+  const chainDx = rearSprocket.x - frontSprocket.x;
+  const chainDy = rearSprocket.y - frontSprocket.y;
+  const chainD  = Math.hypot(chainDx, chainDy);
+  let chainTop1 = frontSprocket, chainTop2 = rearSprocket;
+  let chainBot1 = frontSprocket, chainBot2 = rearSprocket;
+  if (chainD > Math.max(rSprF, rSprR)) {
+    const phi   = Math.asin(Math.max(-1, Math.min(1, (rSprR - rSprF) / chainD)));
+    const theta = Math.atan2(chainDy, chainDx);
+    // Upper tangent: rotate the line-of-centers direction by +π/2 then by -phi.
+    const aTop = theta + Math.PI / 2 - phi;
+    const aBot = theta - Math.PI / 2 + phi;
+    chainTop1 = { x: frontSprocket.x + rSprF * Math.cos(aTop), y: frontSprocket.y + rSprF * Math.sin(aTop) };
+    chainTop2 = { x: rearSprocket.x  + rSprR * Math.cos(aTop), y: rearSprocket.y  + rSprR * Math.sin(aTop) };
+    chainBot1 = { x: frontSprocket.x + rSprF * Math.cos(aBot), y: frontSprocket.y + rSprF * Math.sin(aBot) };
+    chainBot2 = { x: rearSprocket.x  + rSprR * Math.cos(aBot), y: rearSprocket.y  + rSprR * Math.sin(aBot) };
+  }
+
   // Fork sliders: line from steerHead through front axle, extended a touch.
   // Lower fork tubes also offset forward by `yoke` from the steering axis.
   const forkTop    = { x: steerHead.x + yoke * Math.cos(rake), y: steerHead.y };
@@ -210,6 +242,8 @@ function chassisGeometry(values) {
     rearContact, rearAxle, frontContact, frontAxle,
     swingPivot, steerHead, cg,
     forkTop, forkBottom, fpTick,
+    frontSprocket, rearSprocket, rSprF, rSprR, teethF, teethR, chainPitch,
+    chainTop1, chainTop2, chainBot1, chainBot2,
   };
 }
 
@@ -320,6 +354,14 @@ function renderChassisDiagram(values, lang) {
       <!-- wheels -->
       ${wheel(g.frontAxle, g.Rf)}
       ${wheel(g.rearAxle,  g.Rr)}
+      <!-- chain: sprockets + upper (loaded) + lower run -->
+      <circle cx="${px(g.frontSprocket.x).toFixed(1)}" cy="${py(g.frontSprocket.y).toFixed(1)}" r="${(g.rSprF * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
+      <circle cx="${px(g.rearSprocket.x).toFixed(1)}"  cy="${py(g.rearSprocket.y).toFixed(1)}"  r="${(g.rSprR * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
+      ${ln(g.chainTop1, g.chainTop2, '#84cc16', 2)}
+      ${ln(g.chainBot1, g.chainBot2, '#84cc16', 1.6, '4 3')}
+      ${dot(g.frontSprocket, 2.5, '#84cc16')}
+      ${txt(g.frontSprocket, `${g.teethF}T`, '#84cc16', 10, 'middle', 0, -((g.rSprF * scale) + 6))}
+      ${txt(g.rearSprocket,  `${g.teethR}T`, '#84cc16', 10, 'middle', 0, -((g.rSprR * scale) + 6))}
       <!-- key dots: swingarm pivot, CG, steering head -->
       ${dot(g.swingPivot, 4, '#a78bfa')}
       ${dot(g.cg, 5, '#22d3ee')}
