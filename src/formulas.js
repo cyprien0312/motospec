@@ -304,27 +304,75 @@ export const P = {
   },
   Motion_Ratio: {
     name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',
-    desc:'后轮垂直位移 / 后避震行程。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'后轮垂直位移对避震行程的瞬时比值，在静态点 δ=0 用 4-bar 连杆闭合数值微分求得。后轮高度 y_w = Swingarm_Length·sin(beta_static + δ)；避震长度 shock(δ) 由 closeFourBar 在每个摇臂角下解 rocker→shock 端点到 Frame_Shock_Top 的距离。',
+    formula: [
+      '|d ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+δ) / dδ|',
+      ' ÷ ',
+      '|d shock(δ; 4-bar) / dδ|',
+      '  |  δ = 0'
+    ],
+    deps: [
+      'Swingarm_Length', 'beta_static',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '中心差分实现：MR(0) ≈ (y_w(+ε) − y_w(−ε)) / (shock(+ε) − shock(−ε))，ε=0.5°。Pro-Link 模式同一求解器，将 β 取负在摇臂参考系中工作。'
   },
   Progression: {
     name:'Progression', label:'渐进性 (%)', unit:'%', type:'intermediate',
-    desc:'后悬挂全行程渐进性百分比。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'后悬挂全行程的运动比变化幅度，相对最小值的百分比。摇臂角从 0° 扫到全行程角，逐点求 Motion_Ratio。',
+    formula: [
+      '(MR_max − MR_min) / MR_min × 100',
+      '  |  δ ∈ [0°, 25°]'
+    ],
+    deps: [
+      'Swingarm_Length', 'beta_static',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '正值（典型 5–25%）= 渐进式连杆（越压越硬）；接近 0% = 几乎线性；负值 = 退化连杆（越压越软）。'
   },
   Rear_Ride_Height: {
     name:'Rear_Ride_Height', label:'后部车高参考', unit:'mm', type:'intermediate',
-    desc:'后部车高参考值。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'后轮轴心相对摇臂枢轴的有符号垂直坐标（轮在枢轴下方为负）。Shock_Clevis_RHA 把避震加长 → 摇臂转得更远离水平 → 后轮下沉，该值更负 → 实际车尾抬高。',
+    formula: [
+      '− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + Δβ_now)',
+      '  |  Δβ_now = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, ' + ', {ref:'Travel_Rear'}, ')'
+    ],
+    deps: [
+      'Swingarm_Length', 'beta_static', 'Shock_Clevis_RHA', 'Travel_Rear',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '静态时 (Travel_Rear=0、RHA=0)，简化为 −Swingarm_Length·sin(beta_static)。RHA 改变 4-bar 静态参考点。'
   },
   Rear_Wheel_Vertical_Travel: {
     name:'Rear_Wheel_Vertical_Travel', label:'后轮垂直行程', unit:'mm', type:'intermediate',
-    desc:'后轮的垂直位移。需要连杆几何 (Phase C)。',
-    formula: ['(Phase C 连杆求解)'],
-    deps: []
+    desc:'当前避震位下的轮位相对 RHA 调整后静态参考点的垂直位移幅度（恒为非负）。约等于 shock 行程 × Motion_Ratio（在 MR 的局部线性段成立）。',
+    formula: [
+      '| ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+Δβ_now)',
+      ' − ',
+      {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+Δβ_static) |',
+      '  |  Δβ_now = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, '+', {ref:'Travel_Rear'}, '),  Δβ_static = 4-bar 反解(', {ref:'Shock_Clevis_RHA'}, ')'
+    ],
+    deps: [
+      'Swingarm_Length', 'beta_static', 'Shock_Clevis_RHA', 'Travel_Rear',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: 'Travel_Rear=0 时恒为 0。非线性渐进连杆下，wheel 行程 / shock 行程不等于静态 Motion_Ratio。'
   },
   Rear_Wheel_Rate: {
     name:'Rear_Wheel_Rate', label:'后轮综合刚度', unit:'N/mm', type:'channel',
