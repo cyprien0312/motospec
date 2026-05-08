@@ -137,9 +137,9 @@ test('Wheel Rate rows reflect real formulas (no PENDING status)', () => {
   const results = ROW_GROUPS.find(g => g.header === 'RESULTS').rows;
   const fr = results.find(r => r.computed === 'Front_Wheel_Rate');
   const rr = results.find(r => r.computed === 'Rear_Wheel_Rate');
-  // Front Wheel Rate is fully real — no badge.
+  // Both wheel-rate rows use real formulas — no status badge. The
+  // missing-input system handles the linkage-coordinate concern by
+  // blanking the cell when no linkage is bound.
   assert.equal(fr.status, undefined);
-  // Rear Wheel Rate depends on Motion_Ratio (which needs real linkage coords)
-  // so it carries the same 'coords' badge as other linkage-dependent rows.
-  assert.equal(rr.status, 'coords');
+  assert.equal(rr.status, undefined);
 });

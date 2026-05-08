@@ -365,25 +365,30 @@ function sampleMotionRatio(values, fullBumpDeg = 25, samples = 25) {
 }
 
 function renderMotionRatioChart(values, lang) {
-  const W = 520, H = 520;
-  const padL = 60, padR = 64, padT = 36, padB = 44;
+  // Larger viewBox so when the SVG scales to fill the page width the internal
+  // 10–11px text and 2.2px strokes still look proportionally fine. Aspect is
+  // preserved by viewBox; height grows in proportion via width:100%/height:auto.
+  const W = 1500, H = 650;
+  const padL = 80, padR = 90, padT = 48, padB = 64;
   const data = sampleMotionRatio(values);
   const empty = `<div class="linkage-chart-empty">${lang === 'en' ? 'No motion-ratio data — check coords.' : '无运动比数据 — 请检查坐标。'}</div>`;
   if (data.samples.length < 2 || !Number.isFinite(data.mrMin) || !Number.isFinite(data.mrMax)) return empty;
   const xMin = 0, xMax = data.samples[data.samples.length - 1].travel;
   if (!(xMax > 0)) return empty;
 
-  // Anchor both axes on their static value with the SAME fractional span,
-  // so MR and wheel-rate curves are visually directly comparable —
-  // a flat line means linear, divergent curvature means progression.
+  // Anchor both axes on their static value with the SAME fractional span so
+  // MR and wheel-rate curves stay visually comparable. Enforce a *minimum*
+  // half-span so a barely-progressive linkage looks barely-progressive (no
+  // false dramatic curvature from auto-zoom into a 0.5%-tall data range).
   const mrStatic = data.samples[0].mr;
   const wrStatic = data.samples[0].wr;
+  const MIN_HALF_SPAN = 0.20; // ±20% of static — honest visual baseline
   const mrFracDown = Math.max(0, (mrStatic - data.mrMin) / mrStatic);
   const mrFracUp   = Math.max(0, (data.mrMax - mrStatic) / mrStatic);
   const wrFracDown = Math.max(0, (wrStatic - data.wrMin) / wrStatic);
   const wrFracUp   = Math.max(0, (data.wrMax - wrStatic) / wrStatic);
-  const fracDown = Math.max(mrFracDown, wrFracDown, 0.005) + 0.015;
-  const fracUp   = Math.max(mrFracUp,   wrFracUp,   0.005) + 0.015;
+  const fracDown = Math.max(mrFracDown, wrFracDown, MIN_HALF_SPAN);
+  const fracUp   = Math.max(mrFracUp,   wrFracUp,   MIN_HALF_SPAN);
   const mrYMin = mrStatic * (1 - fracDown), mrYMax = mrStatic * (1 + fracUp);
   const wrYMin = wrStatic * (1 - fracDown), wrYMax = wrStatic * (1 + fracUp);
 
@@ -394,23 +399,25 @@ function renderMotionRatioChart(values, lang) {
   const syMR = (mr) => sy(fracOf(mr, mrYMin, mrYMax));
   const syWR = (wr) => sy(fracOf(wr, wrYMin, wrYMax));
 
-  // Grid + axis labels (1 decimal; share grid lines, label with each axis's value)
-  const yTicks = 4, xTicks = 5;
+  // Grid + axis labels. Y at fixed 0.1 MR steps (1.1, 1.2, …) and X at fixed
+  // 10 mm steps (0, 10, 20, …) so spacing is independent of data extent.
+  const Y_STEP_MR = 0.1;
+  const X_STEP_MM = 10;
   let grid = '';
-  for (let i = 0; i <= yTicks; i++) {
-    const frac = i / yTicks;
+  const mrTickStart = Math.ceil(mrYMin / Y_STEP_MR) * Y_STEP_MR;
+  for (let mrV = mrTickStart; mrV <= mrYMax + 1e-9; mrV += Y_STEP_MR) {
+    const frac = (mrV - mrYMin) / (mrYMax - mrYMin);
     const y = sy(frac);
-    const mrV = mrYMin + frac * (mrYMax - mrYMin);
     const wrV = wrYMin + frac * (wrYMax - wrYMin);
     grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#2a3340" stroke-width="1"/>`;
-    grid += `<text x="${padL - 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="end">${mrV.toFixed(1)}</text>`;
-    grid += `<text x="${W - padR + 6}" y="${y + 3}" fill="#5a6878" font-size="10" text-anchor="start">${wrV.toFixed(1)}</text>`;
+    grid += `<text x="${padL - 6}" y="${y + 4}" fill="#5a6878" font-size="16" text-anchor="end">${mrV.toFixed(1)}</text>`;
+    grid += `<text x="${W - padR + 6}" y="${y + 4}" fill="#5a6878" font-size="16" text-anchor="start">${wrV.toFixed(1)}</text>`;
   }
-  for (let i = 0; i <= xTicks; i++) {
-    const v = xMin + (i / xTicks) * (xMax - xMin);
+  const xTickStart = Math.ceil(xMin / X_STEP_MM) * X_STEP_MM;
+  for (let v = xTickStart; v <= xMax + 1e-9; v += X_STEP_MM) {
     const x = sx(v);
     grid += `<line x1="${x}" y1="${H - padB}" x2="${x}" y2="${H - padB + 3}" stroke="#5a6878" stroke-width="1"/>`;
-    grid += `<text x="${x}" y="${H - padB + 16}" fill="#5a6878" font-size="10" text-anchor="middle">${v.toFixed(0)}</text>`;
+    grid += `<text x="${x}" y="${H - padB + 20}" fill="#5a6878" font-size="16" text-anchor="middle">${v.toFixed(0)}</text>`;
   }
 
   // Axis titles
@@ -418,10 +425,10 @@ function renderMotionRatioChart(values, lang) {
   const yTitleL = lang === 'en' ? 'Motion Ratio (wheel/shock)' : '运动比 (轮/避震)';
   const yTitleR = lang === 'en' ? 'Wheel Rate (N/mm)' : '后轮综合刚度 (N/mm)';
   const axisTitles = `
-    <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="11" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
-    <text x="14" y="${(H + padT - padB) / 2}" fill="#4ea1ff" font-size="11" text-anchor="middle" font-weight="600"
+    <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="16" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
+    <text x="14" y="${(H + padT - padB) / 2}" fill="#4ea1ff" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitleL)}</text>
-    <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#f472b6" font-size="11" text-anchor="middle" font-weight="600"
+    <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#f472b6" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(90, ${W - 14}, ${(H + padT - padB) / 2})">${escapeHtml(yTitleR)}</text>
   `;
 
@@ -452,11 +459,11 @@ function renderMotionRatioChart(values, lang) {
 
   // Legend
   const legend = `
-    <g font-size="10" font-weight="600">
-      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 26}" y2="${padT + 8}" stroke="#4ea1ff" stroke-width="2.2"/>
-      <text x="${padL + 30}" y="${padT + 11}" fill="#4ea1ff">MR</text>
-      <line x1="${padL + 60}" y1="${padT + 8}" x2="${padL + 80}" y2="${padT + 8}" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="5 3"/>
-      <text x="${padL + 84}" y="${padT + 11}" fill="#f472b6">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
+    <g font-size="16" font-weight="600">
+      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 32}" y2="${padT + 8}" stroke="#4ea1ff" stroke-width="2.6"/>
+      <text x="${padL + 38}" y="${padT + 13}" fill="#4ea1ff">MR</text>
+      <line x1="${padL + 80}" y1="${padT + 8}" x2="${padL + 106}" y2="${padT + 8}" stroke="#f472b6" stroke-width="2.6" stroke-dasharray="5 3"/>
+      <text x="${padL + 112}" y="${padT + 13}" fill="#f472b6">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
     </g>
   `;
 
@@ -479,8 +486,8 @@ function renderMotionRatioChart(values, lang) {
       <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#fbbf24" stroke="#0c1116" stroke-width="1.8" style="cursor: ew-resize;"/>
       ${axisTitles}
       ${legend}
-      <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#fbbf24" font-size="11" font-weight="700">${escapeHtml(readoutText)}</text>
-      <text x="${W - padR - 4}" y="${padT - 12}" fill="#cbd5e1" font-size="11" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
+      <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#fbbf24" font-size="16" font-weight="700">${escapeHtml(readoutText)}</text>
+      <text x="${W - padR - 4}" y="${padT - 12}" fill="#cbd5e1" font-size="16" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
       <rect x="${padL}" y="${padT}" width="${(W - padL - padR).toFixed(0)}" height="${(H - padT - padB).toFixed(0)}"
             fill="transparent" style="cursor: ew-resize;"
             onpointerdown="linkageReadoutDown(event)"
@@ -508,7 +515,7 @@ function fmtReadout(out, key, unit) {
 // always render at a sensible scale.
 function renderTopologySVG(values, mode = 'linked') {
   const proLink = mode === 'pro-link';
-  const W = 720, H = 440;
+  const W = 1000, H = 467;
 
   const swingarmLength = values.Swingarm_Length || 580;
   const beta = (values.beta_static || 14) * Math.PI / 180;

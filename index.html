@@ -1760,9 +1760,9 @@ function renderNav() {
   const catSub   = lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …';
   const dashHTML = [
     navItem('__dashboard', T('dashboard_nav'), T('dashboard_sub')),
-    navItem('__datatable', T('datatable_nav'), T('datatable_sub')),
     navItem('__chassis',   T('chassis_nav'),   T('chassis_sub')),
     navItem('__linkage',   T('linkage_nav'),   T('linkage_sub')),
+    navItem('__datatable', T('datatable_nav'), T('datatable_sub')),
     navItem('__catalogs',  catLabel,           catSub),
   ].join('');
   document.getElementById('nav-channels').innerHTML = dashHTML;
