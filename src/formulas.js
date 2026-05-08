@@ -27,13 +27,13 @@ export const P = {
     note: 'Rake 转弧度后代入。增大 Rake 或减小 Yoke_Offset 都会增大 Trail，提高直行稳定性但降低转向轻巧度。'
   },
   MotoSPEC_Rake: {
-    name: 'MotoSPEC_Rake', label: '动态后倾角', unit: 'deg', type: 'channel',
-    desc: '车辆运动中实时的转向轴前倾角度。前叉压缩、后减震伸展时车头下沉，Rake 变小。',
+    name: 'MotoSPEC_Rake', label: '后倾角', unit: 'deg', type: 'channel',
+    desc: '转向轴相对垂直方向的角度。静态阶段直接等于 Rake_Static；动态俯仰修正暂未启用。',
     formula: [
-      {ref:'Rake_Static'}, ' − ', {ref:'Pitch'}, ' × (180 / π)'
+      {ref:'Rake_Static'}
     ],
-    deps: ['Rake_Static', 'Pitch'],
-    note: 'arctan 算出的 Pitch 是弧度，乘 180/π 转为度数后再相减。'
+    deps: ['Rake_Static'],
+    note: 'dynamic phase 时会重新引入 Pitch 修正：Rake_Static − Pitch × (180/π)。'
   },
   MotoSPEC_Trail: {
     name: 'MotoSPEC_Trail', label: '动态拖曳距', unit: 'mm', type: 'channel',
@@ -293,11 +293,11 @@ export const P = {
     deps: ['Front_Sprocket', 'Rear_Sprocket']
   },
   swingarm_delta_solve: {
-    name: 'Δβ_solve', label: '4-bar 反解（避震行程 → 摇臂角变化）', unit: 'deg', type: 'intermediate',
-    desc:'给定当前 Travel_Rear 和 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对静态位的旋转角 Δβ。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 Swingarm_Angle / Rear_Ride_Height / Rear_Wheel_Vertical_Travel 共用。',
+    name: 'Δβ_static', label: '4-bar 反解（RHA → 静态摇臂角变化）', unit: 'deg', type: 'intermediate',
+    desc:'给定 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对原静态位的旋转角 Δβ_static。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 Swingarm_Angle / Rear_Ride_Height 共用。Travel_Rear 视为 0（静态阶段）。',
     formula: [
       ['Δβ = δ*  s.t.  shock(δ*) = L_target'],
-      ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}, ' − ', {ref:'Travel_Rear'}],
+      ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}],
       ['外层: 二分搜索 δ ∈ [−45°, +45°]，每步评估 shock(δ_mid)'],
       ['shock(δ) = | rocker_shock_end(δ) − ', {ref:'Frame_Shock_Top_X'}, ',', {ref:'Frame_Shock_Top_Y'}, ' |'],
       ['rocker_shock_end(δ) = ', {ref:'Frame_Rocker_Pivot_X'}, ',', {ref:'Frame_Rocker_Pivot_Y'}, ' + R(Δφ)·(', {ref:'Rocker_To_Shock_X'}, ',', {ref:'Rocker_To_Shock_Y'}, ')'],
@@ -307,14 +307,14 @@ export const P = {
       ['Pro-Link 模式：β 取负，Frame_Shock_Top 在摇臂坐标系中反向旋转一次'],
     ],
     deps: [
-      'Shock_Clevis_RHA', 'Travel_Rear',
+      'Shock_Clevis_RHA',
       'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
       'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
       'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
       'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
       'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
     ],
-    note: '正负约定：避震压缩 (Travel_Rear>0) → shock 长度变短 → 摇臂上移 → δ 为负（角度减小，摇臂趋于水平）。RHA>0 把 shock 物理加长 → 摇臂被顶下 → 静态 δ 为正。'
+    note: 'RHA>0 把 shock 物理加长 → 摇臂被顶下 → 静态 δ 为正。Dynamic 阶段（含 Travel_Rear）回归时拆出独立的 swingarm_delta_dynamic 即可。'
   },
   Motion_Ratio: {
     name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',
@@ -453,12 +453,12 @@ export const CALC = {
   },
   Pitch:         v => Math.atan((v.Travel_Front - v.Travel_Rear) / v.WB),
   delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.Swingarm_Length))),
-  MotoSPEC_Rake: v => v.Rake_Static - v.Pitch * R2D,
+  MotoSPEC_Rake: v => v.Rake_Static,
   MotoSPEC_Trail: v => {
     const r = v.MotoSPEC_Rake * D2R;
     return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
-  swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, v.Travel_Rear, v.Shock_Clevis_RHA || 0),
+  swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, 0, v.Shock_Clevis_RHA || 0),
   Swingarm_Angle: v => v.beta_static + v.swingarm_delta_solve,
   theta_chain_dynamic: v => {
     // Sprocket pitch radii (mm): r = pitch / (2·sin(π/N))

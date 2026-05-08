@@ -106,14 +106,16 @@ test('H3: frame-intrinsic input rows exist in ROW_GROUPS', () => {
   }
 });
 
-test('H3: MotoSPEC_FrontForce / RearForce rows no longer carry status: partial', () => {
+test('Dynamic-only rows are removed from RESULTS (static-first mode)', () => {
+  // While the dynamic phase is offline, rows that inherently need
+  // Travel_Front / Travel_Rear / a_x / V / Cd / A — i.e. wheel-vertical
+  // travel and the front/rear wheel forces — are dropped from the table.
+  // They will return when the dynamic-load pipeline is re-wired.
   const allRows = ROW_GROUPS.flatMap(g => g.rows);
-  const frontForce = allRows.find(r => r.computed === 'MotoSPEC_FrontForce');
-  const rearForce = allRows.find(r => r.computed === 'MotoSPEC_RearForce');
-  assert.ok(frontForce);
-  assert.ok(rearForce);
-  assert.notEqual(frontForce.status, 'partial');
-  assert.notEqual(rearForce.status, 'partial');
+  for (const id of ['MotoSPEC_FrontForce', 'MotoSPEC_RearForce', 'Rear_Wheel_Vertical_Travel']) {
+    assert.ok(!allRows.some(r => r.computed === id),
+      `Expected ${id} row to be removed from RESULTS while dynamic is offline`);
+  }
 });
 
 test('defaultBikes seeds three neutral placeholder bikes', () => {

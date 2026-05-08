@@ -174,22 +174,23 @@ for (const b of REFERENCE_BIKES) {
   }
 }
 
-test('Swingarm_Angle is routed through the linkage (H1)', () => {
-  // With the default pro-link placeholder coords and Travel_Rear=25, the
-  // linkage-routed swingarm angle should differ noticeably from the legacy
-  // asin(Travel_Rear/Swingarm_Length) approximation. >0.5° guarantees we're not still
-  // computing the asin shortcut by accident.
-  const v = { ...defaultValues(), Travel_Rear: 25 };
-  const out = computeAll(v);
-  const oldApprox = v.beta_static - Math.asin(v.Travel_Rear / v.Swingarm_Length) * 180 / Math.PI;
-  const diff = Math.abs(out.Swingarm_Angle - oldApprox);
-  assert.ok(Number.isFinite(out.Swingarm_Angle),
-    `Swingarm_Angle not finite: ${out.Swingarm_Angle}`);
-  assert.ok(diff > 0.5,
-    `Expected linkage-routed Swingarm Angle to differ from the asin approximation by >0.5°; got diff=${diff.toFixed(3)}° (new=${out.Swingarm_Angle.toFixed(3)}, old=${oldApprox.toFixed(3)})`);
-  // On compression, swingarm angle below horizontal should decrease.
-  assert.ok(out.Swingarm_Angle < v.beta_static,
-    `Expected new Swingarm Angle < beta_static on compression; got ${out.Swingarm_Angle} vs ${v.beta_static}`);
+test('Swingarm_Angle ignores Travel_Rear in static-only mode (H1)', () => {
+  // Static phase: swingarm_delta_solve is hard-pinned to Travel_Rear=0.
+  // Changing Travel_Rear must NOT move Swingarm_Angle — only Shock_Clevis_RHA
+  // can shift the static angle. (Dynamic phase will re-introduce a separate
+  // swingarm_delta_dynamic channel.)
+  const v0 = { ...defaultValues(), Travel_Rear: 0 };
+  const vT = { ...defaultValues(), Travel_Rear: 25 };
+  const r0 = computeAll(v0);
+  const rT = computeAll(vT);
+  assert.ok(Number.isFinite(r0.Swingarm_Angle));
+  assert.equal(rT.Swingarm_Angle, r0.Swingarm_Angle,
+    `Travel_Rear must not affect Swingarm_Angle in static mode; got ${rT.Swingarm_Angle} vs ${r0.Swingarm_Angle}`);
+  // With RHA=0 the static angle must equal beta_static exactly.
+  const vBase = { ...defaultValues(), Shock_Clevis_RHA: 0, Travel_Rear: 0 };
+  const rBase = computeAll(vBase);
+  assert.ok(Math.abs(rBase.Swingarm_Angle - vBase.beta_static) < 1e-6,
+    `Swingarm_Angle should equal beta_static when RHA=0; got ${rBase.Swingarm_Angle} vs ${vBase.beta_static}`);
 });
 
 test('Shock_Clevis_RHA shifts Swingarm_Angle and rear ride height', () => {
