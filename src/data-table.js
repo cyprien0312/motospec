@@ -21,39 +21,39 @@ export const ROW_GROUPS = [
   ]},
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
     { spec: 'Clamp/Yoke',                                           spec_zh: '三星台',               component: 'clamp' },
-    { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移 (mm)',      input: 'Yoke_Offset' },
+    { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移量 (mm)',    input: 'Yoke_Offset' },
     { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position', status: 'pending' },
     { spec: 'Fork',                                                 spec_zh: '前叉',                 component: 'fork' },
-    { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Front_Spring_Rate', status: 'pending' },
-    { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Front_Spring_Preload', status: 'pending' },
-    { spec: 'Oil Level (mm)',                                       spec_zh: '油位 (mm)',            input: 'Front_Oil_Level', status: 'pending' },
-    { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Front_Topout_Rate', status: 'pending' },
-    { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Front_Topout_Length', status: 'pending' },
+    { spec: 'Spring Rate (N/mm)',                                   spec_zh: '前叉弹簧刚度 (N/mm)',  input: 'Front_Spring_Rate', status: 'pending' },
+    { spec: 'Spring Preload (mm)',                                  spec_zh: '前叉弹簧预压 (mm)',    input: 'Front_Spring_Preload', status: 'pending' },
+    { spec: 'Oil Level (mm)',                                       spec_zh: '前叉油位 (mm)',        input: 'Front_Oil_Level', status: 'pending' },
+    { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '前叉回顶弹簧刚度 (N/mm)', input: 'Front_Topout_Rate', status: 'pending' },
+    { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '前叉回顶弹簧长度 (mm)', input: 'Front_Topout_Length', status: 'pending' },
   ]},
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
     { spec: 'Swingarm',                                             spec_zh: '摇臂',                 component: 'swingarm' },
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
-    { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '避震Clevis车高 (mm)',  input: 'Shock_Clevis_RHA' },
+    { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '后避震Clevis调整 (mm)', input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
-    { spec: 'Shock Length (mm)',                                    spec_zh: '避震长度 (mm)',        input: 'Shock_Length', status: 'pending' },
-    { spec: 'Spring Rate (N/mm)',                                   spec_zh: '弹簧刚度 (N/mm)',      input: 'Rear_Spring_Rate', status: 'pending' },
-    { spec: 'Spring Preload (mm)',                                  spec_zh: '弹簧预压 (mm)',        input: 'Rear_Spring_Preload', status: 'pending' },
-    { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '回顶刚度 (N/mm)',      input: 'Rear_Topout_Rate', status: 'pending' },
-    { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '回顶有效长度 (mm)',    input: 'Rear_Topout_Length', status: 'pending' },
+    { spec: 'Shock Length (mm)',                                    spec_zh: '后避震长度 (mm)',      input: 'Shock_Length', status: 'pending' },
+    { spec: 'Spring Rate (N/mm)',                                   spec_zh: '后避震弹簧刚度 (N/mm)', input: 'Rear_Spring_Rate', status: 'pending' },
+    { spec: 'Spring Preload (mm)',                                  spec_zh: '后避震弹簧预压 (mm)',  input: 'Rear_Spring_Preload', status: 'pending' },
+    { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '后避震回顶刚度 (N/mm)', input: 'Rear_Topout_Rate', status: 'pending' },
+    { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '后避震回顶长度 (mm)',  input: 'Rear_Topout_Length', status: 'pending' },
     { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
   ]},
   { header: 'SPROCKETS', header_zh: '链轮', rows: [
-    { spec: 'Front Sprocket',                                       spec_zh: '前链轮',              input: 'Front_Sprocket' },
-    { spec: 'Rear Sprocket',                                        spec_zh: '后链轮',              input: 'Rear_Sprocket' },
+    { spec: 'Front Sprocket',                                       spec_zh: '前链轮齿数',          input: 'Front_Sprocket' },
+    { spec: 'Rear Sprocket',                                        spec_zh: '后链轮齿数',          input: 'Rear_Sprocket' },
     { spec: 'Final Ratio',                                          spec_zh: '最终传动比',          computed: 'Final_Ratio' },
   ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
-    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
-    { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
+    { spec: 'Rake (degrees)',                                       spec_zh: '动态后倾角 (度)',     computed: 'MotoSPEC_Rake' },
+    { spec: 'Ground Trail (mm)',                                    spec_zh: '动态拖曳距 (mm)',     computed: 'MotoSPEC_Trail' },
     { spec: 'Rear Wheel Vertical Travel (mm)',                      spec_zh: '后轮垂直行程 (mm)',   computed: 'Rear_Wheel_Vertical_Travel', status: 'coords' },
     { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height',           status: 'coords' },
-    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角 (度)',         computed: 'Swingarm_Angle',        status: 'coords' },
-    { spec: 'Anti-Squat (%)',                                       spec_zh: '抗蹲 (%)',            computed: 'Anti_Squat',                  status: 'coords' },
+    { spec: 'Swingarm Angle (degrees)',                             spec_zh: '摇臂角度 (度)',       computed: 'Swingarm_Angle',        status: 'coords' },
+    { spec: 'Anti-Squat (%)',                                       spec_zh: '抗蹲百分比 (%)',      computed: 'Anti_Squat',                  status: 'coords' },
     { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression',                status: 'coords' },
     { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio',               status: 'coords' },
     { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB',                         status: 'static' },
@@ -75,6 +75,35 @@ const STATUS_BADGE = {
 };
 
 const DASH = '—';
+
+// All linkage XY coords (used to detect when a bike is sitting on the
+// INPUT_META placeholder defaults).
+const LINKAGE_COORD_KEYS = [
+  'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+  'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+  'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+  'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+  'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+];
+
+// True when this bike's effective linkage coords are still placeholders —
+// either (a) the chosen linkage catalog entry self-declares its source as
+// PLACEHOLDER, or (b) no linkage is bound and the coords match
+// defaultValues() exactly. The 'coords' badge on RESULTS rows is rendered
+// per-cell based on this flag.
+export function bikeUsesPlaceholderLinkage(bike) {
+  const lid = bike?.components?.linkage;
+  if (lid) {
+    const entry = (CATALOGS.linkages || {})[lid];
+    if (entry && /placeholder/i.test(entry.source || '')) return true;
+    if (entry) return false;
+  }
+  const defaults = defaultValues();
+  for (const k of LINKAGE_COORD_KEYS) {
+    if ((bike?.values?.[k]) !== defaults[k]) return false;
+  }
+  return true;
+}
 
 // component bike-key → catalog name
 export const COMPONENT_TO_CATALOG = {
@@ -166,6 +195,9 @@ export function renderDataTable(state) {
     : defaultBikes();
 
   const outs = bikes.map(b => computeAll({ ...b.values }));
+  // Per-bike "coords are still placeholders" flag — drives per-cell badges
+  // on RESULTS rows whose status === 'coords'.
+  const placeholderByBike = bikes.map(bikeUsesPlaceholderLinkage);
 
   const removeTitle = lang === 'en' ? 'Remove this column' : '删除该列';
   const addLabel    = lang === 'en' ? '+ Add Bike' : '+ 新增车型';
@@ -204,7 +236,10 @@ export function renderDataTable(state) {
     body += `<tr class="dt-group"><th colspan="${groupColspan}">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
       const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
-      const badge = row.status && STATUS_BADGE[row.status]
+      // 'coords' is now a per-cell badge (only on bikes whose linkage is
+      // still a placeholder), so suppress it from the row label.
+      const showRowBadge = row.status && STATUS_BADGE[row.status] && row.status !== 'coords';
+      const badge = showRowBadge
         ? `<span class="dt-status dt-status-${row.status}" title="${escapeHtml(STATUS_BADGE[row.status][`title_${lang}`])}">${escapeHtml(STATUS_BADGE[row.status][lang])}</span>`
         : '';
       const label = `${escapeHtml(baseLabel)}${badge ? ' ' + badge : ''}`;
@@ -212,6 +247,13 @@ export function renderDataTable(state) {
       for (let i = 0; i < bikes.length; i++) {
         const b = bikes[i];
         const out = outs[i];
+        // Per-cell badge: a 'coords' status row marks only the bikes whose
+        // effective linkage is still on placeholder coords. Real coords →
+        // no badge, the number is trustworthy.
+        const cellPlaceholder = row.status === 'coords' && placeholderByBike[i];
+        const cellBadge = cellPlaceholder
+          ? ` <span class="dt-status dt-status-coords" title="${escapeHtml(STATUS_BADGE.coords[`title_${lang}`])}">${escapeHtml(STATUS_BADGE.coords[lang])}</span>`
+          : '';
         if (row.literal != null) {
           cells += literalCell(row.literal);
         } else if (row.component) {
@@ -219,9 +261,9 @@ export function renderDataTable(state) {
         } else if (row.input) {
           cells += inputCell(i, row.input, b.values?.[row.input]);
         } else if (row.derivedFrom) {
-          cells += readonlyCell(fmtNum(row.derivedFrom(out)));
+          cells += `<td class="dt-readonly"><span>${escapeHtml(fmtNum(row.derivedFrom(out)))}</span>${cellBadge}</td>`;
         } else if (row.computed) {
-          cells += readonlyCell(fmtNum(out[row.computed]));
+          cells += `<td class="dt-readonly"><span>${escapeHtml(fmtNum(out[row.computed]))}</span>${cellBadge}</td>`;
         } else {
           cells += readonlyCell(DASH);
         }
