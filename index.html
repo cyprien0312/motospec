@@ -172,6 +172,29 @@
   .dash-card .dash-val { color: var(--channel); font-size: 22px; font-weight: 700; font-family: "SF Mono", Monaco, monospace; }
   .dash-card.intermediate .dash-val { color: var(--intermediate); }
 
+  /* Formula cards on the dashboard */
+  .formula-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 12px;
+  }
+  .formula-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; transition: border-color 0.15s;
+  }
+  .formula-card.channel:hover      { border-color: var(--channel); }
+  .formula-card.intermediate:hover { border-color: var(--intermediate); }
+  .formula-card-head {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 10px; cursor: pointer;
+  }
+  .formula-card-head:hover { opacity: 0.85; }
+  .formula-card-name { color: var(--text); font-family: "SF Mono", Monaco, monospace; font-weight: 700; font-size: 14px; }
+  .formula-card.channel      .formula-card-name { color: var(--channel); }
+  .formula-card.intermediate .formula-card-name { color: var(--intermediate); }
+  .formula-card-label { color: var(--text-dim); font-size: 12px; }
+  .formula-card-unit  { color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  .formula-card-body  { font-family: "SF Mono", Monaco, monospace; font-size: 13px; line-height: 1.7; color: var(--text); word-break: break-word; }
+
   .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
   .preset-btn {
     background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
@@ -486,12 +509,7 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
     <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
     <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
   </div>
-  <h2 data-ui="nav_channels">6 大核心通道</h2>
   <div id="nav-channels"></div>
-  <h2 data-ui="nav_intermediate">中间量</h2>
-  <div id="nav-intermediate"></div>
-  <h2 data-ui="nav_inputs">输入参数</h2>
-  <div id="nav-inputs"></div>
 </aside>
 <main>
   <div class="breadcrumbs" id="breadcrumbs"></div>
@@ -554,16 +572,15 @@ const P_EN = {
 // ============================================================
 const UI = {
   zh: {
-    nav_channels: '6 大核心通道', nav_intermediate: '中间量', nav_inputs: '输入参数',
-    dashboard_nav: '📊 仪表盘', dashboard_sub: '实时计算总览',
+    dashboard_nav: '📊 仪表盘', dashboard_sub: '公式总览',
     datatable_nav: '📋 数据表', datatable_sub: '参考车型对照',
     chassis_nav: '🏗 底盘设置', chassis_sub: '车架几何 · 重心 · 气动',
     linkage_nav: '🔧 连杆几何', linkage_sub: '后悬挂点位测量',
     linkage_kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
     linkage_desc: '所有坐标以摇臂枢轴为原点 (+X 朝前、+Y 朝上、单位 mm)。',
     linkage_reset: '↺ 恢复占位坐标',
-    dashboard_title: '仪表盘', dashboard_kicker: '实时计算 · 6 大通道',
-    dashboard_desc: '所有通道与中间量的实时计算结果。点击卡片跳转到详细页查看公式与图示，或在左侧"输入参数"中调整任何变量。',
+    dashboard_title: '仪表盘', dashboard_kicker: '公式参考 · Channels + Intermediates',
+    dashboard_desc: '所有计算公式一览。点击任意公式中的参数 chip 可跳转到该参数的详细页（公式 / 依赖 / 图示）。数值在 底盘设置 / 连杆几何 / 数据表 中输入。',
     presets: '场景预设', main_channels: '6 大主通道', intermediates: '中间量',
     reset: '↺ 重置默认',
     type_channel: '主通道', type_intermediate: '中间量', type_input: '输入参数',
@@ -576,16 +593,15 @@ const UI = {
     drill_hint: '（点击下钻）',
   },
   en: {
-    nav_channels: '6 Core Channels', nav_intermediate: 'Intermediates', nav_inputs: 'Inputs',
-    dashboard_nav: '📊 Dashboard', dashboard_sub: 'Live calculation overview',
+    dashboard_nav: '📊 Dashboard', dashboard_sub: 'Formula reference',
     datatable_nav: '📋 Data Table', datatable_sub: 'Reference bike comparison',
     chassis_nav: '🏗 Chassis Setup', chassis_sub: 'Frame · CG · aero',
     linkage_nav: '🔧 Linkage Setup', linkage_sub: 'Rear suspension geometry',
     linkage_kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
     linkage_desc: 'All coords use the swingarm pivot as origin (+X forward, +Y up, mm).',
     linkage_reset: '↺ Reset to placeholder',
-    dashboard_title: 'Dashboard', dashboard_kicker: 'Live calc · 6 channels',
-    dashboard_desc: 'Live values for every channel and intermediate. Click a card for the formula and diagram, or tweak any variable in the left "Inputs" panel.',
+    dashboard_title: 'Dashboard', dashboard_kicker: 'Formula reference · channels + intermediates',
+    dashboard_desc: 'Every calculation formula at a glance. Click any parameter chip in a formula to drill into that parameter (formula / deps / diagram). Numerical inputs are entered on Chassis Setup / Linkage Setup / Data Table.',
     presets: 'Scenario Presets', main_channels: '6 Core Channels', intermediates: 'Intermediates',
     reset: '↺ Reset Defaults',
     type_channel: 'Channel', type_intermediate: 'Intermediate', type_input: 'Input',
@@ -1119,9 +1135,19 @@ const DYNAMIC_INPUTS = new Set([
   'Travel_Front', 'Travel_Rear', 'Lean_Angle',
   'a_x', 'V', 'Cd', 'A', 'rho',
 ]);
+// Outputs that are technically parameterized by a dynamic input (e.g.
+// Travel_Rear) but reduce to a meaningful static expression at the
+// static operating point. We surface them on the dashboard/sidebar so
+// the user can read the formula even though the dep chain hits a
+// dynamic leaf.
+const STATIC_DISPLAY_WHITELIST = new Set([
+  'Rear_Ride_Height',
+  'Rear_Wheel_Vertical_Travel',
+]);
 const _isDynCache = new Map();
 function isDynamicParam(id) {
   if (_isDynCache.has(id)) return _isDynCache.get(id);
+  if (STATIC_DISPLAY_WHITELIST.has(id)) { _isDynCache.set(id, false); return false; }
   if (DYNAMIC_INPUTS.has(id)) { _isDynCache.set(id, true); return true; }
   const p = P[id];
   if (!p || !Array.isArray(p.deps) || p.deps.length === 0) { _isDynCache.set(id, false); return false; }
@@ -1543,12 +1569,9 @@ function applyUIChrome() {
 }
 
 function renderNav() {
-  // Static-first: dynamic / operating-point parameters are hidden from the
-  // sidebar, dashboard, and drill-down. Their leaves still feed defaults
-  // for the chassis / linkage compute paths.
-  const channels = Object.keys(P).filter(k => P[k].type === 'channel' && !isDynamicParam(k));
-  const intermediates = Object.keys(P).filter(k => P[k].type === 'intermediate' && !isDynamicParam(k));
-  const inputs = Object.keys(P).filter(k => P[k].type === 'input' && !isDynamicParam(k));
+  // Sidebar shows only the 5 top-level tabs. Drill-down to specific
+  // parameters happens by clicking param chips in the formula cards on
+  // the dashboard, or via dependency cards on a parameter's detail page.
   const current = stack[stack.length - 1];
   const dashHTML = `<div class="nav-item dashboard ${current === '__dashboard' ? 'active' : ''}" onclick="navigateRoot('__dashboard')">
     <strong>${escapeHtml(T('dashboard_nav'))}</strong><span class="label">${escapeHtml(T('dashboard_sub'))}</span>
@@ -1565,15 +1588,7 @@ function renderNav() {
   <div class="nav-item dashboard ${current === '__catalogs' ? 'active' : ''}" onclick="navigateRoot('__catalogs')">
     <strong>${escapeHtml(lang === 'en' ? 'Component Library' : '部件库')}</strong><span class="label">${escapeHtml(lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …')}</span>
   </div>`;
-  const make = (ids) => ids.map(id => {
-    const p = P[id];
-    return `<div class="nav-item ${id === current ? 'active' : ''}" onclick="navigateRoot('${id}')">
-      <strong>${escapeHtml(p.name)}</strong><span class="label">${escapeHtml(tr(id,'label'))}</span>
-    </div>`;
-  }).join('');
-  document.getElementById('nav-channels').innerHTML = dashHTML + make(channels);
-  document.getElementById('nav-intermediate').innerHTML = make(intermediates);
-  document.getElementById('nav-inputs').innerHTML = make(inputs);
+  document.getElementById('nav-channels').innerHTML = dashHTML;
 }
 
 function renderBreadcrumbs() {
@@ -1600,27 +1615,30 @@ function renderDashboard() {
   </div>`;
   html += `<div class="desc">${escapeHtml(T('dashboard_desc'))}</div>`;
 
-  html += `<div class="section-title">${escapeHtml(T('main_channels'))}</div>`;
-  html += `<div class="dash-grid">`;
-  Object.keys(P).filter(k => P[k].type === 'channel' && !isDynamicParam(k)).forEach(id => {
+  const formulaCard = (id) => {
     const p = P[id];
-    html += `<div class="dash-card" onclick="navigateRoot('${id}')">
-      <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
-      <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
+    if (!p || !Array.isArray(p.formula)) return '';
+    const titleClick = `onclick="event.stopPropagation(); navigateRoot('${id}')"`;
+    return `<div class="formula-card ${p.type}">
+      <div class="formula-card-head" ${titleClick}>
+        <span class="formula-card-name">${escapeHtml(p.name)}</span>
+        <span class="formula-card-label">${escapeHtml(tr(id,'label'))}</span>
+        <span class="formula-card-unit">[ ${escapeHtml(p.unit)} ]</span>
+      </div>
+      <div class="formula-card-body">
+        <strong style="color:var(--text)">${escapeHtml(p.name)}</strong> &nbsp;=&nbsp; ${renderFormula(p.formula)}
+      </div>
     </div>`;
-  });
-  html += `</div>`;
+  };
+
+  const channels = Object.keys(P).filter(k => P[k].type === 'channel' && !isDynamicParam(k));
+  const intermediates = Object.keys(P).filter(k => P[k].type === 'intermediate' && !isDynamicParam(k));
+
+  html += `<div class="section-title">${escapeHtml(T('main_channels'))}</div>`;
+  html += `<div class="formula-grid">${channels.map(formulaCard).join('')}</div>`;
 
   html += `<div class="section-title" style="margin-top:24px">${escapeHtml(T('intermediates'))}</div>`;
-  html += `<div class="dash-grid">`;
-  Object.keys(P).filter(k => P[k].type === 'intermediate' && !isDynamicParam(k)).forEach(id => {
-    const p = P[id];
-    html += `<div class="dash-card intermediate" onclick="navigateRoot('${id}')">
-      <div class="dash-label">${escapeHtml(tr(id,'label'))}</div>
-      <div class="dash-name">${escapeHtml(p.name)} <span style="color:var(--text-dim);font-size:11px">[${escapeHtml(p.unit)}]</span></div>
-    </div>`;
-  });
-  html += `</div>`;
+  html += `<div class="formula-grid">${intermediates.map(formulaCard).join('')}</div>`;
 
   document.getElementById('content').innerHTML = html;
 }

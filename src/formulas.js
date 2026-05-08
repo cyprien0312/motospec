@@ -377,13 +377,13 @@ export const P = {
   Rear_Wheel_Rate: {
     name:'Rear_Wheel_Rate', label:'后轮综合刚度', unit:'N/mm', type:'channel',
     desc:'静态下沉点的后轮综合刚度。Motion_Ratio = 轮行程 / 避震行程 (≈2-3)。能量恒等式：Rear_Wheel_Rate = Rear_Spring_Rate / Motion_Ratio²。',
-    formula: ['Rear_Spring_Rate / Motion_Ratio²'],
+    formula: [{ref:'Rear_Spring_Rate'}, ' / ', {ref:'Motion_Ratio'}, '²'],
     deps: ['Rear_Spring_Rate', 'Motion_Ratio']
   },
   Front_Wheel_Rate: {
     name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
     desc:'前轮综合刚度 (轮端)。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = Front_Spring_Rate / MR_front²。',
-    formula: ['Front_Spring_Rate / (1 / cos(Rake_Static))²'],
+    formula: [{ref:'Front_Spring_Rate'}, ' × cos²(', {ref:'Rake_Static'}, ')'],
     deps: ['Front_Spring_Rate', 'Rake_Static']
   },
 };
