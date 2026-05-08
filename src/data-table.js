@@ -76,35 +76,6 @@ const STATUS_BADGE = {
 
 const DASH = '—';
 
-// All linkage XY coords (used to detect when a bike is sitting on the
-// INPUT_META placeholder defaults).
-const LINKAGE_COORD_KEYS = [
-  'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
-  'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
-  'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
-  'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
-  'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
-];
-
-// True when this bike's effective linkage coords are still placeholders —
-// either (a) the chosen linkage catalog entry self-declares its source as
-// PLACEHOLDER, or (b) no linkage is bound and the coords match
-// defaultValues() exactly. The 'coords' badge on RESULTS rows is rendered
-// per-cell based on this flag.
-export function bikeUsesPlaceholderLinkage(bike) {
-  const lid = bike?.components?.linkage;
-  if (lid) {
-    const entry = (CATALOGS.linkages || {})[lid];
-    if (entry && /placeholder/i.test(entry.source || '')) return true;
-    if (entry) return false;
-  }
-  const defaults = defaultValues();
-  for (const k of LINKAGE_COORD_KEYS) {
-    if ((bike?.values?.[k]) !== defaults[k]) return false;
-  }
-  return true;
-}
-
 // component bike-key → catalog name
 export const COMPONENT_TO_CATALOG = {
   chassis: 'chassis',
@@ -195,9 +166,6 @@ export function renderDataTable(state) {
     : defaultBikes();
 
   const outs = bikes.map(b => computeAll({ ...b.values }));
-  // Per-bike "coords are still placeholders" flag — drives per-cell badges
-  // on RESULTS rows whose status === 'coords'.
-  const placeholderByBike = bikes.map(bikeUsesPlaceholderLinkage);
 
   const removeTitle = lang === 'en' ? 'Remove this column' : '删除该列';
   const addLabel    = lang === 'en' ? '+ Add Bike' : '+ 新增车型';
@@ -236,10 +204,7 @@ export function renderDataTable(state) {
     body += `<tr class="dt-group"><th colspan="${groupColspan}">${escapeHtml(groupLabel)}</th></tr>`;
     for (const row of group.rows) {
       const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
-      // 'coords' is now a per-cell badge (only on bikes whose linkage is
-      // still a placeholder), so suppress it from the row label.
-      const showRowBadge = row.status && STATUS_BADGE[row.status] && row.status !== 'coords';
-      const badge = showRowBadge
+      const badge = row.status && STATUS_BADGE[row.status]
         ? `<span class="dt-status dt-status-${row.status}" title="${escapeHtml(STATUS_BADGE[row.status][`title_${lang}`])}">${escapeHtml(STATUS_BADGE[row.status][lang])}</span>`
         : '';
       const label = `${escapeHtml(baseLabel)}${badge ? ' ' + badge : ''}`;
@@ -247,13 +212,6 @@ export function renderDataTable(state) {
       for (let i = 0; i < bikes.length; i++) {
         const b = bikes[i];
         const out = outs[i];
-        // Per-cell badge: a 'coords' status row marks only the bikes whose
-        // effective linkage is still on placeholder coords. Real coords →
-        // no badge, the number is trustworthy.
-        const cellPlaceholder = row.status === 'coords' && placeholderByBike[i];
-        const cellBadge = cellPlaceholder
-          ? ` <span class="dt-status dt-status-coords" title="${escapeHtml(STATUS_BADGE.coords[`title_${lang}`])}">${escapeHtml(STATUS_BADGE.coords[lang])}</span>`
-          : '';
         if (row.literal != null) {
           cells += literalCell(row.literal);
         } else if (row.component) {
@@ -261,9 +219,9 @@ export function renderDataTable(state) {
         } else if (row.input) {
           cells += inputCell(i, row.input, b.values?.[row.input]);
         } else if (row.derivedFrom) {
-          cells += `<td class="dt-readonly"><span>${escapeHtml(fmtNum(row.derivedFrom(out)))}</span>${cellBadge}</td>`;
+          cells += readonlyCell(fmtNum(row.derivedFrom(out)));
         } else if (row.computed) {
-          cells += `<td class="dt-readonly"><span>${escapeHtml(fmtNum(out[row.computed]))}</span>${cellBadge}</td>`;
+          cells += readonlyCell(fmtNum(out[row.computed]));
         } else {
           cells += readonlyCell(DASH);
         }
