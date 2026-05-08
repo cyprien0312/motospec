@@ -278,15 +278,24 @@ function renderChassisDiagram(values, lang) {
   const minY = Math.min(...ys) - padY, maxY = Math.max(...ys) + padY;
   const mmW = maxX - minX, mmH = maxY - minY;
   const scale = Math.min((W - 20) / mmW, (H - 20) / mmH);
-  // Bike faces LEFT: flip X. SVG +Y is down: flip Y.
-  const px = (x) => W - 10 - (x - minX) * scale;
-  const py = (y) => H - 10 - (y - minY) * scale;
+  // Centre the content inside the SVG: free space = canvas − content,
+  // split equally between the two sides on each axis. Bike faces LEFT
+  // (so +X-mm maps to −X-screen) and SVG +Y is down (so +Y-mm maps to −Y-screen).
+  const hMargin = (W - mmW * scale) / 2;
+  const vMargin = (H - mmH * scale) / 2;
+  const px = (x) => W - hMargin - (x - minX) * scale;
+  const py = (y) => H - vMargin - (y - minY) * scale;
   const ln = (a, b, stroke = '#cbd5e1', sw = 2, dash = '') =>
     `<line x1="${px(a.x).toFixed(1)}" y1="${py(a.y).toFixed(1)}" x2="${px(b.x).toFixed(1)}" y2="${py(b.y).toFixed(1)}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ''} stroke-linecap="round"/>`;
   const dot = (p, r = 4, fill = '#fbbf24') =>
     `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="${r}" fill="${fill}" stroke="#0c1116" stroke-width="1.2"/>`;
+  // Halo stroke around every text label so a passing geometry line can never
+  // visually cross the glyphs. paint-order: stroke draws the dark halo first,
+  // then the fill on top — net effect is a 3-px-wide background outline that
+  // matches the canvas bg.
+  const TXT_HALO = 'paint-order:stroke;stroke:#0c1116;stroke-width:3px;stroke-linejoin:round';
   const txt = (p, s, fill = '#cbd5e1', size = 11, anchor = 'middle', dxPx = 0, dyPx = 0) =>
-    `<text x="${(px(p.x) + dxPx).toFixed(1)}" y="${(py(p.y) + dyPx).toFixed(1)}" fill="${fill}" font-size="${size}" text-anchor="${anchor}" font-weight="600">${escapeHtml(s)}</text>`;
+    `<text x="${(px(p.x) + dxPx).toFixed(1)}" y="${(py(p.y) + dyPx).toFixed(1)}" fill="${fill}" font-size="${size}" text-anchor="${anchor}" font-weight="600" style="${TXT_HALO}">${escapeHtml(s)}</text>`;
 
   // Wheel: simple tire ring + small hub dot. No spokes, no second rim line.
   const wheel = (center, R) => {
@@ -328,10 +337,18 @@ function renderChassisDiagram(values, lang) {
   const saArcR = 50;
   annot.push(`<line x1="${px(sa.x)}" y1="${py(sa.y)}" x2="${px(sa.x + 80)}" y2="${py(sa.y)}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 3"/>`);
   annot.push(`<path d="M ${(px(sa.x) - saArcR).toFixed(1)},${py(sa.y)} A ${saArcR},${saArcR} 0 0 1 ${(px(sa.x) - saArcR * Math.cos(g.beta)).toFixed(1)},${(py(sa.y) - saArcR * Math.sin(g.beta)).toFixed(1)}" fill="none" stroke="#a78bfa" stroke-width="1.5"/>`);
-  annot.push(txt({ x: sa.x + 70, y: sa.y + 30 }, `β ${fmt(g.beta / D2R, 1)}°`, '#a78bfa', 11, 'middle'));
+  // β label: tucked below-and-forward of the rear axle so the swingarm line
+  // (which goes forward-and-up from the axle) and the β arc above the axle
+  // never sit on top of the text.
+  annot.push(txt({ x: sa.x + 90, y: sa.y - 45 }, `β ${fmt(g.beta / D2R, 1)}°`, '#a78bfa', 12, 'start'));
 
-  // Swingarm-length callout
-  annot.push(txt({ x: (sa.x + sp.x) / 2, y: (sa.y + sp.y) / 2 }, `L ${fmt(g.LSA, 0)} mm`, '#a78bfa', 10, 'middle', 0, -10));
+  // Swingarm-length callout — offset PERPENDICULAR to the swingarm so the
+  // label clears the 4px-wide line regardless of swingarm angle. Perp dir
+  // (in mm world, pointing "above" the line) = (-sinβ, +cosβ); 70 mm gives
+  // ~28 px gap above the stroke at the screen scale.
+  const swMidX = (sa.x + sp.x) / 2 - 70 * Math.sin(g.beta);
+  const swMidY = (sa.y + sp.y) / 2 + 70 * Math.cos(g.beta);
+  annot.push(txt({ x: swMidX, y: swMidY }, `L ${fmt(g.LSA, 0)} mm`, '#a78bfa', 12, 'middle'));
 
   // H_CG vertical
   annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="3 3"/>`);
@@ -345,7 +362,11 @@ function renderChassisDiagram(values, lang) {
   // Foot of axis at front axle height
   const axisFoot = { x: g.frontAxle.x - g.yoke * Math.cos(g.rake), y: g.frontAxle.y };
   annot.push(`<line x1="${px(axisFoot.x)}" y1="${py(axisFoot.y)}" x2="${px(g.frontAxle.x)}" y2="${py(g.frontAxle.y)}" stroke="#fbbf24" stroke-width="2"/>`);
-  annot.push(txt({ x: (axisFoot.x + g.frontAxle.x) / 2, y: g.frontAxle.y }, `Yoke ${fmt(g.yoke, 0)}`, '#fbbf24', 10, 'middle', 0, -6));
+  // Yoke label: anchored at axisFoot (the BACK end of the tick) with anchor='end'
+  // so the text extends behind the steering axis foot, away from the fork tube
+  // (which crosses through frontAxle). Bumped 14 px above axle and out 4 px to
+  // the back so the halo never touches the fork stroke.
+  annot.push(txt({ x: axisFoot.x, y: g.frontAxle.y }, `Yoke ${fmt(g.yoke, 0)}`, '#fbbf24', 12, 'end', -4, -14));
 
   // Fork position tick on the fork tube
   annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1"/>`);
@@ -381,8 +402,6 @@ function renderChassisDiagram(values, lang) {
       ${ln(g.chainTop1, g.chainTop2, '#84cc16', 2)}
       ${ln(g.chainBot1, g.chainBot2, '#84cc16', 1.6, '4 3')}
       ${dot(g.frontSprocket, 2.5, '#84cc16')}
-      ${txt(g.frontSprocket, `${g.teethF}T`, '#84cc16', 10, 'middle', 0, -((g.rSprF * scale) + 6))}
-      ${txt(g.rearSprocket,  `${g.teethR}T`, '#84cc16', 10, 'middle', 0, -((g.rSprR * scale) + 6))}
       <!-- key dots: swingarm pivot, CG, steering head -->
       ${dot(g.swingPivot, 4, '#a78bfa')}
       ${dot(g.cg, 5, '#22d3ee')}
