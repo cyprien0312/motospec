@@ -6,6 +6,8 @@ reference bikes side-by-side. Bilingual UI (中文 / English).
 
 No bundler, no build step — plain ES modules served over HTTP.
 
+![Dashboard — formula reference](docs/img/dashboard.png)
+
 ## Run it locally
 
 Requires **Node 22+** (for JSON Import Attributes and the built-in test runner).
@@ -33,21 +35,39 @@ Panigale V4) with a per-bike mm tolerance.
 
 ## What's inside
 
-**Pages (sidebar):**
+### Chassis Setup — frame geometry, mass + CG, aero, tire
 
-- **Dashboard** — formula reference. Every channel and intermediate has a
-  card with prose, formula, deps, and drill-down on parameter chips.
-- **Chassis Setup** — frame geometry, mass + CG, aero share, tire, sprockets.
-  Auto-fitting side-view diagram. Save / load chassis profiles.
-- **Linkage Setup** — 4-bar linkage editor. Two modes (`linked`, `pro-link`)
-  sharing one Newton-Raphson solver. Two input styles: Cartesian XY, or
-  lengths-only via chained two-circle intersections.
-- **Data Table** — variable bike-column comparison (0–5). Pick a chassis
-  profile and components to materialize a bike's input dict. RESULTS cells
-  render real numbers when their leaf inputs are bound, otherwise blank with
-  a "Need: …" hint naming the missing provider.
-- **Component Library** — four catalogs (chassis / forks / shocks / linkages).
-  Baseline JSON ⊕ user overlay (localStorage), with import / export / reset.
+Auto-fitting side-view diagram driven by your `WB` and `Rf`. Save / load
+chassis profiles to the chassis catalog.
+
+![Chassis Setup](docs/img/chassis-setup.png)
+
+### Linkage Setup — 4-bar rear suspension
+
+Two modes (`linked`, `pro-link`) sharing one Newton-Raphson closure solver.
+Two input styles: Cartesian XY, or lengths-only via chained two-circle
+intersections. Live motion-ratio + wheel-rate chart through the stroke.
+
+![Linkage Setup](docs/img/linkage-setup.png)
+
+### Data Table — variable bike-column comparison
+
+Up to 5 bike columns. Pick a chassis profile and components to materialize a
+bike's input dict. RESULTS cells render real numbers when their leaf inputs
+are bound, otherwise blank with a "Need: …" hint naming the missing provider.
+
+![Data Table](docs/img/data-table.png)
+
+### Component Library — four catalogs
+
+Chassis / forks / shocks / linkages. Baseline JSON ⊕ user overlay
+(localStorage), with import / export / reset.
+
+![Component Library](docs/img/catalog.png)
+
+### Plus
+
+- **Dashboard** — formula reference with drill-down on every parameter chip.
 - **User Guide** — bilingual long-form help with a per-page `?` shortcut.
 
 ## Repository layout
