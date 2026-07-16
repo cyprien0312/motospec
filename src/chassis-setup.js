@@ -22,7 +22,13 @@ export const CHASSIS_GROUPS = [
     key: 'setup',
     label_zh: '车架设定',
     label_en: 'Chassis Setup',
-    fields: ['Yoke_Offset', 'Fork_Length', 'Fork_Position'],
+    fields: ['Yoke_Offset', 'Fork_Position'],
+  },
+  {
+    key: 'reference',
+    label_zh: '参考设定（测量 Rake 时的状态）',
+    label_en: 'Reference Setup (as measured for Rake)',
+    fields: ['Fork_Position_ref', 'Fork_Length_ref', 'Shock_Length_ref'],
   },
   {
     key: 'mass_cg',
@@ -54,7 +60,8 @@ export const CHASSIS_GROUPS = [
 // C_r_aero) are derived from their primaries on save.
 export const CHASSIS_SPEC_FIELDS = [
   'Rake_Static', 'WB', 'Swingarm_Length', 'beta_static',
-  'Yoke_Offset', 'Fork_Length', 'Fork_Position',
+  'Yoke_Offset', 'Fork_Position',
+  'Fork_Position_ref', 'Fork_Length_ref', 'Shock_Length_ref',
   'Mass', 'H_CG', 'L_CG', 'front_weight_dist', 'rear_weight_dist',
   'C_f_aero', 'C_r_aero',
   'Rf',
@@ -67,8 +74,10 @@ const FIELD_LABELS = {
   Swingarm_Length:    { en: 'Swingarm Length (mm)',            zh: '摇臂长度 (mm)' },
   beta_static:        { en: 'Static Swingarm Angle (deg)',     zh: '静态摇臂角 (度)' },
   Yoke_Offset:        { en: 'Yoke Offset (mm)',                zh: '三星台偏移 (mm)' },
-  Fork_Length:        { en: 'Fork Length (mm)',                zh: '前叉总长 (mm)' },
   Fork_Position:      { en: 'Fork Position (mm)',              zh: '前叉伸出量 (mm)' },
+  Fork_Position_ref:  { en: 'Ref Fork Position (mm)',          zh: '参考前叉伸出量 (mm)' },
+  Fork_Length_ref:    { en: 'Ref Fork Length (mm)',            zh: '参考前叉总长 (mm)' },
+  Shock_Length_ref:   { en: 'Ref Shock Length (mm)',           zh: '参考后避震长度 (mm)' },
   Mass:               { en: 'Mass — bike + rider (kg)',        zh: '总质量 (kg)' },
   H_CG:               { en: 'CG Height (mm)',                  zh: '重心高度 (mm)' },
   L_CG:               { en: 'CG → Rear Axle Horizontal (mm)',  zh: '重心到后轴水平距离 (mm)' },
