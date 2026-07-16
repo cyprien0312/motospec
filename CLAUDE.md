@@ -8,12 +8,19 @@ MotoSPEC Formula Explorer — a static, single-page motorcycle chassis geometry 
 
 ## Commands
 
-- Run tests: `npm test` (uses Node's built-in test runner; Node 22+).
+- Run tests: `npm test` (Node's built-in runner via bare `node --test`; Node 22+. Do not write `node --test tests/` — newer Node 22 rejects a bare directory argument; default discovery finds `tests/**/*.test.js`).
 - Run a single test file: `node --test tests/linkage.test.js`
 - Run a single test by name: `node --test --test-name-pattern='pro-link' tests/linkage.test.js`
-- Local dev server: any static file server pointed at the repo root (e.g. `python3 -m http.server 8000`) — `index.html` imports modules from `./src/` so it must be served, not opened via `file://`.
+- Local dev server: already running as a systemd user service — `motospec-dev` serves the repo root at `:5173` (`systemctl --user status motospec-dev`; LAN `http://192.168.1.153:5173`). Plain static serving; edit a file, refresh the browser. `index.html` imports modules from `./src/` so the app must be served over HTTP, not opened via `file://`.
 
 There is no lint, no build, no bundler. Don't introduce one without asking.
+
+## Branches, deployment, automation
+
+- **`gh-pages` is the active development branch _and_ the live site.** GitHub Pages serves it directly at https://cyprien0312.github.io/motospec/ — **every push publishes immediately** (no build step, no Actions; an Actions-based deploy is not possible because neither the workflow token nor the stored PAT can enable Pages).
+- **`main` holds a parked Vue 3 + TypeScript rewrite** of this app (different architecture, own CLAUDE.md on that branch). The user shelved it in July 2026 — do not develop there or merge between the branches unless explicitly asked. The pristine v0.1 tree is also tagged `v0.1-js`.
+- **A nightly cron (23:00) runs `scripts/auto-archive.sh`**: it `git add -A`, commits any working-tree changes as `chore: auto-archive …`, and pushes the current branch (log: `logs/auto-archive.log`, gitignored). Consequence: uncommitted WIP left in the tree goes live on the public site overnight — commit deliberately, and don't leave the tree half-broken at the end of a session.
+- `main`'s `docs/` additionally carries `measurement-points.md` + `.svg` (chassis-level points to physically measure on a real bike: RA/FA/SP/CS/SA-U/SA-L/GND-*, origin at rear axle). The linkage-level companion (5 points, origin at swingarm pivot) is this branch's `docs/research/linkage-coords.md`.
 
 ## Architecture
 
