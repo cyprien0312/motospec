@@ -192,6 +192,30 @@ via the 4-bar inverse solve — "% Full Shock Travel" is finally literal,
 matching real MotoSPEC's definition. Shocks without a known stroke leave
 the Progression cell blank (honest).
 
+## Limits of the equivalence class (established 2026-07-16)
+
+Cross-member experiment: three distinct fitted coordinate sets — all
+reproducing the stock MR curve exactly — were given the same −5 mm
+dogbone swap (same 283 shock, new static closure solved). They disagreed
+even on DIRECTION (Δβ −1.24° vs +2.10°; ride-height ref −113 vs −147;
+MR 2.49–2.59). Conclusion, agreed with the owner:
+
+- **Computable with the fit**: anything flowing through the pinned
+  `shockLength(δ)` curve — shock swaps (length/stroke/spring), RHA, sag,
+  progression, wheel rate. Every class member answers identically.
+- **NOT computable**: rocker or dogbone (linkarm) changes. Knowing all
+  four link lengths does not help — the response depends on the real XY
+  of the three placement points (③ rocker pivot, ⑥ linkarm anchor,
+  ⑦ shock top). This is why there is deliberately no dogbone-length
+  input in the UI: it would produce plausible-looking wrong numbers.
+- Unlock paths: measure ③⑥⑦ (6 numbers, permanent), or perform one real
+  swap and measure the tail-height change (calibrates the response
+  derivative locally). Either enables a length-based swap input later.
+- Note: the owner's layout constraints already narrowed the class — the
+  two layout-constrained members agree on swap direction (+2.1°), only
+  the unconstrained one diverges. Not yet tight enough to trust (MR
+  spread 4%).
+
 ## Open questions
 
 1. Front Wheel Rate 32.37 formula (two legs? air spring? topout?).
