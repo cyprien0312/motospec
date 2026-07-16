@@ -62,9 +62,21 @@ test('blankBike: returns a usable bike with INPUT_META defaults', () => {
 
 test('numeric input rows render <input type="number"> cells per bike', () => {
   const html = render();
-  // Yoke_Offset row should produce 3 number inputs
-  const matches = html.match(/oninput="setBikeInput\(\d+, 'Yoke_Offset'/g) || [];
+  // Front_Spring_Rate is component-domain (forks) — still typeable.
+  const matches = html.match(/oninput="setBikeInput\(\d+, 'Front_Spring_Rate'/g) || [];
   assert.equal(matches.length, 3);
+});
+
+test('chassis-domain rows are read-only echoes, never editable inputs', () => {
+  const html = render();
+  // Every chassis-provided field that appears as a table row must NOT
+  // render an editable cell — chassis values are defined only on the
+  // Chassis Setup page.
+  for (const key of ['Yoke_Offset', 'Fork_Position', 'Swingarm_Length',
+                     'front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
+    assert.doesNotMatch(html, new RegExp(`setBikeInput\\(\\d+, '${key}'`),
+      `${key} must not be editable in the data table`);
+  }
 });
 
 test('component rows render <select> wired to setBikeComponent', () => {

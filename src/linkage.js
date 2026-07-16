@@ -80,7 +80,10 @@ export function rockerShockEnd(cfg, swingarmDeltaDeg) {
   const Py = cfg.Frame_Rocker_Pivot_Y;
   const Sx0 = cfg.Rocker_To_Shock_X - Px;
   const Sy0 = cfg.Rocker_To_Shock_Y - Py;
-  const { deltaPhiDeg } = closeFourBar(cfg, swingarmDeltaDeg);
+  const { deltaPhiDeg, residual } = closeFourBar(cfg, swingarmDeltaDeg);
+  // Unconverged closure (impossible geometry) must not yield a plausible
+  // point — poison downstream numbers instead of faking them.
+  if (!(Math.abs(residual) < 1e-6)) return { x: NaN, y: NaN };
   const c = Math.cos(deltaPhiDeg * D2R);
   const s = Math.sin(deltaPhiDeg * D2R);
   return { x: Px + Sx0 * c - Sy0 * s, y: Py + Sx0 * s + Sy0 * c };
@@ -149,18 +152,33 @@ export function progression(cfg, swingarmLength, betaStaticDeg, fullBumpDeltaDeg
 // resulting Δβ is nonlinear (one bisection covers the combined effect).
 export function swingarmDeltaForShockTravel(cfg, shockTravel, rha = 0) {
   const Lstatic = shockLength(cfg, 0);
+  if (!Number.isFinite(Lstatic)) return NaN;
   const target = Lstatic + rha - shockTravel;
-  let lo = -45, hi = 45;
-  let fLo = shockLength(cfg, lo) - target;
-  let fHi = shockLength(cfg, hi) - target;
-  if (fLo * fHi > 0) {
-    return Math.abs(fLo) < Math.abs(fHi) ? lo : hi;
+  // The mechanism can lock before ±45° (the drag-link closure has no
+  // solution there and shockLength returns NaN), so scan the range for a
+  // finite bracket with a sign change and bisect inside it. No bracket ⇒
+  // the target length is genuinely unreachable ⇒ NaN. Returning an
+  // endpoint here (the old behavior) presented a ±45° swingarm rotation
+  // as a real solution.
+  const N = 90;
+  let lo = NaN, hi = NaN, fLo = NaN;
+  let prevD = NaN, prevF = NaN;
+  for (let i = 0; i <= N; i++) {
+    const d = -45 + (90 * i) / N;
+    const f = shockLength(cfg, d) - target;
+    if (Number.isFinite(prevF) && Number.isFinite(f) && prevF * f <= 0) {
+      lo = prevD; hi = d; fLo = prevF;
+      break;
+    }
+    if (Number.isFinite(f)) { prevD = d; prevF = f; }
   }
+  if (!Number.isFinite(fLo)) return NaN;
   for (let i = 0; i < 60; i++) {
     const mid = 0.5 * (lo + hi);
     const fMid = shockLength(cfg, mid) - target;
+    if (!Number.isFinite(fMid)) return NaN;
     if (Math.abs(fMid) < 1e-6) return mid;
-    if (fLo * fMid < 0) { hi = mid; fHi = fMid; }
+    if (fLo * fMid < 0) { hi = mid; }
     else                { lo = mid; fLo = fMid; }
   }
   return 0.5 * (lo + hi);

@@ -14,7 +14,7 @@
 // sheets are tracked in docs/research/chassis-coords.md and
 // docs/research/linkage-coords.md.
 
-import { materializeBikeInputs, componentName } from './catalog.js';
+import { materializeBikeInputs } from './catalog.js';
 
 const DYNAMIC_PRESETS = {
   sag:        { Travel_Front: 30,  Travel_Rear: 10, Lean_Angle: 0  },
@@ -45,14 +45,11 @@ const BIKES = [
   { id: 'bike-c', name: 'Bike C', components: {}, geometry: {}, environment: COMMON_ENV, setup: {}, expected: {} },
 ];
 
-// Materialize each bike: produce the legacy `inputs` flat dict + the
-// human-readable component names that data-table.js reads off the bike.
+// Materialize each bike into the legacy `inputs` flat dict (consumed by
+// the dynamic-preset test harness; the data table recomputes from live
+// catalogs via effectiveBikeValues and does not read this).
 export const REFERENCE_BIKES = BIKES.map(b => ({
   ...b,
   inputs: materializeBikeInputs(b),
-  fork_name: componentName(b, 'fork'),
-  shock_name: componentName(b, 'shock'),
-  swingarm_name: componentName(b, 'swingarm'),
-  link_name: componentName(b, 'linkage'),
   dynamic_presets: DYNAMIC_PRESETS,
 }));

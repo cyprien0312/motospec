@@ -1588,17 +1588,12 @@ function setBikeInput(bikeIdx, key, raw) {
   if (m) n = Math.max(m.min, Math.min(m.max, n));
   if (!b.overrides) b.overrides = {};
   // Track that the user explicitly set this field — drives the
-  // "blank until inputs are real" logic in the data table.
+  // "blank until inputs are real" logic in the data table. Chassis-domain
+  // fields (weight dist, aero share, yoke offset, …) no longer render as
+  // inputs — they are read-only echoes of the chassis profile, so their
+  // linked-pair mirroring lives solely in chassis-setup.js now.
   b.overrides[key] = n;
   b.values[key] = n;
-  if (key === 'front_weight_dist') {
-    b.overrides.rear_weight_dist = +(1 - n).toFixed(3);
-    b.values.rear_weight_dist    = b.overrides.rear_weight_dist;
-  }
-  if (key === 'rear_weight_dist') {
-    b.overrides.front_weight_dist = +(1 - n).toFixed(3);
-    b.values.front_weight_dist    = b.overrides.front_weight_dist;
-  }
   saveState();
   renderContent();
 }

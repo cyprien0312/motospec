@@ -33,14 +33,26 @@ function leafInputsFor(id) {
 
 // Inputs that a saved Chassis profile contributes (matches
 // CHASSIS_SPEC_FIELDS in chassis-setup.js). Duplicated here to keep
-// data-table.js free of cross-file imports — keep in sync if that list
-// grows.
-const CHASSIS_PROVIDED = new Set([
+// data-table.js free of cross-file imports — tests/domains.test.js
+// asserts the two lists stay identical.
+export const CHASSIS_PROVIDED = new Set([
   'Rake_Static','WB','Swingarm_Length','beta_static',
   'Yoke_Offset','Fork_Length','Fork_Position',
   'Mass','H_CG','L_CG','front_weight_dist','rear_weight_dist',
   'C_f_aero','C_r_aero','Rf',
   'Front_Sprocket_X','Front_Sprocket_Y','Chain_Pitch',
+]);
+
+// Inputs that a saved Linkage profile contributes (matches
+// LINKAGE_COORD_FIELDS in linkage-setup.js; Linkage_Mode is non-numeric
+// and never gates readiness). Same duplication contract as above —
+// guarded by tests/domains.test.js.
+export const LINKAGE_PROVIDED = new Set([
+  'Frame_Rocker_Pivot_X','Frame_Rocker_Pivot_Y',
+  'Rocker_To_Shock_X','Rocker_To_Shock_Y',
+  'Rocker_To_Drag_X','Rocker_To_Drag_Y',
+  'Drag_To_Swingarm_X','Drag_To_Swingarm_Y',
+  'Frame_Shock_Top_X','Frame_Shock_Top_Y',
 ]);
 
 // Reverse-index: input-key → which component can supply it. Built fresh
@@ -57,6 +69,9 @@ function buildProviderMap() {
     }
   }
   for (const k of CHASSIS_PROVIDED) m[k] = 'chassis';
+  // Seed linkage coords too — data/linkages.json also ships empty, and
+  // without this a fresh install mislabels missing coords as "dynamic".
+  for (const k of LINKAGE_PROVIDED) if (!m[k]) m[k] = 'linkages';
   m.Front_Sprocket = 'sprocket';
   m.Rear_Sprocket  = 'sprocket';
   return m;
@@ -100,7 +115,7 @@ function summarizeMissing(missing, providerMap, lang) {
 // meaningful real-world value. They stay "ready" even when the user
 // hasn't typed anything, so RESULTS that depend on them don't get
 // incorrectly tagged as needing input.
-const ALWAYS_READY = new Set([
+export const ALWAYS_READY = new Set([
   'Shock_Clevis_RHA',
 ]);
 
@@ -118,9 +133,35 @@ function bikeReadyKeys(bike) {
   // Sprocket teeth count is stored on `components`, not on a catalog.
   if (bike?.components?.front_sprocket != null) keys.add('Front_Sprocket');
   if (bike?.components?.rear_sprocket  != null) keys.add('Rear_Sprocket');
-  // Per-bike user overrides (typed into a cell).
-  for (const k of Object.keys(bike?.overrides || {})) keys.add(k);
+  // Per-bike user overrides (typed into a cell). Chassis-domain keys are
+  // excluded: they can only come from a chassis profile (single source of
+  // definition), so a legacy override must neither mark them ready nor
+  // feed the compute (see effectiveBikeValues).
+  for (const k of Object.keys(bike?.overrides || {})) {
+    if (!CHASSIS_PROVIDED.has(k)) keys.add(k);
+  }
   return keys;
+}
+
+// Rebuild a bike's input dict from the LIVE catalogs on every render:
+// defaults → chassis specs → fork/shock/linkage specs → sprocket teeth →
+// non-chassis user overrides. `bike.values` is deliberately NOT read —
+// it holds a copy taken at selection time, and computing from it lets a
+// later catalog edit silently diverge from what the cells claim.
+export function effectiveBikeValues(bike) {
+  const v = defaultValues();
+  for (const compKey of Object.keys(COMPONENT_TO_CATALOG)) {
+    const cid = bike?.components?.[compKey];
+    if (!cid) continue;
+    const entry = (CATALOGS[COMPONENT_TO_CATALOG[compKey]] || {})[cid];
+    if (entry?.specs) Object.assign(v, entry.specs);
+  }
+  if (bike?.components?.front_sprocket != null) v.Front_Sprocket = bike.components.front_sprocket;
+  if (bike?.components?.rear_sprocket  != null) v.Rear_Sprocket  = bike.components.rear_sprocket;
+  for (const [k, val] of Object.entries(bike?.overrides || {})) {
+    if (!CHASSIS_PROVIDED.has(k)) v[k] = val;
+  }
+  return v;
 }
 
 // Rows tagged with `component: 'fork' | 'shock' | …` render as a
@@ -162,7 +203,7 @@ export const ROW_GROUPS = [
     { spec: 'Final Ratio',                                          spec_zh: '最终传动比',          computed: 'Final_Ratio' },
   ]},
   { header: 'RESULTS', header_zh: '结果', rows: [
-    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
+    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake',              status: 'static' },
     { spec: 'Normal Trail (mm)',                                    spec_zh: '法向拖曳距 (mm)',     computed: 'Normal_Trail' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
     { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height' },
@@ -279,7 +320,11 @@ export function renderDataTable(state) {
     ? state.bikes
     : defaultBikes();
 
-  const outs = bikes.map(b => computeAll({ ...b.values }));
+  // Materialize each bike from the live catalogs (not the stale copy in
+  // bike.values) so the table always computes with what the chassis /
+  // linkage / part definitions say right now.
+  const effVals = bikes.map(effectiveBikeValues);
+  const outs = effVals.map(v => computeAll({ ...v }));
   // Per-bike set of inputs that are actually bound (env / catalog /
   // override). RESULTS cells whose leaf inputs aren't all bound render
   // blank — we don't show numbers built from placeholder defaults.
@@ -362,12 +407,22 @@ export function renderDataTable(state) {
         } else if (row.component) {
           cells += componentCell(i, row.component, b.components?.[row.component], lang);
         } else if (row.input) {
-          // Show the value only when it's been actually set; otherwise
-          // leave the cell blank and let the user fill it in. A tooltip
-          // hints at where the value would normally come from.
           const has = readyByBike[i].has(row.input);
-          const v = has ? b.values?.[row.input] : null;
-          cells += inputCell(i, row.input, v, has ? null : inputMissingTitle(row.input));
+          if (CHASSIS_PROVIDED.has(row.input)) {
+            // Chassis-domain fields are defined ONLY on the Chassis Setup
+            // page. The table echoes the selected profile read-only — an
+            // editable cell here would let a column silently diverge from
+            // the chassis it claims to use.
+            cells += has
+              ? readonlyCell(fmtNum(effVals[i][row.input]))
+              : blankCellHTML([row.input]);
+          } else {
+            // Show the value only when it's been actually set; otherwise
+            // leave the cell blank and let the user fill it in. A tooltip
+            // hints at where the value would normally come from.
+            const v = has ? effVals[i][row.input] : null;
+            cells += inputCell(i, row.input, v, has ? null : inputMissingTitle(row.input));
+          }
         } else if (row.derivedFrom) {
           const st = cellStatus(row, readyByBike[i]);
           cells += st.ready

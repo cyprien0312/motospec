@@ -76,8 +76,28 @@ test('pro-link vs linked: kinematics differ for non-zero swingarm rotation', () 
   const cfgPro    = { ...SYNTHETIC, Linkage_Mode: 'pro-link' };
   // At β=0 both modes share the static config so shock length must match.
   assert.ok(Math.abs(shockLength(cfgLinked, 0) - shockLength(cfgPro, 0)) < 1e-6);
-  // Under β=10° the two modes must produce a different shock length —
-  // otherwise the mode dispatch is a no-op.
-  const dL = shockLength(cfgLinked, 10) - shockLength(cfgPro, 10);
+  // Under β=3° both modes still close (SYNTHETIC is a linked-mode fixture
+  // and locks in pro-link past ~4°) and must produce different shock
+  // lengths — otherwise the mode dispatch is a no-op.
+  const dL = shockLength(cfgLinked, 3) - shockLength(cfgPro, 3);
+  assert.ok(Number.isFinite(dL), 'both modes must converge at 3°');
   assert.ok(Math.abs(dL) > 0.1, `expected modes to differ, got Δ=${dL}`);
+});
+
+test('impossible closure yields NaN, not a fake number', () => {
+  // SYNTHETIC in pro-link mode has NO closure solution at β=10° (the drag
+  // link would need to stretch ~90 mm; verified by full-circle scan of the
+  // closure residual). The solver used to return an unconverged Newton
+  // iterate here — it must poison the result instead.
+  const cfgPro = { ...SYNTHETIC, Linkage_Mode: 'pro-link' };
+  assert.ok(Number.isNaN(shockLength(cfgPro, 10)),
+    'unconverged closure must return NaN');
+});
+
+test('unreachable shock-length target yields NaN, not a ±45° endpoint', () => {
+  // Ask for a shock 500 mm shorter than static — no swingarm angle within
+  // ±45° achieves that. The old code returned the nearer endpoint (±45°),
+  // presenting a wild swingarm rotation as a real solution.
+  const delta = swingarmDeltaForShockTravel(SYNTHETIC, 500);
+  assert.ok(Number.isNaN(delta), `expected NaN, got ${delta}`);
 });
