@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderDataTable, ROW_GROUPS, defaultBikes, blankBike, MAX_BIKES } from '../src/data-table.js';
+import { renderDataTable, ROW_GROUPS, defaultBikes, blankBike, MAX_BIKES,
+         SETUP_OVERRIDABLE, effectiveBikeValues } from '../src/data-table.js';
 import { defaultValues } from '../src/formulas.js';
+import { setCatalogEntry, resetUserOverlay } from '../src/catalog.js';
 
 function render(extra = {}) {
   const bikes = defaultBikes();
@@ -67,16 +69,74 @@ test('numeric input rows render <input type="number"> cells per bike', () => {
   assert.equal(matches.length, 3);
 });
 
-test('chassis-domain rows are read-only echoes, never editable inputs', () => {
+test('chassis-domain rows are not editable without a chassis profile', () => {
   const html = render();
-  // Every chassis-provided field that appears as a table row must NOT
-  // render an editable cell — chassis values are defined only on the
-  // Chassis Setup page.
+  // Without a selected chassis there is no `*_ref` baseline, so even the
+  // SETUP_OVERRIDABLE keys must not render editable cells — an override
+  // diffed against placeholder defaults would be fake data.
   for (const key of ['Yoke_Offset', 'Fork_Position', 'Swingarm_Length',
                      'front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
     assert.doesNotMatch(html, new RegExp(`setBikeInput\\(\\d+, '${key}'`),
-      `${key} must not be editable in the data table`);
+      `${key} must not be editable without a chassis profile`);
   }
+});
+
+// A minimal but complete chassis profile for the setup-override tests.
+const TEST_CHASSIS_SPECS = {
+  Rake_Static: 23.7, WB: 1414.3, Swingarm_Length: 594.5, beta_static: 12.23,
+  Yoke_Offset: 26, Fork_Position: 28,
+  Fork_Position_ref: 28, Shock_Length_ref: 283,
+  Swingarm_Length_ref: 594.5, Yoke_Offset_ref: 26, Rf: 304.6,
+};
+
+function withTestChassis(fn) {
+  resetUserOverlay();
+  try {
+    setCatalogEntry('chassis', 'test-chassis', { name: 'Test Chassis', specs: { ...TEST_CHASSIS_SPECS } });
+    const bike = { ...blankBike(0), components: { chassis: 'test-chassis' }, overrides: {} };
+    return fn(bike);
+  } finally {
+    resetUserOverlay();
+  }
+}
+
+test('setup keys become editable inputs once a chassis profile is selected', () => {
+  withTestChassis((bike) => {
+    const html = renderDataTable({ values: defaultValues(), bikes: [bike], lang: 'en' });
+    for (const key of SETUP_OVERRIDABLE) {
+      assert.match(html, new RegExp(`setBikeInput\\(0, '${key}'`),
+        `${key} should be editable when a chassis profile is bound`);
+    }
+    // Profile value pre-fills the cell; no override yet → no accent class.
+    assert.doesNotMatch(html, /dt-input-override/);
+  });
+});
+
+test('setup override feeds compute only when layered on a chassis profile', () => {
+  // Without a chassis: the override is ignored (no baseline to diff against).
+  const orphan = { ...blankBike(1), components: {}, overrides: { Yoke_Offset: 40 } };
+  assert.equal(effectiveBikeValues(orphan).Yoke_Offset, defaultValues().Yoke_Offset,
+    'setup override must be ignored without a chassis profile');
+
+  withTestChassis((bike) => {
+    bike.overrides.Yoke_Offset = 29;      // setup key → applies
+    bike.overrides.Rake_Static = 60;      // measurement key → still ignored
+    const v = effectiveBikeValues(bike);
+    assert.equal(v.Yoke_Offset, 29, 'setup override must apply on top of the profile');
+    assert.equal(v.Rake_Static, TEST_CHASSIS_SPECS.Rake_Static,
+      'non-setup chassis keys must remain profile-defined');
+    // The ref baseline is untouched — the delta chain diffs 29 vs 26.
+    assert.equal(v.Yoke_Offset_ref, TEST_CHASSIS_SPECS.Yoke_Offset_ref);
+  });
+});
+
+test('diverging setup cell carries the override accent class and restore hint', () => {
+  withTestChassis((bike) => {
+    bike.overrides.Fork_Position = 31;
+    const html = renderDataTable({ values: defaultValues(), bikes: [bike], lang: 'en' });
+    assert.match(html, /dt-input-override/);
+    assert.match(html, /Overriding chassis profile value 28/);
+  });
 });
 
 test('component rows render <select> wired to setBikeComponent', () => {

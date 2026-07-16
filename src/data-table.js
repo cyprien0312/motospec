@@ -44,6 +44,19 @@ export const CHASSIS_PROVIDED = new Set([
   'Front_Sprocket_X','Front_Sprocket_Y','Chain_Pitch',
 ]);
 
+// Chassis-domain keys that are per-column ADJUSTABLE SETUP numbers, not
+// frame measurements: the chassis profile supplies the measured baseline
+// (`*_ref` fields) and a starting value; the table then accepts a
+// per-column override, exactly like real MotoSPEC lets you dial offset /
+// fork position / chain adjuster after picking a frame. The delta chain
+// in formulas.js computes attitude/wheelbase changes against the `*_ref`
+// baseline, so an override here is real physics — but ONLY when a chassis
+// profile is selected: without the profile there is no baseline, and the
+// override is ignored (readiness AND compute), same as any chassis key.
+export const SETUP_OVERRIDABLE = new Set([
+  'Yoke_Offset', 'Fork_Position', 'Swingarm_Length',
+]);
+
 // Inputs that a saved Linkage profile contributes (matches
 // LINKAGE_COORD_FIELDS in linkage-setup.js; Linkage_Mode is non-numeric
 // and never gates readiness). Same duplication contract as above —
@@ -142,11 +155,21 @@ function bikeReadyKeys(bike) {
   // Per-bike user overrides (typed into a cell). Chassis-domain keys are
   // excluded: they can only come from a chassis profile (single source of
   // definition), so a legacy override must neither mark them ready nor
-  // feed the compute (see effectiveBikeValues).
+  // feed the compute (see effectiveBikeValues). This includes the
+  // SETUP_OVERRIDABLE keys — an override alone never makes them ready;
+  // readiness comes from the selected chassis profile providing them.
   for (const k of Object.keys(bike?.overrides || {})) {
     if (!CHASSIS_PROVIDED.has(k)) keys.add(k);
   }
   return keys;
+}
+
+// The selected chassis profile's spec dict, or null when no chassis is
+// bound. Read fresh from the live CATALOGS (never cached).
+function chassisSpecsOf(bike) {
+  const cid = bike?.components?.chassis;
+  if (!cid) return null;
+  return (CATALOGS.chassis || {})[cid]?.specs || null;
 }
 
 // Rebuild a bike's input dict from the LIVE catalogs on every render:
@@ -164,8 +187,13 @@ export function effectiveBikeValues(bike) {
   }
   if (bike?.components?.front_sprocket != null) v.Front_Sprocket = bike.components.front_sprocket;
   if (bike?.components?.rear_sprocket  != null) v.Rear_Sprocket  = bike.components.rear_sprocket;
+  const chassisSpecs = chassisSpecsOf(bike);
   for (const [k, val] of Object.entries(bike?.overrides || {})) {
     if (!CHASSIS_PROVIDED.has(k)) v[k] = val;
+    // Setup keys accept a per-column override, but only layered on top of
+    // a chassis profile that actually provides the key — the `*_ref`
+    // baseline the delta chain diffs against comes from that profile.
+    else if (SETUP_OVERRIDABLE.has(k) && chassisSpecs && k in chassisSpecs) v[k] = val;
   }
   return v;
 }
@@ -304,14 +332,16 @@ export function blankBike(idx) {
   };
 }
 
-function inputCell(bikeIdx, key, value, title, missing = false) {
+function inputCell(bikeIdx, key, value, title, missing = false, overridden = false) {
   const m = INPUT_META[key] || {};
   const step = m.step != null ? m.step : 'any';
   const minAttr = m.min != null ? ` min="${m.min}"` : '';
   const maxAttr = m.max != null ? ` max="${m.max}"` : '';
   const v = value == null || !Number.isFinite(value) ? '' : value;
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-  const cls = missing ? 'dt-input dt-input-missing' : 'dt-input';
+  const cls = 'dt-input'
+    + (missing ? ' dt-input-missing' : '')
+    + (overridden ? ' dt-input-override' : '');
   return `<td><input type="number" class="${cls}" value="${v}" step="${step}"${minAttr}${maxAttr}${titleAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
 }
 
@@ -431,13 +461,32 @@ export function renderDataTable(state) {
         } else if (row.input) {
           const has = readyByBike[i].has(row.input);
           if (CHASSIS_PROVIDED.has(row.input)) {
-            // Chassis-domain fields are defined ONLY on the Chassis Setup
-            // page. The table echoes the selected profile read-only — an
-            // editable cell here would let a column silently diverge from
-            // the chassis it claims to use.
-            cells += has
-              ? readonlyCell(fmtNum(effVals[i][row.input]))
-              : blankCellHTML([row.input]);
+            if (SETUP_OVERRIDABLE.has(row.input) && has) {
+              // Adjustable setup number layered on the selected chassis
+              // profile (like real MotoSPEC: pick a frame, then dial
+              // offset / fork position / chain adjuster). The profile's
+              // `*_ref` fields stay untouched, so the delta chain diffs
+              // the override against a real measured baseline.
+              const baseline = chassisSpecsOf(b)?.[row.input];
+              const cur = effVals[i][row.input];
+              const overridden = Number.isFinite(baseline) && cur !== baseline;
+              const title = overridden
+                ? (lang === 'en'
+                    ? `Overriding chassis profile value ${fmtNum(baseline)} — clear the cell to restore`
+                    : `已覆盖 Chassis 配置值 ${fmtNum(baseline)}——清空单元格即可恢复`)
+                : (lang === 'en'
+                    ? 'From the chassis profile — type to adjust this column only'
+                    : '来自 Chassis 配置——输入即可仅调整本列');
+              cells += inputCell(i, row.input, cur, title, false, overridden);
+            } else {
+              // All other chassis-domain fields are defined ONLY on the
+              // Chassis Setup page. The table echoes the selected profile
+              // read-only — an editable cell here would let a column
+              // silently diverge from the chassis it claims to use.
+              cells += has
+                ? readonlyCell(fmtNum(effVals[i][row.input]))
+                : blankCellHTML([row.input]);
+            }
           } else {
             // Show the value only when it's been actually set; otherwise
             // leave the cell blank and let the user fill it in. A tooltip

@@ -18,7 +18,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 
 import { P } from '../src/formulas.js';
-import { ROW_GROUPS, CHASSIS_PROVIDED, LINKAGE_PROVIDED, ALWAYS_READY } from '../src/data-table.js';
+import { ROW_GROUPS, CHASSIS_PROVIDED, LINKAGE_PROVIDED, ALWAYS_READY, SETUP_OVERRIDABLE } from '../src/data-table.js';
 import { CHASSIS_SPEC_FIELDS } from '../src/chassis-setup.js';
 import { LINKAGE_COORD_FIELDS } from '../src/linkage-setup.js';
 import FORKS  from '../data/forks.json'  with { type: 'json' };
@@ -48,6 +48,15 @@ test('CHASSIS_PROVIDED matches CHASSIS_SPEC_FIELDS exactly', () => {
 test('LINKAGE_PROVIDED matches LINKAGE_COORD_FIELDS exactly', () => {
   setEq(LINKAGE_PROVIDED, LINKAGE_COORD_FIELDS,
     'data-table.js LINKAGE_PROVIDED drifted from linkage-setup.js LINKAGE_COORD_FIELDS');
+});
+
+test('SETUP_OVERRIDABLE keys are chassis-defined setup numbers with a ref baseline', () => {
+  for (const k of SETUP_OVERRIDABLE) {
+    assert.ok(CHASSIS_PROVIDED.has(k),
+      `${k} is table-overridable but not chassis-provided — the override would have no single definition domain`);
+    assert.ok(CHASSIS_PROVIDED.has(`${k}_ref`),
+      `${k} is overridable but has no ${k}_ref baseline — the delta chain would diff against nothing`);
+  }
 });
 
 test('definition domains are pairwise disjoint (no key has two providers)', () => {

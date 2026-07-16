@@ -490,6 +490,12 @@ table.dt input.dt-input-missing {
   border-style: dashed;
   border-color: rgba(148, 163, 184, 0.4);
 }
+/* Setup value diverging from the selected chassis profile (per-column
+   override) — amber accent so the divergence is visible at a glance. */
+table.dt input.dt-input-override {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fbbf24;
+}
 
 /* ==== Help FAB + User Guide ==== */
 .help-fab {
@@ -1629,9 +1635,11 @@ function setBikeInput(bikeIdx, key, raw) {
   if (!b.overrides) b.overrides = {};
   // Track that the user explicitly set this field — drives the
   // "blank until inputs are real" logic in the data table. Chassis-domain
-  // fields (weight dist, aero share, yoke offset, …) no longer render as
-  // inputs — they are read-only echoes of the chassis profile, so their
-  // linked-pair mirroring lives solely in chassis-setup.js now.
+  // fields are read-only echoes of the chassis profile (their linked-pair
+  // mirroring lives solely in chassis-setup.js), EXCEPT the three
+  // SETUP_OVERRIDABLE keys (yoke offset / fork position / swingarm
+  // length), which render as inputs when a chassis is selected and land
+  // here as per-column overrides layered on the profile.
   b.overrides[key] = n;
   b.values[key] = n;
   saveState();
