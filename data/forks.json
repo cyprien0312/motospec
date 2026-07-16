@@ -39,7 +39,19 @@
       "Front_Spring_Rate": 9.0,
       "Front_Spring_Preload": 8.0,
       "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0
+      "Front_Topout_Length": 40.0,
+      "Fork_Length": 730.0
+    },
+    "note": "Setup as seen in the MotoSPEC oracle screenshots (9.0 N/mm spring fitted). Hardware: stroke 115 mm."
+  },
+  "showa-bpf-765-oem": {
+    "name": "Showa BPF (765 OEM std)",
+    "manufacturer": "Showa",
+    "note": "OEM standard internals per race-support spec sheet: 5wt oil, stroke 115 mm, sag targets 13 unladen / 38 laden. Preload/topout unlisted.",
+    "specs": {
+      "Front_Spring_Rate": 8.0,
+      "Front_Oil_Level": 85.0,
+      "Fork_Length": 730.0
     }
   }
 }

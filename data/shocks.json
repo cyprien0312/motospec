@@ -39,7 +39,19 @@
       "Shock_Length": 283.0,
       "Rear_Spring_Rate": 100.0,
       "Rear_Spring_Preload": 12.0,
-      "Rear_Topout_Rate": 188.0
+      "Rear_Topout_Rate": 188.0,
+      "Shock_Stroke": 60.0
+    },
+    "note": "Setup as seen in the MotoSPEC oracle screenshots: length 283 (STX40 length adjuster +3 vs nominal 280), 100 N/mm spring fitted."
+  },
+  "ohlins-stx40-765-oem": {
+    "name": "Öhlins STX40 (765 OEM std)",
+    "manufacturer": "Öhlins",
+    "note": "OEM standard per race-support spec sheet: nominal length 280, 2.5wt oil, gas 10 bar, sag targets 13 unladen / 40 laden.",
+    "specs": {
+      "Shock_Length": 280.0,
+      "Rear_Spring_Rate": 95.0,
+      "Shock_Stroke": 60.0
     }
   }
 }

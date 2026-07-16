@@ -142,6 +142,43 @@ To fill in (owner measurements on the race bike):
 - **H_CG**: raised-axle weighing method, or defer — Anti-Squat stays
   blank until it exists.
 
+## Race-support spec sheet (user-supplied, 2026-07-16 — OEM standard data)
+
+Second independent source, OEM standard setup (vs the oracle bike's
+custom springs):
+
+| | FRONT — Showa 41 BPF | REAR — Öhlins "40/14" piggyback (STX40) |
+|---|---|---|
+| Std spring rate | 8.0 N/mm | 95 N/mm |
+| Unladen / laden sag | 13 / 38 mm | 13 / 40 mm |
+| Oil | 5 wt, air gap **85 mm** | 2.5 wt, gas 10 bar |
+| **Length** | **730.0 mm** | **280.0 mm (nominal)** |
+| **Stroke** | 115 mm | **60 mm** |
+
+Reconciliation with the oracle:
+- **Shock 283 vs 280**: the STX40 has a length adjuster — the oracle bike
+  ran +3 mm over nominal. `Shock_Length_ref` stays 283 (the state at
+  which rake/WB were read); fitting a nominal-length shock is a real
+  −3 mm delta (rake opens ~0.3°, rear ride height +7 mm — the delta
+  chain working as intended).
+- **Springs 8.0/95 (OEM) vs 9.0/100 (oracle bike)**: the oracle bike had
+  stiffer springs fitted. Both setups are real → two catalog entries per
+  end (`…-765` = oracle setup, `…-765-oem` = this sheet).
+- **Rear stroke 60 mm independently confirms the linkage fit**, which
+  predicted 61.5 mm of shock compression over the chart's 135 mm wheel
+  travel (2.5% off, and the oracle's effective sweep may include the
+  topout region — its 25.6% vs our stroke-based 25.0%).
+- **Fork length 730 mm is the first real absolute** — stored on both
+  Showa entries (hardware-intrinsic). The live chain still uses
+  `Fork_Length_Delta`; absolutes can rejoin once more forks have one.
+- Sag targets (13/38 front, 13/40 rear) are the OEM recommendation — type
+  the *measured* values into LOAD CASE; these are what to aim for.
+
+`Progression` now derives its sweep from `Shock_Stroke` (real 60 mm)
+via the 4-bar inverse solve — "% Full Shock Travel" is finally literal,
+matching real MotoSPEC's definition. Shocks without a known stroke leave
+the Progression cell blank (honest).
+
 ## Open questions
 
 1. Front Wheel Rate 32.37 formula (two legs? air spring? topout?).

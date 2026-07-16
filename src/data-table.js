@@ -198,6 +198,7 @@ export const ROW_GROUPS = [
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '后避震Clevis调整 (mm)', input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
     { spec: 'Shock Length (mm)',                                    spec_zh: '后避震长度 (mm)',      input: 'Shock_Length' },
+    { spec: 'Shock Stroke (mm)',                                    spec_zh: '后避震行程 (mm)',      input: 'Shock_Stroke' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '后避震弹簧刚度 (N/mm)', input: 'Rear_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '后避震弹簧预压 (mm)',  input: 'Rear_Spring_Preload', status: 'pending' },
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '后避震回顶刚度 (N/mm)', input: 'Rear_Topout_Rate', status: 'pending' },

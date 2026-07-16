@@ -238,6 +238,8 @@ export const P = {
     desc:'测量 Rake_Static 时的前叉伸出量。当前 Fork_Position 相对该值的差是姿态修正链的输入之一。', source:'测量 Rake 时记录', typical:'0 – 15 mm' },
   Fork_Length_Delta:    { name:'Fork_Length_Delta',    label:'前叉长度差 (vs 参考)', unit:'mm', type:'input',
     desc:'当前前叉相对测量 Rake_Static 时那支前叉的总长差（正 = 更长 = 车头抬高）。0 = 同一支叉，物理真实的默认值。两支叉并排实测差值即可，无需绝对总长。', source:'两叉并排实测差值', typical:'−15 – +15 mm' },
+  Shock_Stroke:         { name:'Shock_Stroke',         label:'后避震行程', unit:'mm', type:'input',
+    desc:'后避震杆的最大压缩行程（全伸展到打底）。定义 Progression 的"全避震行程"扫描范围——与真实 MotoSPEC 的 Full Shock Travel 一致。', source:'避震规格表', typical:'55 – 65 mm' },
   Swingarm_Length_ref:  { name:'Swingarm_Length_ref',  label:'参考摇臂长度', unit:'mm', type:'input',
     desc:'测量 WB / Rake_Static 时的摇臂枢轴→后轮轴距离。链条张紧器调轴后只改 Swingarm_Length，轴距与姿态变化由差量自动算出——WB 不再手改。', source:'测量 WB 时记录', typical:'520 – 600 mm' },
   Yoke_Offset_ref:      { name:'Yoke_Offset_ref',      label:'参考三星台偏移', unit:'mm', type:'input',
@@ -391,13 +393,15 @@ export const P = {
     note: '中心差分实现：MR(0) ≈ (y_w(+ε) − y_w(−ε)) / (shock(+ε) − shock(−ε))，ε=0.5°。Pro-Link 模式同一求解器，将 β 取负在摇臂参考系中工作。'
   },
   Progression: {
-    name:'Progression', label:'渐进性 (%)', unit:'%', type:'intermediate',
-    desc:'后悬挂全行程的运动比变化幅度，相对最小值的百分比。摇臂角从 0° 扫到全行程角，逐点求 Motion_Ratio。',
+    name:'Progression', label:'渐进性 (% 全避震行程)', unit:'%', type:'intermediate',
+    desc:'后悬挂全避震行程内的运动比变化幅度，相对最小值的百分比。全行程角由 4-bar 反解避震压缩 Shock_Stroke 得到，再沿 bump 方向逐点求 Motion_Ratio——与真实 MotoSPEC 的 Full Shock Travel 定义一致。',
     formula: [
       ['(MR_max − MR_min) / MR_min × 100'],
-      ['where: δ ∈ [0°, −25°]  (bump 方向摇臂角扫描：压缩 = 后轮上移 = β 减小)'],
+      ['where: δ ∈ [0°, δ_full]，δ_full = 4-bar 反解( shock 压缩 = ', {ref:'Shock_Stroke'}, ' )'],
+      ['(bump 方向：压缩 = 后轮上移 = β 减小)'],
     ],
     deps: [
+      'Shock_Stroke', 'Shock_Clevis_RHA', 'Shock_Length', 'Shock_Length_ref',
       'Swingarm_Length', 'beta_static',
       'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
       'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
@@ -502,6 +506,7 @@ export const INPUT_META = {
   Swingarm_Length:      { def: 580,   min: 480,   max: 650,   step: 0.1 },
   Shock_Clevis_RHA:     { def: 0,     min: -10,   max: 10,    step: 0.5 },
   Shock_Length:         { def: 310,   min: 280,   max: 340,   step: 0.1 },
+  Shock_Stroke:         { def: 60,    min: 30,    max: 90,    step: 0.5 },
   Rear_Spring_Rate:     { def: 110,   min: 70,    max: 220,   step: 1 },
   Rear_Spring_Preload:  { def: 14,    min: 0,     max: 30,    step: 0.5 },
   Rear_Topout_Rate:     { def: 188,   min: 0,     max: 300,   step: 1 },
@@ -611,7 +616,15 @@ export const CALC = {
   // Phase A: real CALC for Final_Ratio; rest are stubs returning NaN until Phase C
   Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
   Motion_Ratio:              v => motionRatio(v, v.swingarm_delta_solve + v.delta_beta_sag * R2D, v.Swingarm_Length, v.beta_static),
-  Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
+  Progression: v => {
+    // Full-travel swingarm angle from the shock's real stroke (4-bar
+    // inverse solve), matching real MotoSPEC's "Full Shock Travel".
+    const dShock = v.Shock_Length - v.Shock_Length_ref;
+    const total = (v.Shock_Clevis_RHA || 0) + (Number.isFinite(dShock) ? dShock : 0);
+    const dFull = swingarmDeltaForShockTravel(v, v.Shock_Stroke, total);
+    if (!Number.isFinite(dFull)) return NaN;
+    return progression(v, v.Swingarm_Length, v.beta_static, -dFull);
+  },
   Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R),
   Wheelbase_Live: v => {
     const bLive = (v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R;

@@ -83,6 +83,22 @@ test('765 oracle: progression 25.6% over full travel (bump sweep)', () => {
   // over full shock travel; the droop-side sweep would give ~39%.
   const p = progression(inputs(), 594.5, 12.23, FULL_TRAVEL_DEG);
   assert.ok(Math.abs(p - 25.6) < 0.5, `progression ${p} vs 25.6`);
+  // The live channel now derives full travel from the shock's REAL stroke
+  // (60 mm, race-support spec sheet) via the 4-bar inverse solve — an
+  // independent confirmation of the fit (fit predicted 61.5 mm of stroke
+  // over the chart's 135 mm wheel travel). Oracle 25.6 likely sweeps its
+  // slightly longer effective travel, hence the ±1 tolerance.
+  const out = computeAll(inputs());
+  assert.ok(Math.abs(out.Progression - 25.6) < 1.0, `Progression ${out.Progression} vs 25.6`);
+});
+
+test('765 spec sheet: OEM shock at nominal 280 vs oracle ref 283 shifts attitude', () => {
+  // The STX40 length adjuster: the oracle bike ran 283, the OEM nominal is
+  // 280. Fitting the nominal-length shock must lower the rear and open rake.
+  const b = computeAll(inputs());
+  const oem = computeAll({ ...inputs(), Shock_Length: 280 });
+  assert.ok(oem.MotoSPEC_Rake > b.MotoSPEC_Rake, 'shorter shock → rear drops → rake opens');
+  assert.ok(oem.Rear_Ride_Height > b.Rear_Ride_Height, 'axle rises toward the pivot');
 });
 
 test('765 oracle: wheelbase and wheel rate (documented model differences)', () => {
