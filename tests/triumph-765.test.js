@@ -46,6 +46,22 @@ test('765 oracle: yoke-offset columns 27.5 / 29.0 reproduce the trail deltas', (
   assert.ok(Math.abs(c2.MotoSPEC_Trail - 103.5) < 0.4, `col2 trail ${c2.MotoSPEC_Trail} vs 103.5`);
   const c3 = computeAll({ ...inputs(), Yoke_Offset: 29.0 });
   assert.ok(Math.abs(c3.MotoSPEC_Trail - 101.7) < 0.4, `col3 trail ${c3.MotoSPEC_Trail} vs 101.7`);
+  // Wheelbase responds to yoke offset via Δo·cos(Rake) — the oracle's own
+  // columns: 1414.3 → 1415.7 → 1417.
+  assert.ok(Math.abs(c2.Wheelbase_Live - 1415.7) < 0.15, `col2 WB ${c2.Wheelbase_Live} vs 1415.7`);
+  assert.ok(Math.abs(c3.Wheelbase_Live - 1417.0) < 0.15, `col3 WB ${c3.Wheelbase_Live} vs 1417`);
+});
+
+test('765 oracle: chain-adjuster axle move flows into wheelbase and attitude', () => {
+  // Axle +5 mm along the swingarm: WB is NOT hand-edited — Wheelbase_Live
+  // gains ≈ 5·cos(12.23°) = 4.89 mm; the axle sits 5·sin(12.23°) ≈ 1.06 mm
+  // deeper below the pivot, so the rear lifts → rake closes a hair.
+  const b = computeAll(inputs());
+  const m = computeAll({ ...inputs(), Swingarm_Length: 599.5 });
+  assert.ok(Math.abs((m.Wheelbase_Live - b.Wheelbase_Live) - 5 * Math.cos(12.23 * Math.PI / 180)) < 0.01,
+    `ΔWB ${m.Wheelbase_Live - b.Wheelbase_Live}`);
+  assert.ok(m.MotoSPEC_Rake < b.MotoSPEC_Rake, 'longer swingarm lifts the rear → rake closes');
+  assert.ok(m.Rear_Ride_Height < b.Rear_Ride_Height, 'axle deeper below the pivot');
 });
 
 test('765 oracle: rear ride height and swingarm angle', () => {

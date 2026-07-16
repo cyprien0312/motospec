@@ -38,7 +38,7 @@ function leafInputsFor(id) {
 export const CHASSIS_PROVIDED = new Set([
   'Rake_Static','WB','Swingarm_Length','beta_static',
   'Yoke_Offset','Fork_Position',
-  'Fork_Position_ref','Shock_Length_ref',
+  'Fork_Position_ref','Shock_Length_ref','Swingarm_Length_ref','Yoke_Offset_ref',
   'Mass','H_CG','L_CG','front_weight_dist','rear_weight_dist',
   'C_f_aero','C_r_aero','Rf',
   'Front_Sprocket_X','Front_Sprocket_Y','Chain_Pitch',

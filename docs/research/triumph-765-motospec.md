@@ -78,8 +78,10 @@ which displayed it positive.
   absolute frame model sees the front-height change; we hold `Rake_Static`.
   Costs ≤ 0.35 mm of trail across these columns.
 - **Their wheelbase responds to offset**: +3 mm offset → +2.7 ≈ 3·cos 23.7°.
-  A yoke-offset delta term for `Wheelbase_Live` is future work (noted in
-  the sag plan).
+  Now modeled: `Wheelbase_Live` carries a `(Yoke_Offset − Yoke_Offset_ref)·
+  cos(Rake)` term plus the live-vs-ref swingarm projection (chain-adjuster
+  moves), pinned against the oracle's 1415.7 / 1417 columns. WB is a
+  one-time reference measurement, never hand-edited for adjustments.
 
 ## The coordinate fit (oracle extraction, first success)
 

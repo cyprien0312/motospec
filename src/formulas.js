@@ -238,6 +238,10 @@ export const P = {
     desc:'测量 Rake_Static 时的前叉伸出量。当前 Fork_Position 相对该值的差是姿态修正链的输入之一。', source:'测量 Rake 时记录', typical:'0 – 15 mm' },
   Fork_Length_Delta:    { name:'Fork_Length_Delta',    label:'前叉长度差 (vs 参考)', unit:'mm', type:'input',
     desc:'当前前叉相对测量 Rake_Static 时那支前叉的总长差（正 = 更长 = 车头抬高）。0 = 同一支叉，物理真实的默认值。两支叉并排实测差值即可，无需绝对总长。', source:'两叉并排实测差值', typical:'−15 – +15 mm' },
+  Swingarm_Length_ref:  { name:'Swingarm_Length_ref',  label:'参考摇臂长度', unit:'mm', type:'input',
+    desc:'测量 WB / Rake_Static 时的摇臂枢轴→后轮轴距离。链条张紧器调轴后只改 Swingarm_Length，轴距与姿态变化由差量自动算出——WB 不再手改。', source:'测量 WB 时记录', typical:'520 – 600 mm' },
+  Yoke_Offset_ref:      { name:'Yoke_Offset_ref',      label:'参考三星台偏移', unit:'mm', type:'input',
+    desc:'测量 WB / Rake_Static 时的三星台偏移量。换 offset 后只改 Yoke_Offset，轴距变化（Δo × cos Rake）自动进入 Wheelbase_Live。', source:'测量 WB 时记录', typical:'25 – 40 mm' },
   Shock_Length_ref:     { name:'Shock_Length_ref',     label:'参考后避震长度', unit:'mm', type:'input',
     desc:'测量 Rake_Static / beta_static 时装的后避震眼对眼长度。当前 Shock_Length 相对该值的差与 Shock_Clevis_RHA 一样进入 4-bar 反解（RHA 本质就是避震长度差）。', source:'测量 Rake 时记录', typical:'290 – 320 mm' },
   Front_Spring_Rate:    { name:'Front_Spring_Rate',    label:'前叉弹簧刚度', unit:'N/mm', type:'input',
@@ -335,14 +339,14 @@ export const P = {
   },
   Pitch_Sag: {
     name: 'Pitch_Sag', label: '载荷俯仰角', unit: 'rad', type: 'intermediate',
-    desc: '当前载荷状态相对参考姿态的底盘俯仰角，点头为正。前端下沉 = (前 sag + 前叉差量) 投影到垂直方向（×cos Rake）；后端下沉 = 后 sag − shock 差量引起的车尾抬升。',
+    desc: '当前载荷状态相对参考姿态的底盘俯仰角，点头为正。前端下沉 = (前 sag + 前叉差量) 投影到垂直方向（×cos Rake）；后端下沉 = 后 sag − 车尾抬升（shock 差量转摇臂 + 调轴改变轴心深度，均相对参考摇臂长度计）。',
     formula: [
       ['arctan( (ΔZ_front − ΔZ_rear) / ', {ref:'WB'}, ' )'],
       ['ΔZ_front = ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × cos(', {ref:'Rake_Static'}, ')'],
-      ['ΔZ_rear = ', {ref:'Sag_Rear'}, ' − ', {ref:'Swingarm_Length'}, ' × ( sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ') − sin(', {ref:'beta_static'}, ') )'],
+      ['ΔZ_rear = ', {ref:'Sag_Rear'}, ' − ( ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ') − ', {ref:'Swingarm_Length_ref'}, ' × sin(', {ref:'beta_static'}, ') )'],
     ],
-    deps: ['Sag_Front', 'delta_fork', 'Rake_Static', 'Sag_Rear', 'Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'WB'],
-    note: 'cos(Rake) 把沿前叉轴的行程投影到垂直方向——前后 sag 数值相等时姿态并非不变（前端实际下沉略小）。shock 加长（RHA / ΔShock > 0）→ 车尾抬高 → 点头为正 → Rake 变小。'
+    deps: ['Sag_Front', 'delta_fork', 'Rake_Static', 'Sag_Rear', 'Swingarm_Length', 'Swingarm_Length_ref', 'beta_static', 'swingarm_delta_solve', 'WB'],
+    note: 'cos(Rake) 把沿前叉轴的行程投影到垂直方向——前后 sag 数值相等时姿态并非不变（前端实际下沉略小）。shock 加长（RHA / ΔShock > 0）或调轴后移（轴更深于枢轴下方）→ 车尾抬高 → 点头为正 → Rake 变小。'
   },
   swingarm_delta_solve: {
     name: 'Δβ_static', label: '4-bar 反解（shock 差量 → 静态摇臂角变化）', unit: 'deg', type: 'intermediate',
@@ -440,14 +444,15 @@ export const P = {
   },
   Wheelbase_Live: {
     name:'Wheelbase_Live', label:'轴距（当前载荷）', unit:'mm', type:'channel',
-    desc:'当前载荷状态下的前后轴水平距离。前 sag / 前叉差量沿转向轴把前轴向后拉；后 sag / shock 差量改变摇臂角，改变后轴的水平投影。未加载时等于 WB。',
+    desc:'当前载荷/设定状态下的前后轴水平距离。WB 是一次性的参考测量，之后不手改：前 sag / 前叉差量沿转向轴拉前轴；后 sag / shock 差量 / 链条张紧器调轴改变后轴水平投影；换三星台偏移水平移动前轴。全为差量，参考态时精确等于 WB。',
     formula: [
       [{ref:'WB'}, ' − ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × sin(', {ref:'Rake_Static'}, ')'],
-      ['+ ', {ref:'Swingarm_Length'}, ' × ( cos(β_live) − cos(', {ref:'beta_static'}, ') )'],
+      ['+ ( ', {ref:'Swingarm_Length'}, ' × cos(β_live) − ', {ref:'Swingarm_Length_ref'}, ' × cos(', {ref:'beta_static'}, ') )'],
+      ['+ ( ', {ref:'Yoke_Offset'}, ' − ', {ref:'Yoke_Offset_ref'}, ' ) × cos(', {ref:'Rake_Static'}, ')'],
       ['β_live = ', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π)'],
     ],
-    deps: ['WB', 'Sag_Front', 'delta_fork', 'Rake_Static', 'Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'delta_beta_sag'],
-    note: '真实 MotoSPEC 中轴距是随 shock 长度变化的计算输出（避震 323.5→317 mm 时 1449.9→1446.7）。链条张紧器移轴（ΔSwingarm_Length）与三星台偏移变化的贡献待各自的参考量引入后再进入该通道。'
+    deps: ['WB', 'Sag_Front', 'delta_fork', 'Rake_Static', 'Swingarm_Length', 'Swingarm_Length_ref', 'Yoke_Offset', 'Yoke_Offset_ref', 'beta_static', 'swingarm_delta_solve', 'delta_beta_sag'],
+    note: '奥赛验证（Triumph 765，三列仅 yoke offset 不同）：+1.5 mm offset → 轴距 +1.4；+3 mm → +2.7 = 3 × cos(23.7°)。shock 长度响应对应 Panigale 截图 323.5→317 时 1449.9→1446.7。'
   },
 };
 
@@ -487,6 +492,8 @@ export const INPUT_META = {
   // absolute Fork_Length stays out of the live chain.
   Fork_Length_Delta:    { def: 0,     min: -50,   max: 50,    step: 0.5 },
   Shock_Length_ref:     { def: 310,   min: 280,   max: 340,   step: 0.1 },
+  Swingarm_Length_ref:  { def: 580,   min: 480,   max: 650,   step: 0.1 },
+  Yoke_Offset_ref:      { def: 32,    min: 20,    max: 45,    step: 0.5 },
   Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.1 },
   Front_Spring_Preload: { def: 10.0,  min: 0,     max: 25,    step: 0.5 },
   Front_Oil_Level:      { def: 170,   min: 80,    max: 220,   step: 1 },
@@ -542,10 +549,13 @@ export const CALC = {
   },
   Pitch_Sag: v => {
     const dzFront = (v.Sag_Front + v.delta_fork) * Math.cos(v.Rake_Static * D2R);
-    // Shock delta rotates the swingarm: axle drop relative to the frame is
-    // frame RISE at the rear once the wheel is on the ground.
-    const rearLift = v.Swingarm_Length *
-      (Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R) - Math.sin(v.beta_static * D2R));
+    // Axle depth below the pivot, live vs reference: a shock delta rotates
+    // the swingarm, a chain-adjuster move (ΔSwingarm_Length) slides the
+    // axle along it — either way, deeper axle = frame RISE at the rear
+    // once the wheel is on the ground.
+    const rearLift =
+      v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R)
+      - v.Swingarm_Length_ref * Math.sin(v.beta_static * D2R);
     const dzRear = v.Sag_Rear - rearLift;
     return Math.atan((dzFront - dzRear) / v.WB);
   },
@@ -607,7 +617,8 @@ export const CALC = {
     const bLive = (v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R;
     return v.WB
       - (v.Sag_Front + v.delta_fork) * Math.sin(v.Rake_Static * D2R)
-      + v.Swingarm_Length * (Math.cos(bLive) - Math.cos(v.beta_static * D2R));
+      + (v.Swingarm_Length * Math.cos(bLive) - v.Swingarm_Length_ref * Math.cos(v.beta_static * D2R))
+      + (v.Yoke_Offset - v.Yoke_Offset_ref) * Math.cos(v.Rake_Static * D2R);
   },
   Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
   // Motion_Ratio is wheel/shock (≈2–3). Energy identity:
