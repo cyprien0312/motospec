@@ -1,0 +1,44 @@
+/* ==========================================================================
+   MotoSpec design tokens — "race paddock engineering drawing"
+   Dark asphalt surfaces, safety-orange accents, blueprint construction lines.
+   Display: Saira Condensed (uppercase, tracked). Body: Barlow. Data: IBM Plex Mono.
+   ========================================================================== */
+
+:root {
+  /* surfaces */
+  --asphalt: #0e1113;
+  --panel: #15191c;
+  --panel-raised: #1a2024;
+  --line: #242c31;
+  --line-strong: #323d44;
+
+  /* ink */
+  --ink: #e8edea;
+  --ink-dim: #8a968f;
+  --ink-faint: #5a665f;
+
+  /* brand + semantics */
+  --orange: #ff6a2b;          /* safety orange — current setup, primary actions */
+  --orange-soft: #ff6a2b22;
+  --cyan: #3fd0c9;            /* baseline ghost */
+  --cyan-soft: #3fd0c922;
+  --ok: #7adb8f;
+  --warn: #ffc857;
+  --bad: #ff5d5d;
+
+  /* blueprint drawing */
+  --bp-grid: #1b2226;
+  --bp-grid-major: #222b30;
+  --bp-construction: #3a474f; /* thin construction lines */
+  --bp-dim: #9fb4ad;          /* dimension text */
+
+  /* type */
+  --font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', 'Helvetica Neue', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  /* rhythm */
+  --rad: 4px;
+  --gap: 12px;
+  --pad: 16px;
+}
