@@ -79,18 +79,70 @@ Nelder-Mead / coordinate descent over `closeFourBar` — pure Node script,
 no dependencies, initial guess = current mode placeholder. Progression and
 the static MR pin as extra residuals.
 
+**Sensitivity pinning (critical for the racer use-case):** matching the
+shock(δ) curve alone yields an equivalence class whose response to *link-
+length edits* (dog bones, linkarm) is NOT guaranteed to match the real
+bike's. Since "change the dog bone by 2 mm" is a primary user workflow, the
+perturbed-geometry columns (e.g. linkarm 121.6 → 114 from the Panigale
+screenshot) go **into the fit residuals** — they pin ∂shock/∂L and collapse
+the class to members that also respond correctly to link edits. The held-out
+validation gate then uses *different* unseen states (an RHA change + one
+mid-travel pot state), not the linkarm columns.
+
+**LINK DIMENSIONS upgrade (2026-07-16, second screenshot):** MotoSPEC's
+Link Dimensions dialog exposes the rocker as GROUND-TRUTH link lengths —
+e.g. swingarm-mounted rocker (our `pro-link`): Swingarm–Shock 77.70,
+Swingarm–Linkarm 45.30, Shock–Linkarm 57.65, Nominal Linkarm 169.20 (=
+our closure `L_static`), with a second rocker (BETA: 67.0/35.0/60.0/182.0)
+sharing the same anchors. Consequences:
+- The rocker triangle is exact, not fitted — free parameters drop 10 → 6
+  (rocker pivot on swingarm ×2, frame linkarm anchor ×2, frame shock top
+  ×2; static phase absorbed by the linkarm-length constraint).
+- The `LINKAGE TYPE` dropdown resolves `Linkage_Mode` outright (swingarm-
+  mounted = pro-link, frame-mounted = linked).
+- Dog-bone sensitivity is trivially correct: linkarm length is an explicit
+  true input, no longer inferred.
+- **Joint two-rocker fit:** STOCK + BETA triangles share the 6 anchor
+  unknowns → two independent curve families constrain them; identifiable up
+  to a mirror branch (Rocker Orientation "NA"), resolved by residual or by
+  looking at the bike.
+- The Wheel-Rate-vs-wheel-travel chart behind the dialog is a dense oracle:
+  digitize ~10 pts/curve, `MR(travel) = sqrt(k_spring / WheelRate)` with the
+  displayed spring rate (101 N/mm) → can replace most of the pot sweep.
+  Revised minimal budget: **1 static snapshot + 1 Link Dimensions dialog +
+  1 wheel-rate chart + 2 held-out states ≈ 5 screenshots per bike.**
+  Companion reads: Shock Length (static |shock-top ↔ rocker shock end|
+  constraint), the Swingarm Pivot (0,0) row (confirms their origin =
+  swingarm pivot, same as ours).
+
 `Front_Sprocket_X/Y`: at each sweep state, chain angle
 `θ_chain = f(AntiSquat angle, Swingarm Angle)` by inverting the tan-sum;
 θ_chain at 2+ distinct β values → solve the 2 unknowns closed-form
 (least-squares over all 11 states in practice; teeth + pitch known).
 
-### D. Not needed (don't waste oracle reads)
+### D. Not needed from sweeps (don't waste oracle reads)
 
-`Fork_Length` (no channel consumes it), `C_f/C_r_aero` (static phase
-unused), `Mass` (unused since force rows were removed; Phase-2 sag
-prediction needs it but that's the user's own bike + bathroom scale, not
-the oracle's), `Chain_Pitch` (= 15.875 constant), `rear_weight_dist`
-(= 1 − front).
+`Fork_Length` — read it off the fork spec sheet (route A), never fit it:
+because `Rake_Static` anchors the absolute attitude, the absolute
+yoke→axle distance never appears in any equation; only *deltas* of fork
+length/position matter, and those are inputs the user sets, not hidden
+geometry (see the attitude-delta chain in the sag-load-case plan — it is a
+real physical dependency, just not an extraction target).
+`C_f/C_r_aero` (static phase unused), `Mass` (unused since force rows were
+removed; Phase-2 sag prediction needs it but that's the user's own bike +
+bathroom scale, not the oracle's), `Chain_Pitch` (= 15.875 constant),
+`rear_weight_dist` (= 1 − front).
+
+## Recoverable skeleton, front-axle origin (user question 2026-07-16)
+
+With the ≈14 states: yoke position + offset ✅ (steering axis from
+Rake/Trail; position along it = `Fork_Length − Fork_Position`, spec-read);
+swingarm pivot ✅ horizontally (`WB − L·cos(β)`), ⚠️ vertically (needs rear
+loaded radius — nominal tire spec ±3–5 mm; NO channel consumes absolute
+verticals, so this only affects drawings, never RESULTS); linkage 5 points
+✅ as a functional equivalent (physical truth not identifiable — see
+sensitivity pinning); countershaft sprocket ✅ (anti-squat inversion,
+relative to pivot).
 
 ## Data budget — the answer to "how much data?"
 

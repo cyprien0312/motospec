@@ -50,6 +50,48 @@ user measured/spec'd them. `Sag_*` is *additional compression relative to
 that same attitude*. We do not try to police which attitude that is — we just
 require the user be consistent.
 
+## Generalized attitude-delta chain (user question 2026-07-16)
+
+Sag is not the only thing that moves the front end relative to the
+reference attitude. Physically, yoke→front-axle along the fork axis
+= `Fork_Length − Fork_Position`; raising the tubes in the clamps
+(`Fork_Position`↑) or fitting a shorter fork drops the front exactly like
+front sag does. Same at the rear: a different `Shock_Length` changes rear
+height through the linkage — mechanically identical to `Shock_Clevis_RHA`,
+which the solver already models.
+
+We deliberately do NOT do absolute closure (computing rake from frame +
+fork + shock dimensions, like real MotoSPEC — that needs steering-head
+coordinates relative to the swingarm pivot, which is exactly the
+unmeasurable data). `Rake_Static` stays the measured anchor; everything
+else is a **delta from the reference setup**, all feeding the one Pitch
+formula:
+
+```
+ΔZ_front = ( Sag_Front + ΔFork ) · cos(Rake_Static)
+ΔFork    = (Fork_Position − Fork_Position_ref)          ← tubes up = front down
+         + (Fork_Length_ref − Fork_Length)              ← shorter fork = front down
+rear:      ΔShock = Shock_Length − Shock_Length_ref     → joins the RHA term in
+                                                          swingarm_delta_solve
+                                                          (RHA IS a shock-length delta)
+```
+
+Payoffs:
+- `Fork_Position` and `Shock_Length` lose their PENDING badges — both become
+  live geometry knobs, matching real MotoSPEC behaviour (its rake responds
+  to shock length; see validation fixture: Δshock −6.5 mm + linkarm change
+  → rake 24.04 → 23.46).
+- Fork/shock swaps become computable comparisons: two catalog forks with
+  different lengths now produce different rake/trail.
+
+**Domain decision needed:** `Fork_Length` currently lives on the chassis
+profile, but "swapping forks changes front height" requires it to travel
+with the fork component → move `Fork_Length` to the forks catalog specs and
+add `Fork_Position_ref` / `Fork_Length_ref` / `Shock_Length_ref` (the setup
+at which `Rake_Static` was measured) to the chassis profile. Touches
+`CHASSIS_SPEC_FIELDS` + `tests/domains.test.js` — do it as its own commit
+with the domain tests green.
+
 ## Channel changes (decision: ONE live RESULTS set, no `_Sag` row family)
 
 Per user direction (2026-07-16, after comparing against a real MotoSPEC PRO
@@ -70,7 +112,7 @@ that: the existing channels become live, driven by the sag inputs.
 | `Motion_Ratio` | evaluate at load point | `motionRatio(cfg, δ_sag, …)` — solver already takes the delta parameter |
 | `Rear_Wheel_Rate` | automatically live | unchanged — consumes `Motion_Ratio` |
 | `Rear_Ride_Height` | add sag delta | evaluate wheel height at `swingarm_delta_solve + delta_beta_sag` |
-| `Wheelbase_Live` (new channel) | replaces the WB echo row | `WB − Sag_Front·sin(Rake_Static) + Swingarm_Length·(cos(β_live) − cos(β_static))` — matches real MotoSPEC, where WB is a computed output that moves with shock length (screenshot: 1449.9 → 1446.7 when shock 323.5 → 317) |
+| `Wheelbase_Live` (new channel) | replaces the WB echo row | `WB − Sag_Front·sin(Rake_Static) + Swingarm_Length·(cos(β_live) − cos(β_static))` — matches real MotoSPEC, where WB is a computed output that moves with shock length (screenshot: 1449.9 → 1446.7 when shock 323.5 → 317). Racer knobs that must also enter this channel: chain-adjuster axle moves (= `ΔSwingarm_Length`, contributes `ΔL·cos(β)`) and yoke-offset changes (`Δo·cos(Rake)`). |
 | `Progression` | unchanged | full-travel sweep property, not a point value |
 
 No new kernels; every change reuses `linkage.js` solvers already covered by

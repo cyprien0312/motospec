@@ -173,16 +173,15 @@ export function effectiveBikeValues(bike) {
 // remain editable number inputs. The RESULTS group is rendered as
 // computed read-only cells.
 export const ROW_GROUPS = [
+  // Chassis geometry is defined in Chassis Setup, full stop — the table
+  // shows only the profile selector, like the real MotoSPEC's dropdown
+  // references to named definitions. The weight/aero echo rows are gone.
   { header: 'FRAME GEOMETRY', header_zh: '车架几何', rows: [
     { spec: 'Chassis',                                              spec_zh: '底盘',                 component: 'chassis' },
-    { spec: 'Front Weight Distribution',                            spec_zh: '前轮静态重量分配',    input: 'front_weight_dist' },
-    { spec: 'Rear Weight Distribution',                             spec_zh: '后轮静态重量分配',    input: 'rear_weight_dist' },
-    { spec: 'Front Aero Downforce Share',                           spec_zh: '前轮气动下压力分配',  input: 'C_f_aero' },
-    { spec: 'Rear Aero Downforce Share',                            spec_zh: '后轮气动下压力分配',  input: 'C_r_aero' },
   ]},
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
     { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移量 (mm)',    input: 'Yoke_Offset' },
-    { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position', status: 'pending' },
+    { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position' },
     { spec: 'Fork',                                                 spec_zh: '前叉',                 component: 'fork' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '前叉弹簧刚度 (N/mm)',  input: 'Front_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '前叉弹簧预压 (mm)',    input: 'Front_Spring_Preload', status: 'pending' },
@@ -194,20 +193,33 @@ export const ROW_GROUPS = [
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '后避震Clevis调整 (mm)', input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
-    { spec: 'Shock Length (mm)',                                    spec_zh: '后避震长度 (mm)',      input: 'Shock_Length', status: 'pending' },
+    { spec: 'Shock Length (mm)',                                    spec_zh: '后避震长度 (mm)',      input: 'Shock_Length' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '后避震弹簧刚度 (N/mm)', input: 'Rear_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '后避震弹簧预压 (mm)',  input: 'Rear_Spring_Preload', status: 'pending' },
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '后避震回顶刚度 (N/mm)', input: 'Rear_Topout_Rate', status: 'pending' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '后避震回顶长度 (mm)',  input: 'Rear_Topout_Length', status: 'pending' },
     { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
   ]},
+  // Mirrors real MotoSPEC's DYNAMIC READINGS group — its potentiometer
+  // inputs at 0 play exactly the role our sag inputs play at 0.
+  { header: 'LOAD CASE', header_zh: '载荷状态', rows: [
+    { spec: 'Front Sag (mm)',                                       spec_zh: '前部下沉量 (mm)',      input: 'Sag_Front',
+      hint: { en: 'Measured along the fork axis (zip-tie). 0 = unloaded reference. Typical 25–35 mm.', zh: '沿前叉轴线测量（扎带法）。0 = 未加载参考态。典型 25–35 mm。' } },
+    { spec: 'Rear Sag (mm)',                                        spec_zh: '后部下沉量 (mm)',      input: 'Sag_Rear',
+      hint: { en: 'Measured vertically at the rear axle. 0 = unloaded reference. Typical 25–35 mm.', zh: '在后轮轴处垂直测量。0 = 未加载参考态。典型 25–35 mm。' } },
+  ]},
   { header: 'SPROCKETS', header_zh: '链轮', rows: [
     { spec: 'Front Sprocket',                                       spec_zh: '前链轮齿数',          input: 'Front_Sprocket' },
     { spec: 'Rear Sprocket',                                        spec_zh: '后链轮齿数',          input: 'Rear_Sprocket' },
     { spec: 'Final Ratio',                                          spec_zh: '最终传动比',          computed: 'Final_Ratio' },
   ]},
+  // Single live RESULTS block, zero echo rows — every value is computed at
+  // the current load state (sag inputs at 0 give the static values), like
+  // the real MotoSPEC. The CofG echo rows (verbatim weight-dist copies) are
+  // gone until a mass model computes them; static weight split is visible
+  // on the Chassis page.
   { header: 'RESULTS', header_zh: '结果', rows: [
-    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake',              status: 'static' },
+    { spec: 'Rake (degrees)',                                       spec_zh: '后倾角 (度)',         computed: 'MotoSPEC_Rake' },
     { spec: 'Normal Trail (mm)',                                    spec_zh: '法向拖曳距 (mm)',     computed: 'Normal_Trail' },
     { spec: 'Ground Trail (mm)',                                    spec_zh: '拖曳距 (mm)',         computed: 'MotoSPEC_Trail' },
     { spec: 'Rear Ride Height Reference (mm)',                      spec_zh: '后部车高参考 (mm)',   computed: 'Rear_Ride_Height' },
@@ -215,17 +227,16 @@ export const ROW_GROUPS = [
     { spec: 'Anti-Squat (%)',                                       spec_zh: '抗蹲百分比 (%)',      computed: 'Anti_Squat' },
     { spec: 'Progression (% Full Shock Travel)',                    spec_zh: '渐进性 (%)',          computed: 'Progression' },
     { spec: 'Motion Ratio (Wheel/Shock)',                           spec_zh: '运动比 (轮/避震)',    computed: 'Motion_Ratio' },
-    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'WB',                         status: 'static' },
+    { spec: 'Wheelbase (mm)',                                       spec_zh: '轴距 (mm)',           computed: 'Wheelbase_Live' },
     { spec: 'Front Wheel Rate (N/mm)',                              spec_zh: '前轮综合刚度 (N/mm)', computed: 'Front_Wheel_Rate' },
     { spec: 'Rear Wheel Rate (N/mm)',                               spec_zh: '后轮综合刚度 (N/mm)', computed: 'Rear_Wheel_Rate' },
-    { spec: 'CofG % Front',                                         spec_zh: '重心前侧占比 (%)',    derivedFrom: v => v.front_weight_dist * 100, requires: ['front_weight_dist'], status: 'static' },
-    { spec: 'CofG % Rear',                                          spec_zh: '重心后侧占比 (%)',    derivedFrom: v => v.rear_weight_dist * 100,  requires: ['rear_weight_dist'],  status: 'static' },
   ]},
 ];
 
+// The STATIC badge is retired: with the sag load case live and the echo
+// rows removed, no RESULTS row echoes a static input anymore.
 const STATUS_BADGE = {
   pending: { en: 'PENDING', zh: '待实现', title_en: 'Input is not yet consumed by any RESULTS formula', title_zh: '该输入尚未被任何 RESULTS 公式消费' },
-  static:  { en: 'STATIC',  zh: '静态值', title_en: 'Echoes the static input value verbatim — does not respond to dynamic compression/load', title_zh: '直接回显静态输入值，不随动态压缩/载荷变化' },
 };
 
 const DASH = '—';
@@ -286,14 +297,14 @@ export function blankBike(idx) {
   };
 }
 
-function inputCell(bikeIdx, key, value, missingTitle) {
+function inputCell(bikeIdx, key, value, title, missing = false) {
   const m = INPUT_META[key] || {};
   const step = m.step != null ? m.step : 'any';
   const minAttr = m.min != null ? ` min="${m.min}"` : '';
   const maxAttr = m.max != null ? ` max="${m.max}"` : '';
   const v = value == null || !Number.isFinite(value) ? '' : value;
-  const titleAttr = missingTitle ? ` title="${escapeHtml(missingTitle)}"` : '';
-  const cls = missingTitle ? 'dt-input dt-input-missing' : 'dt-input';
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  const cls = missing ? 'dt-input dt-input-missing' : 'dt-input';
   return `<td><input type="number" class="${cls}" value="${v}" step="${step}"${minAttr}${maxAttr}${titleAttr} oninput="setBikeInput(${bikeIdx}, '${key}', this.value)"></td>`;
 }
 
@@ -423,9 +434,11 @@ export function renderDataTable(state) {
           } else {
             // Show the value only when it's been actually set; otherwise
             // leave the cell blank and let the user fill it in. A tooltip
-            // hints at where the value would normally come from.
+            // hints at where the value would normally come from — or, for
+            // ready rows carrying a `hint`, at how to measure it.
             const v = has ? effVals[i][row.input] : null;
-            cells += inputCell(i, row.input, v, has ? null : inputMissingTitle(row.input));
+            const title = has ? (row.hint?.[lang] || null) : inputMissingTitle(row.input);
+            cells += inputCell(i, row.input, v, title, !has);
           }
         } else if (row.derivedFrom) {
           const st = cellStatus(row, readyByBike[i]);

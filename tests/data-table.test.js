@@ -111,11 +111,53 @@ test('every ROW_GROUPS row has at least one of input/computed/component/literal/
   }
 });
 
-test('H3: frame-intrinsic input rows exist in ROW_GROUPS', () => {
+test('FRAME GEOMETRY carries only the chassis selector — echo rows removed', () => {
+  // Chassis geometry is defined in Chassis Setup, full stop. The
+  // weight/aero echo rows and the CofG pseudo-results are gone (an echo
+  // dressed as a result is what the honesty rules forbid).
   const allRows = ROW_GROUPS.flatMap(g => g.rows);
   for (const k of ['front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
-    assert.ok(allRows.some(r => r.input === k), `missing input row for ${k}`);
+    assert.ok(!allRows.some(r => r.input === k), `echo row for ${k} should be removed`);
   }
+  const frame = ROW_GROUPS.find(g => g.header === 'FRAME GEOMETRY');
+  assert.equal(frame.rows.length, 1);
+  assert.equal(frame.rows[0].component, 'chassis');
+  assert.ok(!allRows.some(r => /CofG/.test(r.spec)), 'CofG echo rows should be removed');
+});
+
+test('LOAD CASE group renders editable sag inputs that default to 0 (always ready)', () => {
+  const html = render();
+  assert.match(html, /LOAD CASE/);
+  for (const k of ['Sag_Front', 'Sag_Rear']) {
+    const cells = html.match(new RegExp(`oninput="setBikeInput\\(\\d+, '${k}'`, 'g')) || [];
+    assert.equal(cells.length, 3, `${k} should render one editable cell per bike`);
+  }
+  // 0 is a real value — sag cells must not render as missing-input cells.
+  const sagRow = html.match(/<tr><th class="dt-spec">Front Sag[\s\S]*?<\/tr>/)[0];
+  assert.doesNotMatch(sagRow, /dt-input-missing/);
+  assert.match(sagRow, /value="0"/);
+});
+
+test('RESULTS has a single live block — no STATIC badges, wheelbase is computed', () => {
+  const results = ROW_GROUPS.find(g => g.header === 'RESULTS').rows;
+  for (const r of results) {
+    assert.notEqual(r.status, 'static', `${r.spec} still carries the retired STATIC badge`);
+    assert.ok(r.computed, `${r.spec} should be a computed channel, not an echo`);
+  }
+  assert.ok(results.some(r => r.computed === 'Wheelbase_Live'),
+    'Wheelbase row must consume the live channel, not echo WB');
+  assert.ok(!results.some(r => r.computed === 'WB'));
+});
+
+test('gating: live rows blank without chassis+linkage, even though sag is always ready', () => {
+  // Default bikes bind nothing — the Rake cell must render as a
+  // missing-input hint (needs chassis + fork + shock + linkage), NOT as a
+  // number built from placeholder defaults, and NOT blame the sag inputs.
+  const html = render();
+  const rakeRow = html.match(/<tr><th class="dt-spec">Rake \(degrees\)[\s\S]*?<\/tr>/)[0];
+  assert.match(rakeRow, /dt-missing/);
+  assert.match(rakeRow, /Need:/);
+  assert.doesNotMatch(rakeRow, /Sag_/, 'sag inputs are real at 0 and must never be reported missing');
 });
 
 test('Dynamic-only rows are removed from RESULTS (static-first mode)', () => {
