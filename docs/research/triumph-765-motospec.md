@@ -113,17 +113,31 @@ Linkage Setup MR chart) swept the swingarm in the droop direction
 axle up = β decreasing) the fitted 765 gives 25.7% vs the oracle's 25.6;
 the droop sweep gave 39%. Both sweeps now run in the bump direction.
 
-## What is real vs defaulted in the chassis profile
+## What the chassis profile carries — geometry only, by decision
 
-Real (from the oracle): Rake 23.7, WB 1414.3, swingarm 594.5, β 12.23,
-yoke offset 26.0, fork position 28 (=ref), shock ref 283, Rf 304.6
-(derived), weight split 0.498/0.502 (their CofG display), Mass 191.4 (sum
-of their wheel-force magnitudes — may exclude rider; treat as approximate).
+The profile carries ONLY frame-intrinsic geometry that survives a race
+conversion: Rake 23.7, WB 1414.3, swingarm 594.5, β 12.23, yoke offset
+26.0, fork position 28 (=ref), shock ref 283, Rf 304.6 (derived), chain
+pitch. `Fork_Length_ref` 770 is a default; only the delta matters and it
+is 0.
 
-INPUT_META defaults (no data): H_CG, L_CG, aero shares, front sprocket
-X/Y (hence our Anti-Squat ≈ 38% vs their 113.1 — needs real sprocket
-geometry), Fork_Length / Fork_Length_ref (770 = default; only the delta
-matters and it is 0).
+Mass / weight split / CG / aero / front-sprocket position are
+**deliberately absent** (user decision 2026-07-16): the user's bike is a
+stripped race build, so the oracle's mass data (which was also internally
+inconsistent — CofG 49.8/50.2 vs wheel forces 48.5/51.5, rider model
+unknown) does not transfer. Dependent RESULTS (Anti-Squat) blank honestly
+until the user measures their own bike and saves a personal profile
+variant via Chassis Setup. For reference, the oracle displayed: CofG
+49.8/50.2, wheel forces 92.8/98.6 kg, Anti-Squat 113.1%.
+
+To fill in (owner measurements on the race bike):
+- **Front sprocket position** (2 numbers, frame-intrinsic — stripping
+  parts doesn't change it): countershaft center ↔ swingarm pivot center,
+  horizontal + vertical. Unlocks the thrust-angle half of Anti-Squat.
+- **Wheel weights** (with rider, race trim) → Mass, weight split, and
+  L_CG = front share × WB.
+- **H_CG**: raised-axle weighing method, or defer — Anti-Squat stays
+  blank until it exists.
 
 ## Open questions
 
