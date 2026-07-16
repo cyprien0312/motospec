@@ -38,7 +38,7 @@ function leafInputsFor(id) {
 export const CHASSIS_PROVIDED = new Set([
   'Rake_Static','WB','Swingarm_Length','beta_static',
   'Yoke_Offset','Fork_Position',
-  'Fork_Position_ref','Fork_Length_ref','Shock_Length_ref',
+  'Fork_Position_ref','Shock_Length_ref',
   'Mass','H_CG','L_CG','front_weight_dist','rear_weight_dist',
   'C_f_aero','C_r_aero','Rf',
   'Front_Sprocket_X','Front_Sprocket_Y','Chain_Pitch',
@@ -121,6 +121,8 @@ export const ALWAYS_READY = new Set([
   // Sag defaults to 0 = "no load applied" — physically true, not a placeholder.
   'Sag_Front',
   'Sag_Rear',
+  // 0 = same fork as the reference setup — physically true, not a placeholder.
+  'Fork_Length_Delta',
 ]);
 
 function bikeReadyKeys(bike) {
@@ -182,6 +184,8 @@ export const ROW_GROUPS = [
   { header: 'FRONT SETTINGS', header_zh: '前部设置', rows: [
     { spec: 'Yoke Offset (mm)',                                     spec_zh: '三星台偏移量 (mm)',    input: 'Yoke_Offset' },
     { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position' },
+    { spec: 'Fork Length Δ vs Reference (mm)',                      spec_zh: '前叉长度差 vs 参考 (mm)', input: 'Fork_Length_Delta',
+      hint: { en: 'Measured length difference vs the reference fork (butt them together). 0 = same fork. Positive = longer = front up.', zh: '与参考前叉并排实测的长度差。0 = 同一支叉。正 = 更长 = 车头抬高。' } },
     { spec: 'Fork',                                                 spec_zh: '前叉',                 component: 'fork' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '前叉弹簧刚度 (N/mm)',  input: 'Front_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '前叉弹簧预压 (mm)',    input: 'Front_Spring_Preload', status: 'pending' },

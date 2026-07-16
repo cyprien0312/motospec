@@ -73,8 +73,8 @@ test('fork delta chain: tubes up / shorter fork drop the front exactly like fron
   const tubesUp = computeAll({ ...defaultValues(), Fork_Position: 10 });
   assert.equal(tubesUp.delta_fork, 5);
   assert.ok(tubesUp.MotoSPEC_Rake < b.MotoSPEC_Rake, 'raising the tubes drops the front');
-  // A 10 mm shorter fork
-  const shortFork = computeAll({ ...defaultValues(), Fork_Length: 760 });
+  // A 10 mm shorter fork (measured difference vs the reference fork)
+  const shortFork = computeAll({ ...defaultValues(), Fork_Length_Delta: -10 });
   assert.equal(shortFork.delta_fork, 10);
   assert.ok(shortFork.MotoSPEC_Rake < b.MotoSPEC_Rake, 'a shorter fork drops the front');
   // Equivalence: ΔFork = x must produce the same attitude as Sag_Front = x

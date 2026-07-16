@@ -231,13 +231,13 @@ export const P = {
   Yoke_Offset:          { name:'Yoke_Offset',          label:'三星台偏移量', unit:'mm', type:'input',
     desc:'三星台联板偏移量。', source:'三星台规格', typical:'25 – 40 mm' },
   Fork_Length:          { name:'Fork_Length',          label:'前叉总长 (静态)', unit:'mm', type:'input',
-    desc:'前叉装车后从上三星台到前轮轴心的有效长度（静态、不计前轮压缩）。前叉部件规格——换叉即换此值；相对 Fork_Length_ref 的差值直接改变车头高度。', source:'前叉规格 / 实测', typical:'720 – 820 mm（运动车型）' },
+    desc:'前叉装车后从上三星台到前轮轴心的有效长度（静态、不计前轮压缩）。暂未被任何公式消费——目前没有任何前叉的实测总长；换叉的车头高度变化走 Fork_Length_Delta（长度差是实际可测的量）。', source:'前叉规格 / 实测', typical:'720 – 820 mm（运动车型）' },
   Fork_Position:        { name:'Fork_Position',        label:'前叉伸出量', unit:'mm', type:'input',
     desc:'前叉管伸出三星台的长度。相对 Fork_Position_ref 的差值改变车头高度（管上提 = 车头下降）。', source:'实测', typical:'0 – 15 mm' },
   Fork_Position_ref:    { name:'Fork_Position_ref',    label:'参考前叉伸出量', unit:'mm', type:'input',
     desc:'测量 Rake_Static 时的前叉伸出量。当前 Fork_Position 相对该值的差是姿态修正链的输入之一。', source:'测量 Rake 时记录', typical:'0 – 15 mm' },
-  Fork_Length_ref:      { name:'Fork_Length_ref',      label:'参考前叉总长', unit:'mm', type:'input',
-    desc:'测量 Rake_Static 时装的前叉总长。换更短的前叉（Fork_Length < ref）→ 车头下降。', source:'测量 Rake 时记录', typical:'720 – 820 mm' },
+  Fork_Length_Delta:    { name:'Fork_Length_Delta',    label:'前叉长度差 (vs 参考)', unit:'mm', type:'input',
+    desc:'当前前叉相对测量 Rake_Static 时那支前叉的总长差（正 = 更长 = 车头抬高）。0 = 同一支叉，物理真实的默认值。两支叉并排实测差值即可，无需绝对总长。', source:'两叉并排实测差值', typical:'−15 – +15 mm' },
   Shock_Length_ref:     { name:'Shock_Length_ref',     label:'参考后避震长度', unit:'mm', type:'input',
     desc:'测量 Rake_Static / beta_static 时装的后避震眼对眼长度。当前 Shock_Length 相对该值的差与 Shock_Clevis_RHA 一样进入 4-bar 反解（RHA 本质就是避震长度差）。', source:'测量 Rake 时记录', typical:'290 – 320 mm' },
   Front_Spring_Rate:    { name:'Front_Spring_Rate',    label:'前叉弹簧刚度', unit:'N/mm', type:'input',
@@ -318,12 +318,12 @@ export const P = {
   },
   delta_fork: {
     name: 'ΔFork', label: '前叉几何差量', unit: 'mm', type: 'intermediate',
-    desc: '当前前叉设定相对参考设定（测 Rake 时的状态）沿前叉轴线的差量。管上提（Fork_Position 增大）或换更短的前叉 → 车头下降，效果与前 sag 完全相同。',
+    desc: '当前前叉设定相对参考设定（测 Rake 时的状态）沿前叉轴线的差量。管上提（Fork_Position 增大）或换更短的前叉（Fork_Length_Delta < 0）→ 车头下降，效果与前 sag 完全相同。',
     formula: [
-      '( ', {ref:'Fork_Position'}, ' − ', {ref:'Fork_Position_ref'}, ' ) + ( ', {ref:'Fork_Length_ref'}, ' − ', {ref:'Fork_Length'}, ' )'
+      '( ', {ref:'Fork_Position'}, ' − ', {ref:'Fork_Position_ref'}, ' ) − ', {ref:'Fork_Length_Delta'}
     ],
-    deps: ['Fork_Position', 'Fork_Position_ref', 'Fork_Length_ref', 'Fork_Length'],
-    note: '正值 = 车头相对参考态下降。默认参考值与当前值相同 → 差量为 0。'
+    deps: ['Fork_Position', 'Fork_Position_ref', 'Fork_Length_Delta'],
+    note: '正值 = 车头相对参考态下降。默认状态（伸出量 = 参考、同一支叉）→ 差量为 0，物理真实。'
   },
   delta_beta_sag: {
     name: 'Δβ_sag', label: '后 sag 摇臂旋转', unit: 'rad', type: 'intermediate',
@@ -482,7 +482,10 @@ export const INPUT_META = {
   // Defaults MUST equal their live counterparts' defaults so every delta
   // is exactly 0 until the user states otherwise (no-fake-data invariant).
   Fork_Position_ref:    { def: 5,     min: 0,     max: 20,    step: 0.5 },
-  Fork_Length_ref:      { def: 770,   min: 600,   max: 850,   step: 1   },
+  // Fork swaps enter as a measured length DIFFERENCE (0 = same fork as
+  // reference — physically true). No fork's absolute length is known, so
+  // absolute Fork_Length stays out of the live chain.
+  Fork_Length_Delta:    { def: 0,     min: -50,   max: 50,    step: 0.5 },
   Shock_Length_ref:     { def: 310,   min: 280,   max: 340,   step: 0.1 },
   Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.1 },
   Front_Spring_Preload: { def: 10.0,  min: 0,     max: 25,    step: 0.5 },
@@ -530,8 +533,8 @@ export const CALC = {
   delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.Swingarm_Length))),
   delta_fork: v => {
     const dPos = v.Fork_Position - v.Fork_Position_ref;
-    const dLen = v.Fork_Length_ref - v.Fork_Length;
-    return (Number.isFinite(dPos) ? dPos : 0) + (Number.isFinite(dLen) ? dLen : 0);
+    const dLen = v.Fork_Length_Delta; // current − reference; longer fork lifts the front
+    return (Number.isFinite(dPos) ? dPos : 0) - (Number.isFinite(dLen) ? dLen : 0);
   },
   delta_beta_sag: v => {
     const a = Math.asin(Math.max(-1, Math.min(1, v.Sag_Rear / v.Swingarm_Length)));

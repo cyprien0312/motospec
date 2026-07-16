@@ -118,8 +118,9 @@ the droop sweep gave 39%. Both sweeps now run in the bump direction.
 The profile carries ONLY frame-intrinsic geometry that survives a race
 conversion: Rake 23.7, WB 1414.3, swingarm 594.5, β 12.23, yoke offset
 26.0, fork position 28 (=ref), shock ref 283, Rf 304.6 (derived), chain
-pitch. `Fork_Length_ref` 770 is a default; only the delta matters and it
-is 0.
+pitch. Fork length is handled as a typed measured DIFFERENCE
+(`Fork_Length_Delta`, 0 = same fork) — no fork's absolute length is
+known, so no absolute is stored anywhere (zero-fake-data).
 
 Mass / weight split / CG / aero / front-sprocket position are
 **deliberately absent** (user decision 2026-07-16): the user's bike is a

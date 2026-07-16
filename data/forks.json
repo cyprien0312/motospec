@@ -7,8 +7,7 @@
       "Front_Spring_Preload": 10.0,
       "Front_Oil_Level": 170.0,
       "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0,
-      "Fork_Length": 770
+      "Front_Topout_Length": 40.0
     }
   },
   "showa-gsx8r": {
@@ -19,8 +18,7 @@
       "Front_Spring_Preload": 10.0,
       "Front_Oil_Level": 180.0,
       "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0,
-      "Fork_Length": 770
+      "Front_Topout_Length": 40.0
     }
   },
   "fl-23030": {
@@ -31,8 +29,7 @@
       "Front_Spring_Preload": 5.0,
       "Front_Oil_Level": 125.0,
       "Front_Topout_Rate": 3.5,
-      "Front_Topout_Length": 40.0,
-      "Fork_Length": 770
+      "Front_Topout_Length": 40.0
     }
   },
   "showa-bpf-765": {
@@ -42,8 +39,7 @@
       "Front_Spring_Rate": 9.0,
       "Front_Spring_Preload": 8.0,
       "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0,
-      "Fork_Length": 770
+      "Front_Topout_Length": 40.0
     }
   }
 }
