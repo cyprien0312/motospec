@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderChassisSetup, CHASSIS_GROUPS, CHASSIS_SPEC_FIELDS, slugifyChassisName, buildChassisPresetEntry } from '../src/chassis-setup.js';
+import { renderChassisSetup, CHASSIS_GROUPS, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, slugifyChassisName, buildChassisPresetEntry } from '../src/chassis-setup.js';
 import { defaultValues } from '../src/formulas.js';
 
 test('chassis-setup: renders every grouped field as an input', () => {
@@ -56,4 +56,26 @@ test('buildChassisPresetEntry: only emits CHASSIS_SPEC_FIELDS', () => {
   for (const f of CHASSIS_SPEC_FIELDS) {
     if (Number.isFinite(v[f])) assert.ok(f in entry.specs, `expected spec ${f}`);
   }
+});
+
+test('optional fields are never backfilled from defaults on save (zero-fake-data)', () => {
+  const entry = buildChassisPresetEntry('Race Bike', { Rake_Static: 23.7, WB: 1414.3 });
+  for (const f of OPTIONAL_CHASSIS_FIELDS) {
+    assert.ok(!(f in entry.specs), `${f} must not be backfilled into a saved profile`);
+  }
+  // Geometry fields still complete via backfill
+  assert.ok(Number.isFinite(entry.specs.Swingarm_Length));
+  // Measured optional values DO round-trip
+  const withMass = buildChassisPresetEntry('X', { Mass: 172, front_weight_dist: 0.51 });
+  assert.equal(withMass.specs.Mass, 172);
+  assert.equal(withMass.specs.rear_weight_dist, 0.49);
+});
+
+test('chassis page renders N/A placeholder and hides CG/chain when unmeasured', () => {
+  const v = { Rake_Static: 23.7, WB: 1414.3, Swingarm_Length: 594.5, beta_static: 12.23, Rf: 304.6 };
+  const html = renderChassisSetup({ values: v, lang: 'en' });
+  assert.match(html, /N\/A — not measured/);
+  assert.doesNotMatch(html, /H_CG \d/, 'CG annotation must not draw a fake CG');
+  assert.doesNotMatch(html, />CG</, 'CG dot label must be hidden');
+  assert.doesNotMatch(html, /F \d+% · R \d+%/, 'weight pill must be hidden');
 });

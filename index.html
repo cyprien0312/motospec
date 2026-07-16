@@ -632,6 +632,11 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
   outline: none; border-color: var(--accent);
 }
 .linkage-unit { color: var(--text-dim); font-size: 11px; }
+.linkage-fitted-note {
+  margin: 6px 0 10px; padding: 8px 12px; border-radius: 8px;
+  background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24; font-size: 12.5px; line-height: 1.6;
+}
 .linkage-guide {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: 6px; padding: 10px 14px;
@@ -708,7 +713,7 @@ import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATAL
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
-import { renderChassisSetup, CHASSIS_SPEC_FIELDS, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
+import { renderChassisSetup, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
 import { renderUserGuide, GUIDE_ANCHORS } from './src/user-guide.js';
 
 
@@ -1271,11 +1276,20 @@ function loadState() {
         if (typeof val === 'number' && Number.isFinite(val)) merged[k] = val;
         else if (typeof val === 'string' && val.length > 0) merged[k] = val;
       }
+      // Optional chassis fields (mass/CG/sprocket position) have no real
+      // default: drop the seeded default unless a finite value was
+      // persisted. One-time migration: a persisted value equal to the old
+      // placeholder default is treated as never-measured.
+      for (const f of OPTIONAL_CHASSIS_FIELDS) {
+        const pv = s.values[f];
+        const persisted = typeof pv === 'number' && Number.isFinite(pv);
+        if (!persisted || (!s.__optionalCleaned && pv === INPUT_META[f]?.def)) delete merged[f];
+      }
       const bikes = (Array.isArray(s.bikes) && s.bikes.length <= MAX_BIKES) ? s.bikes : defaultBikes();
       if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
       const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];
       const linkageDraft = (s.linkageDraft && typeof s.linkageDraft === 'object') ? s.linkageDraft : null;
-      return { values: merged, bikes, catalogTab, linkageDraft };
+      return { values: merged, bikes, catalogTab, linkageDraft, __optionalCleaned: true };
     }
   } catch (e) {}
   return null;
@@ -1287,7 +1301,12 @@ function saveState() {
   } catch (e) {}
 }
 
-const state = loadState() || { values: defaultValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0] };
+function freshValues() {
+  const v = defaultValues();
+  for (const f of OPTIONAL_CHASSIS_FIELDS) delete v[f];
+  return v;
+}
+const state = loadState() || { values: freshValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0], __optionalCleaned: true };
 if (!Array.isArray(state.bikes) || state.bikes.length > MAX_BIKES) state.bikes = defaultBikes();
 if (!state.catalogTab) state.catalogTab = CATALOG_KEYS[0];
 // Per-mode coord drafts: each mode keeps its own snapshot of the 10
@@ -1540,7 +1559,21 @@ function patchChassisView() {
 }
 function setChassisInput(key, raw) {
   const n = parseFloat(raw);
-  if (!Number.isFinite(n)) return;
+  if (!Number.isFinite(n)) {
+    // Clearing an optional field returns it to the honest not-measured
+    // state (blank input, dependent RESULTS go blank).
+    if (OPTIONAL_CHASSIS_FIELDS.has(key) && String(raw).trim() === '') {
+      delete state.values[key];
+      const mirror = { front_weight_dist: 'rear_weight_dist', rear_weight_dist: 'front_weight_dist',
+                       C_f_aero: 'C_r_aero', C_r_aero: 'C_f_aero' }[key];
+      if (mirror) delete state.values[mirror];
+      saveState();
+      clearCache();
+      updateLiveValues();
+      if (stack[stack.length - 1] === '__chassis') patchChassisView();
+    }
+    return;
+  }
   const m = INPUT_META[key];
   const v = m ? Math.max(m.min, Math.min(m.max, n)) : n;
   state.values[key] = v;

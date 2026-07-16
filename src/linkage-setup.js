@@ -6,7 +6,7 @@
 // ============================================================
 
 import { computeAll, INPUT_META } from './formulas.js';
-import { motionRatio, shockLength, rearWheelHeight } from './linkage.js';
+import { motionRatio, shockLength, rearWheelHeight, swingarmDeltaForShockTravel } from './linkage.js';
 import { CATALOGS } from './catalog.js';
 
 // ----- Length-mode helpers --------------------------------------------------
@@ -359,13 +359,22 @@ function sampleMotionRatio(values, fullBumpDeg = 25, samples = 25) {
   const swingarmLength = values.Swingarm_Length || 580;
   const beta_static = values.beta_static || 14;
   const kSpring = values.Rear_Spring_Rate || 110;
+  // Cap the sweep at the shock's REAL stroke when known — sweeping past
+  // bottom-out plots travel the mechanism can't reach.
+  let sweep = fullBumpDeg;
+  if (Number.isFinite(values.Shock_Stroke)) {
+    const dShock = values.Shock_Length - values.Shock_Length_ref;
+    const rhaTotal = (values.Shock_Clevis_RHA || 0) + (Number.isFinite(dShock) ? dShock : 0);
+    const dFull = swingarmDeltaForShockTravel(cfg, values.Shock_Stroke, rhaTotal);
+    if (Number.isFinite(dFull)) sweep = Math.min(fullBumpDeg, Math.abs(dFull));
+  }
   const yStatic = rearWheelHeight(cfg, 0, swingarmLength, beta_static);
   const out = [];
   let mrLo = Infinity, mrHi = -Infinity;
   let wrLo = Infinity, wrHi = -Infinity;
   for (let i = 0; i < samples; i++) {
     // Bump direction: compression = axle up = β decreasing (negative delta).
-    const deg = -(i / (samples - 1)) * fullBumpDeg;
+    const deg = -(i / (samples - 1)) * sweep;
     const mr = motionRatio(cfg, deg, swingarmLength, beta_static);
     const yNow = rearWheelHeight(cfg, deg, swingarmLength, beta_static);
     const travel = Math.abs(yNow - yStatic);
@@ -868,6 +877,17 @@ export function renderLinkageSetup(state) {
     </div>
   `;
 
+  // If the current coords exactly match a catalog entry flagged `fitted`
+  // (an oracle-fit equivalence-class member), warn that the drawing is
+  // computation-equivalent but NOT the bike's physical layout.
+  const fittedEntry = Object.values(CATALOGS.linkages || {}).find(e =>
+    e && e.fitted && e.specs &&
+    LINKAGE_COORD_FIELDS.every(k => e.specs[k] === values[k]));
+  const fittedNote = fittedEntry ? `
+    <div class="linkage-fitted-note">${escapeHtml(lang === 'en'
+      ? `⚠ "${fittedEntry.name}" is a fitted equivalence-class solution: every computed channel (MR curve, ride height, progression…) matches the real bike, but the drawn layout is NOT where the parts physically sit. Measuring the mounting points (see docs/research/linkage-coords.md) would make the drawing literal.`
+      : `⚠ 「${fittedEntry.name}」是等价类拟合解：所有计算通道（MR 曲线、车高、渐进性等）与实车一致，但图中连杆的摆放位置不是实车的物理布局。按 docs/research/linkage-coords.md 实测安装点坐标后，图示才与实车对应。`)}</div>` : '';
+
   return `
     <div class="linkage-page">
       <div class="header">
@@ -884,6 +904,7 @@ export function renderLinkageSetup(state) {
       <div class="linkage-chart-wrap">${renderMotionRatioChart(values, lang)}</div>
 
       <div class="section-title">${escapeHtml(str.diagram_title)}</div>
+      ${fittedNote}
       ${renderTopologySVG(values, mode)}
 
       ${inputsSection}

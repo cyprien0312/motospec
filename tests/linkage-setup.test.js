@@ -84,3 +84,15 @@ test('INPUT_META linkage defaults equal the pro-link placeholder', async () => {
       `${k}: INPUT_META default drifted from the pro-link placeholder`);
   }
 });
+
+test('fitted linkage coords show the equivalence-class warning on the linkage page', async () => {
+  const LK = (await import('../data/linkages.json', { with: { type: 'json' } })).default;
+  const fit = LK['triumph-765-stock-fit'];
+  const values = { ...defaultValues(), ...fit.specs };
+  const html = renderLinkageSetup({ values, lang: 'en' });
+  assert.match(html, /linkage-fitted-note/);
+  assert.match(html, /equivalence-class/);
+  // Unrelated coords must not trigger the warning
+  const plain = renderLinkageSetup({ values: defaultValues(), lang: 'en' });
+  assert.doesNotMatch(plain, /linkage-fitted-note/);
+});

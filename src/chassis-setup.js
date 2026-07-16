@@ -68,6 +68,18 @@ export const CHASSIS_SPEC_FIELDS = [
   'Front_Sprocket_X', 'Front_Sprocket_Y', 'Chain_Pitch',
 ];
 
+// Fields with no universal real-world default: mass picture and sprocket
+// position are bike/build-specific measurements. They render blank ("N/A")
+// until measured, are NEVER backfilled from INPUT_META defaults on save,
+// and simply stay absent from a profile that doesn't know them —
+// dependent RESULTS blank honestly (zero-fake-data).
+export const OPTIONAL_CHASSIS_FIELDS = new Set([
+  'Mass', 'H_CG', 'L_CG',
+  'front_weight_dist', 'rear_weight_dist',
+  'C_f_aero', 'C_r_aero',
+  'Front_Sprocket_X', 'Front_Sprocket_Y',
+]);
+
 const FIELD_LABELS = {
   Rake_Static:        { en: 'Rake (deg)',                      zh: '后倾角 (度)' },
   WB:                 { en: 'Wheelbase (mm)',                  zh: '轴距 (mm)' },
@@ -141,17 +153,18 @@ export function slugifyChassisName(name) {
 }
 
 // Build a chassis catalog entry from current values. `rear_weight_dist` and
-// `C_r_aero` are derived from their primaries at save time. Any field that
-// is missing or non-finite in `values` is backfilled from INPUT_META.def
-// so the saved profile is always complete (downstream code reads keys off
-// `entry.specs` to decide which inputs are "bound").
+// `C_r_aero` are derived from their primaries at save time. GEOMETRY fields
+// missing from `values` are backfilled from INPUT_META.def so the profile
+// stays complete; OPTIONAL fields (mass/CG/sprocket position) are saved
+// only when actually present — a default must never be dressed as a
+// measurement (zero-fake-data).
 export function buildChassisPresetEntry(name, values) {
   const specs = {};
   for (const f of CHASSIS_SPEC_FIELDS) {
     const v = values?.[f];
     if (v != null && Number.isFinite(v)) {
       specs[f] = v;
-    } else if (INPUT_META[f] && Number.isFinite(INPUT_META[f].def)) {
+    } else if (!OPTIONAL_CHASSIS_FIELDS.has(f) && INPUT_META[f] && Number.isFinite(INPUT_META[f].def)) {
       specs[f] = INPUT_META[f].def;
     }
   }
@@ -175,6 +188,10 @@ function chassisGeometry(values) {
   const rake  = (+v.Rake_Static  || 24) * D2R;
   const yoke  = +v.Yoke_Offset   || 32;
   const fp    = +v.Fork_Position || 5;
+  // Optional (measured-only) fields: draw their diagram elements only when
+  // real values exist — fallbacks below are for layout math, never shown.
+  const hasCG    = Number.isFinite(+v.H_CG) && Number.isFinite(+v.L_CG);
+  const hasChain = Number.isFinite(+v.Front_Sprocket_X) && Number.isFinite(+v.Front_Sprocket_Y);
   const HCG   = Math.max(300,  +v.H_CG || 650);
   const LCG   = Math.max(300,  +v.L_CG || 750);
   const fwd   = Math.min(1, Math.max(0, +v.front_weight_dist || 0.5));
@@ -260,7 +277,7 @@ function chassisGeometry(values) {
   };
 
   return {
-    WB, Rf, Rr, LSA, beta, rake, yoke, fp, HCG, LCG, fwd,
+    WB, Rf, Rr, LSA, beta, rake, yoke, fp, HCG, LCG, fwd, hasCG, hasChain,
     rearContact, rearAxle, frontContact, frontAxle,
     swingPivot, steerHead, cg,
     forkTop, forkBottom, fpTick,
@@ -395,13 +412,13 @@ function renderChassisDiagram(values, lang) {
   if (armAngDeg > 90 || armAngDeg < -90) armAngDeg += 180;
   annot.push(`<text x="${lLabelX.toFixed(1)}" y="${lLabelY.toFixed(1)}" fill="#a78bfa" font-size="18" text-anchor="middle" font-weight="600" transform="rotate(${armAngDeg.toFixed(1)}, ${lLabelX.toFixed(1)}, ${lLabelY.toFixed(1)})" style="${TXT_HALO}">L ${escapeHtml(fmt(g.LSA, 0))} mm</text>`);
 
-  // H_CG vertical
-  annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="3 3"/>`);
-  annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#22d3ee', 18, 'start', 6, 4));
-
-  // L_CG horizontal (rear axle ground level → CG vertical line)
-  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${py(-30)}" x2="${px(g.cg.x)}" y2="${py(-30)}" stroke="#22d3ee" stroke-width="1.5"/>`);
-  annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#22d3ee', 18, 'middle', 0, -4));
+  // H_CG / L_CG annotations only when the CG is actually measured.
+  if (g.hasCG) {
+    annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="3 3"/>`);
+    annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#22d3ee', 18, 'start', 6, 4));
+    annot.push(`<line x1="${px(g.rearContact.x)}" y1="${py(-30)}" x2="${px(g.cg.x)}" y2="${py(-30)}" stroke="#22d3ee" stroke-width="1.5"/>`);
+    annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#22d3ee', 18, 'middle', 0, -4));
+  }
 
   // Yoke offset indicator — drawn at the FORK CROWN (steering head), not the
   // axle. Yoke offset is the perpendicular distance from the steering axis
@@ -435,17 +452,19 @@ function renderChassisDiagram(values, lang) {
   // Fork position tick on the fork tube
   annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1"/>`);
 
-  // Weight distribution — compact pill in the top-right corner. A thin
-  // proportional split rect inside a rounded panel + a single F/R numeric line.
-  const wbW = 130, wbH = 30;
-  const wpX = W - wbW - 14, wpY = 14;
-  const wbSplitX = wpX + 8 + (wbW - 16) * g.fwd;
-  annot.push(`
-    <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(15,20,27,0.85)" stroke="#3a4555" stroke-width="1"/>
-    <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#1f2630"/>
-    <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#4ea1ff" opacity="0.85"/>
-    <text x="${wpX + 8}" y="${wpY + 16}" fill="#cbd5e1" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
-  `);
+  // Weight distribution — compact pill in the top-right corner, only when
+  // the split has actually been measured (optional field).
+  if (Number.isFinite(+(values || {}).front_weight_dist)) {
+    const wbW = 130, wbH = 30;
+    const wpX = W - wbW - 14, wpY = 14;
+    const wbSplitX = wpX + 8 + (wbW - 16) * g.fwd;
+    annot.push(`
+      <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(15,20,27,0.85)" stroke="#3a4555" stroke-width="1"/>
+      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#1f2630"/>
+      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#4ea1ff" opacity="0.85"/>
+      <text x="${wpX + 8}" y="${wpY + 16}" fill="#cbd5e1" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
+    `);
+  }
 
   return `
     <svg class="chassis-diagram" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -461,17 +480,17 @@ function renderChassisDiagram(values, lang) {
       <!-- wheels -->
       ${wheel(g.frontAxle, g.Rf)}
       ${wheel(g.rearAxle,  g.Rr)}
-      <!-- chain: sprockets + upper (loaded) + lower run -->
+      <!-- chain: drawn only when the front sprocket position is measured -->
+      ${g.hasChain ? `
       <circle cx="${px(g.frontSprocket.x).toFixed(1)}" cy="${py(g.frontSprocket.y).toFixed(1)}" r="${(g.rSprF * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
       <circle cx="${px(g.rearSprocket.x).toFixed(1)}"  cy="${py(g.rearSprocket.y).toFixed(1)}"  r="${(g.rSprR * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
       ${ln(g.chainTop1, g.chainTop2, '#84cc16', 2)}
       ${ln(g.chainBot1, g.chainBot2, '#84cc16', 1.6, '4 3')}
-      ${dot(g.frontSprocket, 2.5, '#84cc16')}
-      <!-- key dots: swingarm pivot, CG, steering head -->
+      ${dot(g.frontSprocket, 2.5, '#84cc16')}` : ''}
+      <!-- key dots: swingarm pivot, CG (when measured), steering head -->
       ${dot(g.swingPivot, 4, '#a78bfa')}
-      ${dot(g.cg, 5, '#22d3ee')}
+      ${g.hasCG ? dot(g.cg, 5, '#22d3ee') + txt(g.cg, 'CG', '#22d3ee', 18, 'start', 8, -4) : ''}
       ${dot(g.steerHead, 4, '#f472b6')}
-      ${txt(g.cg, 'CG', '#22d3ee', 18, 'start', 8, -4)}
     </svg>
   `;
 }
@@ -484,21 +503,26 @@ function fieldHeaderCell(field, lang) {
   return `<th class="chassis-th">${escapeHtml(label)}</th>`;
 }
 
-function fieldInputCell(field, values) {
+function fieldInputCell(field, values, lang) {
   const m = INPUT_META[field] || {};
   const v = values[field];
   const step = m.step != null ? m.step : 'any';
   const minA = m.min != null ? ` min="${m.min}"` : '';
   const maxA = m.max != null ? ` max="${m.max}"` : '';
   const val = (v == null || !Number.isFinite(v)) ? '' : v;
+  // Optional fields carry an explicit not-measured placeholder; clearing
+  // the input returns them to that state (handled by setChassisInput).
+  const ph = OPTIONAL_CHASSIS_FIELDS.has(field)
+    ? ` placeholder="${lang === 'en' ? 'N/A — not measured' : 'N/A 未实测'}"`
+    : '';
   return `<td class="chassis-td">` +
-    `<input type="number" class="chassis-input" value="${val}" step="${step}"${minA}${maxA}` +
+    `<input type="number" class="chassis-input" value="${val}" step="${step}"${minA}${maxA}${ph}` +
     ` oninput="setChassisInput('${field}', this.value)"/></td>`;
 }
 
 function groupTable(g, values, lang) {
   const headers = g.fields.map(f => fieldHeaderCell(f, lang)).join('');
-  const inputs  = g.fields.map(f => fieldInputCell(f, values)).join('');
+  const inputs  = g.fields.map(f => fieldInputCell(f, values, lang)).join('');
   return `
     <div class="chassis-table-wrap">
       <table class="chassis-table">
