@@ -167,12 +167,28 @@ export const LINKAGE_POINTS = [
 //   - Rocker pivot sits ABOVE and slightly forward of the swingarm pivot.
 //   - Shock body leans forward, top mount high on the frame.
 //   - Drag/pull link runs forward-and-down from the rocker to the swingarm.
+// Both placeholders below are ENGINEERING ESTIMATES, not measured bikes —
+// but they are calibrated against real published anchors so the defaults
+// behave like production linkages:
+//   - link scales follow the four-bar dimensions in Segľa et al., "Optimi-
+//     zation of a Motorcycle Rear Suspension Mechanism with Four-bar
+//     Linkage", Acta Mechanica Slovaca 19(1), 2015 (rocker arms ~90-130 mm,
+//     tie rod ~100-160 mm, frame rocker pivot ≈115 mm below / 25 mm behind
+//     the swingarm pivot);
+//   - motion ratio targets the published stroke ratios collected by
+//     ProMechA (GSXR1000 ≈130/74≈1.76, CBR954 ≈130/54≈2.4, R1 ≈2.0):
+//     MR ≈ 2.2-2.45 across ±25° with a mild curve;
+//   - static shock length ≈310 mm to agree with the Shock_Length default;
+//   - shockLength(δ) is strictly monotonic over ±25° (no lock/fold-back),
+//     so the RHA solve and progression sweep stay in a valid range.
+// Numbers were selected by constrained search through src/linkage.js
+// itself — see docs/research/linkage-coords.md for the derivation.
 export const LINKAGE_PLACEHOLDER_LINKED = {
-  Frame_Rocker_Pivot_X: 30,  Frame_Rocker_Pivot_Y: 120,
-  Rocker_To_Shock_X:    10,  Rocker_To_Shock_Y:    145,
-  Rocker_To_Drag_X:     55,  Rocker_To_Drag_Y:     95,
-  Drag_To_Swingarm_X:   95,  Drag_To_Swingarm_Y:  -15,
-  Frame_Shock_Top_X:   200,  Frame_Shock_Top_Y:   480,
+  Frame_Rocker_Pivot_X:  -60, Frame_Rocker_Pivot_Y: -140,
+  Rocker_To_Shock_X:    -185, Rocker_To_Shock_Y:    -100,
+  Rocker_To_Drag_X:     -170, Rocker_To_Drag_Y:     -165,
+  Drag_To_Swingarm_X:   -200, Drag_To_Swingarm_Y:    -40,
+  Frame_Shock_Top_X:     -35, Frame_Shock_Top_Y:     175,
 };
 
 // Pro-Link variant (Honda): the rocker bell-crank hangs BELOW the swingarm,
@@ -182,11 +198,11 @@ export const LINKAGE_PLACEHOLDER_LINKED = {
 //   - Drag tip of the rocker reaches forward-and-down toward a low frame anchor.
 //   - Frame shock-top is the same upper-frame mount, high and forward.
 export const LINKAGE_PLACEHOLDER_PROLINK = {
-  Frame_Rocker_Pivot_X: -200, Frame_Rocker_Pivot_Y: -50,
-  Rocker_To_Shock_X:    -130, Rocker_To_Shock_Y:    -60,
-  Rocker_To_Drag_X:     -190, Rocker_To_Drag_Y:     -90,
-  Drag_To_Swingarm_X:    -20, Drag_To_Swingarm_Y:   -20,
-  Frame_Shock_Top_X:    -120, Frame_Shock_Top_Y:     50,
+  Frame_Rocker_Pivot_X: -230, Frame_Rocker_Pivot_Y:  -40,
+  Rocker_To_Shock_X:    -205, Rocker_To_Shock_Y:     -90,
+  Rocker_To_Drag_X:     -260, Rocker_To_Drag_Y:      -90,
+  Drag_To_Swingarm_X:    -60, Drag_To_Swingarm_Y:    -70,
+  Frame_Shock_Top_X:    -160, Frame_Shock_Top_Y:     215,
 };
 
 // Backward-compat alias: code that imports LINKAGE_PLACEHOLDER still gets

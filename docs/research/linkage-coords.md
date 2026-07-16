@@ -76,3 +76,44 @@ rather than digitized as coordinates.
 4. RS 660 specifically will need a cantilever model branch — its
    `expected.MotionRatio = 2.584` cannot be reproduced by the 4-bar
    kernel even with correct numbers because the topology differs.
+
+## 2026-07-16 — Realistic default placeholders (calibrated estimates)
+
+The original hand-typed placeholders produced Motion Ratio ≈ 3.9 — far
+outside any production sport bike. Both placeholder sets were replaced
+with **calibrated engineering estimates** (still not measured bikes, but
+realistic in scale and behavior).
+
+Anchors used:
+
+1. **Link-dimension scale** — Segľa, Antonescu, Orečný, Elbaghar,
+   *Optimization of a Motorcycle Rear Suspension Mechanism with Four-bar
+   Linkage*, Acta Mechanica Slovaca 19(1):52–59, 2015. Uni-Trak-style
+   four-bar with full dimension table: rocker arms x6=93 mm / x6+x3=108 mm,
+   tie rod x5=99 mm, frame rocker pivot 115 mm below / 25 mm behind the
+   swingarm pivot, swingarm attach 100 mm out. (Note: the paper's damper
+   attachment is an academic short-stroke exercise — its own MR ≈ 6–9 —
+   so only the *scales* were used, not the layout verbatim.)
+2. **Motion-ratio targets** — ProMechA "Leverage and Linkages": published
+   wheel-travel / shock-stroke pairs give GSXR1000 ≈ 130/74 ≈ 1.76,
+   CBR954 ≈ 130/54 ≈ 2.4, R1 ≈ 2.0. Target band 1.8–2.8, aim ≈ 2.4.
+3. **Internal consistency** — static eye-to-eye distance ≈ 310 mm to match
+   the `Shock_Length` input default; `shockLength(δ)` strictly monotonic
+   over δ ∈ ±25° so the RHA bisection and progression sweep never hit a
+   mechanism lock.
+
+Method: constrained Monte-Carlo search (300k samples, boxes around
+realistic mount envelopes, link lengths bounded 60–200 mm rocker /
+80–160 mm tie rod) evaluated through `src/linkage.js` itself; best
+candidates rounded to 5 mm and re-verified. Results:
+
+| | linked | pro-link |
+|---|---|---|
+| MR (−25°/0/+25°) | 2.17 / 2.42 / 2.41 | 2.26 / 2.41 / 2.28 |
+| static shock | 313.2 mm | 308.3 mm |
+| monotonic ±25° | yes | yes |
+
+Regression-pinned in `tests/linkage-setup.test.js` (MR band, monotonicity,
+static length, INPUT_META sync). These remain **estimates** — replace with
+plumb-bob / jig measurements of a real bike when available (see
+recommendation §4 above).

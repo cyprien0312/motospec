@@ -4,6 +4,12 @@ Each entry in `reference-bikes.json` has two expected blocks:
 
 - `spec_sheet` — values from the manufacturer's published geometry sheet.
   Active immediately. Used for Phase-1 sanity (catches gross formula errors).
+  **Only genuinely published numbers belong here.** Wheel rates were removed
+  in v0.1.x: manufacturers don't publish them, and the old 7.03/7.09 values
+  had been computed from the app's own defaults (spring 110 N/mm ÷ the old
+  placeholder linkage's MR 3.94²) — a fixture validating code against its
+  own output. Placeholder-linkage realism is now pinned directly in
+  `tests/linkage-setup.test.js` instead.
 - `motospec` — values produced by MotoSpec for the same inputs.
   Populated in PRD Phase 2 once a MotoSpec licence is in hand.
 

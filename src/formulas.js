@@ -440,17 +440,19 @@ export const INPUT_META = {
   Front_Sprocket_X:     { def: 50,    min: -50,   max: 200,   step: 1 },
   Front_Sprocket_Y:     { def: 10,    min: -100,  max: 200,   step: 1 },
   Chain_Pitch:          { def: 15.875, min: 12.7, max: 19.05, step: 0.001 },
-  // Defaults below match the Pro-Link placeholder (default linkage mode).
-  Frame_Rocker_Pivot_X: { def: -200, min: -400,  max: 400,   step: 1 },
-  Frame_Rocker_Pivot_Y: { def: -50,  min: -500,  max: 500,   step: 1 },
-  Rocker_To_Shock_X:    { def: -130, min: -400,  max: 400,   step: 1 },
-  Rocker_To_Shock_Y:    { def: -60,  min: -500,  max: 500,   step: 1 },
-  Rocker_To_Drag_X:     { def: -190, min: -400,  max: 400,   step: 1 },
+  // Defaults below match the Pro-Link placeholder (default linkage mode) —
+  // LINKAGE_PLACEHOLDER_PROLINK in linkage-setup.js. Calibrated engineering
+  // estimate: MR ≈ 2.4 at static, shock ≈ 310 mm, monotonic over ±25°.
+  Frame_Rocker_Pivot_X: { def: -230, min: -400,  max: 400,   step: 1 },
+  Frame_Rocker_Pivot_Y: { def: -40,  min: -500,  max: 500,   step: 1 },
+  Rocker_To_Shock_X:    { def: -205, min: -400,  max: 400,   step: 1 },
+  Rocker_To_Shock_Y:    { def: -90,  min: -500,  max: 500,   step: 1 },
+  Rocker_To_Drag_X:     { def: -260, min: -400,  max: 400,   step: 1 },
   Rocker_To_Drag_Y:     { def: -90,  min: -500,  max: 500,   step: 1 },
-  Drag_To_Swingarm_X:   { def: -20,  min: -400,  max: 400,   step: 1 },
-  Drag_To_Swingarm_Y:   { def: -20,  min: -500,  max: 500,   step: 1 },
-  Frame_Shock_Top_X:    { def: -120, min: -400,  max: 400,   step: 1 },
-  Frame_Shock_Top_Y:    { def: 50,   min: -500,  max: 500,   step: 1 },
+  Drag_To_Swingarm_X:   { def: -60,  min: -400,  max: 400,   step: 1 },
+  Drag_To_Swingarm_Y:   { def: -70,  min: -500,  max: 500,   step: 1 },
+  Frame_Shock_Top_X:    { def: -160, min: -400,  max: 400,   step: 1 },
+  Frame_Shock_Top_Y:    { def: 215,  min: -500,  max: 500,   step: 1 },
   Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 0.5 },
 };
 

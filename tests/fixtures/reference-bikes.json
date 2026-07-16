@@ -19,11 +19,9 @@
       },
       "expected": {
         "spec_sheet": {
-          "Trail_Static": 97,
-          "Front_Wheel_Rate": 7.51,
-          "Rear_Wheel_Rate": 7.03
+          "Trail_Static": 97
         },
-        "motospec":   null
+        "motospec": null
       },
       "tolerance_mm": 2
     },
@@ -46,11 +44,9 @@
       },
       "expected": {
         "spec_sheet": {
-          "Trail_Static": 102,
-          "Front_Wheel_Rate": 7.51,
-          "Rear_Wheel_Rate": 7.09
+          "Trail_Static": 102
         },
-        "motospec":   null
+        "motospec": null
       },
       "tolerance_mm": 2
     },
@@ -73,11 +69,9 @@
       },
       "expected": {
         "spec_sheet": {
-          "Trail_Static": 100,
-          "Front_Wheel_Rate": 7.45,
-          "Rear_Wheel_Rate": 7.09
+          "Trail_Static": 100
         },
-        "motospec":   null
+        "motospec": null
       },
       "tolerance_mm": 2
     }

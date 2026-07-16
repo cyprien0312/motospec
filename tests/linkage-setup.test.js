@@ -41,3 +41,46 @@ test('linkage-setup: page renders in english when state.lang === "en"', () => {
   // ("Rocker Pivot (on swingarm)"), so this assertion is mode-agnostic.
   assert.match(html, /Rocker Pivot/);
 });
+
+// ---------------------------------------------------------------------------
+// Default placeholders must behave like production linkages. These pins
+// exist because the original placeholders produced MR ≈ 3.9 (real sport
+// bikes: ~1.8–2.6 per published wheel-travel/shock-stroke ratios) and a
+// fixture once "validated" wheel rates against that fake output.
+// ---------------------------------------------------------------------------
+test('both placeholder linkages produce realistic, monotonic kinematics', async () => {
+  const { LINKAGE_PLACEHOLDER_LINKED, LINKAGE_PLACEHOLDER_PROLINK } =
+    await import('../src/linkage-setup.js');
+  const { motionRatio, shockLength } = await import('../src/linkage.js');
+  const cases = [
+    { name: 'linked',   cfg: { ...LINKAGE_PLACEHOLDER_LINKED,  Linkage_Mode: 'linked' } },
+    { name: 'pro-link', cfg: { ...LINKAGE_PLACEHOLDER_PROLINK, Linkage_Mode: 'pro-link' } },
+  ];
+  for (const { name, cfg } of cases) {
+    const s0 = shockLength(cfg, 0);
+    assert.ok(Math.abs(s0 - 310) < 15,
+      `${name}: static shock ${s0?.toFixed(1)} should ≈ Shock_Length default (310)`);
+    let prev = null;
+    for (let d = -25; d <= 25; d += 2.5) {
+      const s = shockLength(cfg, d);
+      assert.ok(Number.isFinite(s), `${name}: locks at δ=${d}°`);
+      if (prev !== null) assert.ok(s > prev, `${name}: shockLength not monotonic at δ=${d}°`);
+      prev = s;
+    }
+    for (const d of [-25, 0, 25]) {
+      const mr = motionRatio(cfg, d, 580, 14);
+      assert.ok(mr > 1.8 && mr < 2.8,
+        `${name}: MR(${d}°)=${mr?.toFixed(2)} outside real-bike band 1.8–2.8`);
+    }
+  }
+});
+
+test('INPUT_META linkage defaults equal the pro-link placeholder', async () => {
+  const { LINKAGE_PLACEHOLDER_PROLINK, LINKAGE_COORD_FIELDS } =
+    await import('../src/linkage-setup.js');
+  const { INPUT_META } = await import('../src/formulas.js');
+  for (const k of LINKAGE_COORD_FIELDS) {
+    assert.equal(INPUT_META[k].def, LINKAGE_PLACEHOLDER_PROLINK[k],
+      `${k}: INPUT_META default drifted from the pro-link placeholder`);
+  }
+});
