@@ -34,5 +34,16 @@
       "Front_Topout_Length": 40.0,
       "Fork_Length": 770
     }
+  },
+  "showa-bpf-765": {
+    "name": "Showa BPF (Street Triple RS)",
+    "manufacturer": "Showa",
+    "specs": {
+      "Front_Spring_Rate": 9.0,
+      "Front_Spring_Preload": 8.0,
+      "Front_Topout_Rate": 4.0,
+      "Front_Topout_Length": 40.0,
+      "Fork_Length": 770
+    }
   }
 }

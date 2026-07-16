@@ -364,7 +364,8 @@ function sampleMotionRatio(values, fullBumpDeg = 25, samples = 25) {
   let mrLo = Infinity, mrHi = -Infinity;
   let wrLo = Infinity, wrHi = -Infinity;
   for (let i = 0; i < samples; i++) {
-    const deg = (i / (samples - 1)) * fullBumpDeg;
+    // Bump direction: compression = axle up = β decreasing (negative delta).
+    const deg = -(i / (samples - 1)) * fullBumpDeg;
     const mr = motionRatio(cfg, deg, swingarmLength, beta_static);
     const yNow = rearWheelHeight(cfg, deg, swingarmLength, beta_static);
     const travel = Math.abs(yNow - yStatic);

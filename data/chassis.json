@@ -1,1 +1,27 @@
-{}
+{
+  "street-triple-rs-765-2020": {
+    "name": "Triumph Street Triple RS 765 (2020)",
+    "specs": {
+      "Rake_Static": 23.7,
+      "WB": 1414.3,
+      "Swingarm_Length": 594.5,
+      "beta_static": 12.23,
+      "Yoke_Offset": 26.0,
+      "Fork_Position": 28.0,
+      "Fork_Position_ref": 28.0,
+      "Fork_Length_ref": 770,
+      "Shock_Length_ref": 283.0,
+      "Mass": 191.4,
+      "H_CG": 650,
+      "L_CG": 750,
+      "front_weight_dist": 0.498,
+      "rear_weight_dist": 0.502,
+      "C_f_aero": 0.4,
+      "C_r_aero": 0.6,
+      "Rf": 304.6,
+      "Front_Sprocket_X": 50,
+      "Front_Sprocket_Y": 10,
+      "Chain_Pitch": 15.875
+    }
+  }
+}

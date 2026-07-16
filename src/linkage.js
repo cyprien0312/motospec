@@ -124,12 +124,17 @@ export function motionRatio(cfg, swingarmDeltaDeg, swingarmLength, betaStaticDeg
   return Math.abs((yPlus - yMinus) / ds);
 }
 
-// Progression % over the working travel range.
+// Progression % over the working travel range, swept in the BUMP direction:
+// compression moves the axle up toward the frame, so β (positive below
+// horizontal) DECREASES — the sweep runs 0 → −fullBumpDeltaDeg. The old
+// positive sweep measured the droop side of the MR curve; validated against
+// real MotoSPEC output (Triumph 765: bump sweep 25.7% vs oracle 25.6%,
+// droop sweep gave 39%). fullBumpDeltaDeg stays a positive magnitude.
 export function progression(cfg, swingarmLength, betaStaticDeg, fullBumpDeltaDeg = 25) {
   const samples = 9;
   let minMR = Infinity, maxMR = -Infinity;
   for (let i = 0; i < samples; i++) {
-    const delta = (i / (samples - 1)) * fullBumpDeltaDeg;
+    const delta = -(i / (samples - 1)) * fullBumpDeltaDeg;
     const mr = motionRatio(cfg, delta, swingarmLength, betaStaticDeg);
     if (!Number.isFinite(mr)) continue;
     if (mr < minMR) minMR = mr;

@@ -391,7 +391,7 @@ export const P = {
     desc:'后悬挂全行程的运动比变化幅度，相对最小值的百分比。摇臂角从 0° 扫到全行程角，逐点求 Motion_Ratio。',
     formula: [
       ['(MR_max − MR_min) / MR_min × 100'],
-      ['where: δ ∈ [0°, 25°]  (摇臂角扫描区间)'],
+      ['where: δ ∈ [0°, −25°]  (bump 方向摇臂角扫描：压缩 = 后轮上移 = β 减小)'],
     ],
     deps: [
       'Swingarm_Length', 'beta_static',

@@ -1,1 +1,19 @@
-{}
+{
+  "triumph-765-stock-fit": {
+    "name": "Triumph 765 STOCK (MotoSPEC fit)",
+    "manufacturer": "Triumph",
+    "specs": {
+      "Linkage_Mode": "pro-link",
+      "Frame_Rocker_Pivot_X": -143.9,
+      "Frame_Rocker_Pivot_Y": -10.7,
+      "Rocker_To_Shock_X": -166.0,
+      "Rocker_To_Shock_Y": -85.2,
+      "Rocker_To_Drag_X": -120.6,
+      "Rocker_To_Drag_Y": -49.5,
+      "Drag_To_Swingarm_X": 0.1,
+      "Drag_To_Swingarm_Y": 69.0,
+      "Frame_Shock_Top_X": -261.8,
+      "Frame_Shock_Top_Y": 181.1
+    }
+  }
+}

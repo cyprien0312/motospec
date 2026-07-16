@@ -31,5 +31,15 @@
       "Rear_Topout_Rate": 0,
       "Rear_Topout_Length": 0
     }
+  },
+  "ohlins-stx40-765": {
+    "name": "Öhlins STX40 (Street Triple)",
+    "manufacturer": "Öhlins",
+    "specs": {
+      "Shock_Length": 283.0,
+      "Rear_Spring_Rate": 100.0,
+      "Rear_Spring_Preload": 12.0,
+      "Rear_Topout_Rate": 188.0
+    }
   }
 }
