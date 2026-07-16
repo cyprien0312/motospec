@@ -99,13 +99,21 @@ the ①–② swingarm line, ④ forward of ③⑤, ⑤ forward of ③. Result
 (objective 1.4e-5 — all five MR targets within 0.003, every constraint
 satisfied):
 
+Round 2 (owner: ① ~40 mm forward of ⑥; ③ only ~5 mm below the ①–②
+line). P reparameterized as (distance along the arm, distance below the
+line); endpoint MR targets weighted 10× over the chart-read midpoints
+(the endpoints are the displayed oracle data). Result — displayed
+channels exact to ±0.003 MR, midpoints ±0.03, both round-2 bands at
+their loose edges (9 mm below the line vs ~5; 48 mm behind vs ~40 —
+tighter would cost kinematic accuracy):
+
 | Point | x | y |
 |---|---|---|
-| ③ Rocker pivot (on swingarm) | −238.0 | −147.7 |
-| ④ Rocker→shock eye | −169.5 | −184.5 |
-| ⑤ Rocker→linkarm eye | −226.7 | −191.6 |
-| ⑥ Linkarm frame anchor | −67.1 | −135.4 |
-| ⑦ Frame shock top | −28.4 | 60.8 |
+| ③ Rocker pivot (on swingarm) | −230.2 | −59.1 |
+| ④ Rocker→shock eye | −157.6 | −86.9 |
+| ⑤ Rocker→linkarm eye | −213.5 | −101.2 |
+| ⑥ Linkarm frame anchor | −48.0 | −65.7 |
+| ⑦ Frame shock top | −120.8 | 193.7 |
 
 shock(0) = 283.00; stroke 61.5 mm over 135 mm travel; progression over
 full travel ≈25.6 vs oracle 25.6. Layout now matches the real bike's

@@ -43,7 +43,14 @@ const GAMMA = Math.acos((a * a + b * b - c * c) / (2 * a * b));
 
 const u = (t) => [Math.cos(t), Math.sin(t)];
 
-function buildCfg([px, py, th, phi, psi], s) {
+// P is parameterized along the swingarm line: t = distance behind the
+// pivot along the arm, d = perpendicular distance below the line (owner:
+// the rocker pivot sits only ~5 mm under the swingarm). This starts the
+// search inside the feasible region instead of fighting the constraint.
+function buildCfg([t, d, th, phi, psi], s) {
+  const bRad = BETA * D2R; // careful: `b` is the 45.30 triangle side above
+  const px = -t * Math.cos(bRad) + d * Math.sin(bRad);
+  const py = -t * Math.sin(bRad) - d * Math.cos(bRad);
   const P = [px, py];
   const S = [px + a * Math.cos(th), py + a * Math.sin(th)];
   const D = [px + b * Math.cos(th + s * GAMMA), py + b * Math.sin(th + s * GAMMA)];
@@ -65,23 +72,25 @@ function deltaForTravel(t) {
   return Math.asin(s0 - t / L) / D2R - BETA;
 }
 
-// Fit targets: (travel mm, MR) — endpoint values from the oracle display,
-// midpoints from the chart's near-linear decline.
+// Fit targets: (travel mm, MR, weight). The ENDPOINTS are hard oracle data
+// (MR(0)=2.458 displayed; MR(135)=1.956 from the displayed 25.6%
+// progression) — weighted 10×. Midpoints are read off the chart assuming
+// a near-linear decline (soft estimates) — weight 1.
 const TARGETS = [
-  [0, 2.458],
-  [34, 2.33],
-  [67.5, 2.20],
-  [101, 2.08],
-  [135, 1.956],
+  [0, 2.458, 10],
+  [34, 2.33, 1],
+  [67.5, 2.20, 1],
+  [101, 2.08, 1],
+  [135, 1.956, 10],
 ];
 
 function objective(x, s) {
   const cfg = buildCfg(x, s);
   let err = 0;
-  for (const [t, want] of TARGETS) {
+  for (const [t, want, w] of TARGETS) {
     const mr = motionRatio(cfg, deltaForTravel(t), L, BETA);
     if (!Number.isFinite(mr)) return 1e9;
-    err += (mr - want) ** 2;
+    err += w * (mr - want) ** 2;
   }
   // Mechanism must stay solvable slightly beyond the range
   if (!Number.isFinite(shockLength(cfg, deltaForTravel(140))) ||
@@ -107,11 +116,15 @@ function objective(x, s) {
   const T = [cfg.Drag_To_Swingarm_X, cfg.Drag_To_Swingarm_Y];
   const F = [cfg.Frame_Shock_Top_X, cfg.Frame_Shock_Top_Y];
   err += viol(T[1] + M);                                  // ⑥ below ①
-  err += viol(Math.abs(T[0]) - 90);                       // ⑥ roughly under ①
   err += viol(Math.max(P[0], S[0], D[0]) + M - F[0]);     // ⑦ fwd of ③④⑤
-  err += viol(P[1] - P[0] * Math.tan(BETA * D2R) + M);    // ③ under the ①-② line
   err += viol(P[0] + M - S[0]) + viol(D[0] + M - S[0]);   // ④ fwd of ③ and ⑤
   err += viol(P[0] + M - D[0]);                           // ⑤ fwd of ③
+  // Owner refinements (2026-07-16, round 2 — approximate equalities):
+  //   ① is ~40 mm forward of ⑥  → T_x ≈ −40 (±8)
+  //   ③ sits only ~5 mm below the ①-② swingarm line (±4; enforced by the
+  //   d-parameterization's own band so the search lives inside it)
+  err += viol(Math.abs(T[0] + 40) - 8);
+  err += viol(Math.abs(x[1] - 5) - 4);
   // Keep the assembly bike-sized
   const pen = (v, lo, hi) => (v < lo ? (lo - v) : v > hi ? (v - hi) : 0) ** 2 * 1e-4;
   err += pen(P[0], -350, -40) + pen(P[1], -200, 40);
@@ -123,9 +136,10 @@ function objective(x, s) {
 function nelderMead(f, x0, scale = 1, iters = 4000) {
   const n = x0.length;
   let simplex = [x0.slice()];
+  const STEP = [40, 2, 0.4, 0.4, 0.4];
   for (let i = 0; i < n; i++) {
     const p = x0.slice();
-    p[i] += (i < 2 ? 30 : 0.4) * scale;
+    p[i] += STEP[i] * scale;
     simplex.push(p);
   }
   let vals = simplex.map(f);
@@ -161,12 +175,12 @@ function nelderMead(f, x0, scale = 1, iters = 4000) {
 // --- Multi-start (deterministic grid — no Math.random needed) ---------------
 let best = { f: Infinity, x: null, s: 1 };
 for (const s of [1, -1]) {
-  for (const px of [-280, -220, -160, -100]) {
-    for (const py of [-120, -60, 0]) {
-      for (const th of [-150, -90, -30, 30, 90, 150]) {
-        for (const phi of [0, 60, 120, 180, 240, 300]) {
-          for (const psi of [60, 90, 120]) {
-            const x0 = [px, py, th * D2R, phi * D2R, psi * D2R];
+  for (const t of [120, 180, 240, 300]) {
+    for (const d of [5]) {
+      for (const th of [-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180]) {
+        for (const phi of [0, 45, 90, 135, 180, 225, 270, 315]) {
+          for (const psi of [45, 70, 90, 110, 135]) {
+            const x0 = [t, d, th * D2R, phi * D2R, psi * D2R];
             const f0 = objective(x0, s);
             if (f0 >= 1e9) continue;
             const r = nelderMead(x => objective(x, s), x0, 1, 800);

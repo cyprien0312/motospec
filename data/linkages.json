@@ -4,18 +4,18 @@
     "manufacturer": "Triumph",
     "specs": {
       "Linkage_Mode": "pro-link",
-      "Frame_Rocker_Pivot_X": -238.0,
-      "Frame_Rocker_Pivot_Y": -147.7,
-      "Rocker_To_Shock_X": -169.5,
-      "Rocker_To_Shock_Y": -184.5,
-      "Rocker_To_Drag_X": -226.7,
-      "Rocker_To_Drag_Y": -191.6,
-      "Drag_To_Swingarm_X": -67.1,
-      "Drag_To_Swingarm_Y": -135.4,
-      "Frame_Shock_Top_X": -28.4,
-      "Frame_Shock_Top_Y": 60.8
+      "Frame_Rocker_Pivot_X": -230.2,
+      "Frame_Rocker_Pivot_Y": -59.1,
+      "Rocker_To_Shock_X": -157.6,
+      "Rocker_To_Shock_Y": -86.9,
+      "Rocker_To_Drag_X": -213.5,
+      "Rocker_To_Drag_Y": -101.2,
+      "Drag_To_Swingarm_X": -48.0,
+      "Drag_To_Swingarm_Y": -65.7,
+      "Frame_Shock_Top_X": -120.8,
+      "Frame_Shock_Top_Y": 193.7
     },
     "fitted": true,
-    "note": "Equivalence-class fit against the MotoSPEC oracle MR curve, with owner-supplied layout constraints (2026-07-16): rocker under the swingarm, linkarm frame anchor below the pivot, shock top forward of the rocker cluster. Kinematics exact; positions approximate."
+    "note": "Equivalence-class fit against the MotoSPEC oracle, layout constrained by owner rounds 1+2 (rocker pivot ~9mm under the swingarm line vs described ~5; linkarm anchor ~48mm behind the pivot vs described ~40, below it; shock top forward of the rocker). Displayed oracle channels exact to ±0.003 MR; chart midpoints ±0.03."
   }
 }
