@@ -15,25 +15,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # The live GUI is the v0.1 plain-JS app (user's choice) — static files,
+      # no build step, servable as-is. The Vue rewrite on main is NOT deployed.
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      # project page is served from /motospec/, so override Vite's base
-      - run: npm run build -- --base=/motospec/
+          ref: v0.1-js
       - uses: actions/configure-pages@v5
         with:
           enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: .
       - id: deployment
         uses: actions/deploy-pages@v4
