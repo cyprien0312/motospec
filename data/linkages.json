@@ -4,17 +4,18 @@
     "manufacturer": "Triumph",
     "specs": {
       "Linkage_Mode": "pro-link",
-      "Frame_Rocker_Pivot_X": -143.9,
-      "Frame_Rocker_Pivot_Y": -10.7,
-      "Rocker_To_Shock_X": -166.0,
-      "Rocker_To_Shock_Y": -85.2,
-      "Rocker_To_Drag_X": -120.6,
-      "Rocker_To_Drag_Y": -49.5,
-      "Drag_To_Swingarm_X": 0.1,
-      "Drag_To_Swingarm_Y": 69.0,
-      "Frame_Shock_Top_X": -261.8,
-      "Frame_Shock_Top_Y": 181.1
+      "Frame_Rocker_Pivot_X": -238.0,
+      "Frame_Rocker_Pivot_Y": -147.7,
+      "Rocker_To_Shock_X": -169.5,
+      "Rocker_To_Shock_Y": -184.5,
+      "Rocker_To_Drag_X": -226.7,
+      "Rocker_To_Drag_Y": -191.6,
+      "Drag_To_Swingarm_X": -67.1,
+      "Drag_To_Swingarm_Y": -135.4,
+      "Frame_Shock_Top_X": -28.4,
+      "Frame_Shock_Top_Y": 60.8
     },
-    "fitted": true
+    "fitted": true,
+    "note": "Equivalence-class fit against the MotoSPEC oracle MR curve, with owner-supplied layout constraints (2026-07-16): rocker under the swingarm, linkarm frame anchor below the pivot, shock top forward of the rocker cluster. Kinematics exact; positions approximate."
   }
 }

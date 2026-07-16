@@ -93,21 +93,26 @@ direction, shock direction) were optimized (multi-start Nelder–Mead,
 `scripts/fit-linkage-765.mjs`, ~9 s) against MR(0)=2.458 and the chart's
 near-linear decline to 1.956 at 135 mm.
 
-Result (objective 1.1e-5 — all five MR targets within 0.002):
+Refit 2026-07-16 with owner-supplied layout constraints (screen-left =
++X forward, SVG numbering): ⑥ below/under ①, ⑦ forward of ③④⑤, ③ below
+the ①–② swingarm line, ④ forward of ③⑤, ⑤ forward of ③. Result
+(objective 1.4e-5 — all five MR targets within 0.003, every constraint
+satisfied):
 
 | Point | x | y |
 |---|---|---|
-| Rocker pivot (on swingarm) | −143.9 | −10.7 |
-| Rocker→shock eye | −166.0 | −85.2 |
-| Rocker→linkarm eye | −120.6 | −49.5 |
-| Linkarm frame anchor | 0.1 | 69.0 |
-| Frame shock top | −261.8 | 181.1 |
+| ③ Rocker pivot (on swingarm) | −238.0 | −147.7 |
+| ④ Rocker→shock eye | −169.5 | −184.5 |
+| ⑤ Rocker→linkarm eye | −226.7 | −191.6 |
+| ⑥ Linkarm frame anchor | −67.1 | −135.4 |
+| ⑦ Frame shock top | −28.4 | 60.8 |
 
 shock(0) = 283.00; stroke 61.5 mm over 135 mm travel; progression over
-full travel 25.7% vs oracle 25.6. The layout is plausible (rocker under
-the swingarm ~144 mm behind the pivot, linkarm rising to a frame anchor
-above the pivot, shock leaning forward-up) but is **not** claimed to be
-the physical geometry — label stays "MotoSPEC fit".
+full travel ≈25.6 vs oracle 25.6. Layout now matches the real bike's
+qualitative arrangement (rocker hanging under the swingarm, linkarm
+anchor below the pivot, shock leaning forward-up to a mount ahead of the
+rocker) but exact positions remain approximate — label stays
+"MotoSPEC fit".
 
 **This fit also exposed a real bug:** our `progression()` (and the
 Linkage Setup MR chart) swept the swingarm in the droop direction

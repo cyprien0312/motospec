@@ -90,14 +90,32 @@ function objective(x, s) {
   const stroke = shockLength(cfg, 0) - shockLength(cfg, deltaForTravel(135));
   if (!(stroke > 20)) return 1e9;
   err += 0.0005 * ((stroke - 61) / 10) ** 2; // soft: stroke ≈ 135/avgMR
-  // Plausibility: keep the layout bike-like (soft penalties)
+  // Layout constraints from the owner's description of the real bike
+  // (2026-07-16), screen-left = +X forward, numbered as in the topology SVG:
+  //   ⑥ below ①        → T_y < 0, roughly under the pivot (|T_x| small)
+  //   ⑦ left of ③④⑤   → F_x > max(P_x, S_x, D_x)
+  //   ③ below line ①-② → P_y < P_x·tan(β)  (under the swingarm)
+  //   ④ left of ③⑤     → S_x > P_x and S_x > D_x
+  //   ⑤ left of ③       → D_x > P_x
+  // Enforced as heavy penalties (≫ kinematic residuals when violated), so
+  // the optimizer picks the equivalence-class member with this layout.
+  const W = 1e-3, M = 5; // weight per mm², margin mm
+  const viol = (v) => Math.max(0, v) ** 2 * W;
+  const P = [cfg.Frame_Rocker_Pivot_X, cfg.Frame_Rocker_Pivot_Y];
+  const S = [cfg.Rocker_To_Shock_X, cfg.Rocker_To_Shock_Y];
+  const D = [cfg.Rocker_To_Drag_X, cfg.Rocker_To_Drag_Y];
+  const T = [cfg.Drag_To_Swingarm_X, cfg.Drag_To_Swingarm_Y];
+  const F = [cfg.Frame_Shock_Top_X, cfg.Frame_Shock_Top_Y];
+  err += viol(T[1] + M);                                  // ⑥ below ①
+  err += viol(Math.abs(T[0]) - 90);                       // ⑥ roughly under ①
+  err += viol(Math.max(P[0], S[0], D[0]) + M - F[0]);     // ⑦ fwd of ③④⑤
+  err += viol(P[1] - P[0] * Math.tan(BETA * D2R) + M);    // ③ under the ①-② line
+  err += viol(P[0] + M - S[0]) + viol(D[0] + M - S[0]);   // ④ fwd of ③ and ⑤
+  err += viol(P[0] + M - D[0]);                           // ⑤ fwd of ③
+  // Keep the assembly bike-sized
   const pen = (v, lo, hi) => (v < lo ? (lo - v) : v > hi ? (v - hi) : 0) ** 2 * 1e-4;
-  const [px, py] = x;
-  const cfgF = [cfg.Frame_Shock_Top_X, cfg.Frame_Shock_Top_Y];
-  const cfgT = [cfg.Drag_To_Swingarm_X, cfg.Drag_To_Swingarm_Y];
-  err += pen(px, -400, -60) + pen(py, -180, 30);
-  err += pen(cfgF[1], 120, 420) + pen(cfgF[0], -320, 40);
-  err += pen(cfgT[0], -160, 140) + pen(cfgT[1], -200, 80);
+  err += pen(P[0], -350, -40) + pen(P[1], -200, 40);
+  err += pen(F[1], 60, 420) + pen(T[1], -220, 0);
   return err;
 }
 
