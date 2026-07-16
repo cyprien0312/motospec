@@ -97,12 +97,14 @@ const STR = {
             <li><strong>输入行</strong>：直接键入数值；空白时显示工具提示告诉你「该字段通常来自 X 配置 / 也可手填」</li>
             <li><strong>RESULTS 行</strong>：只读，根据公式从 values 计算</li>
           </ul>
+          <h4>载荷状态（LOAD CASE）/ Sag</h4>
+          <p>在 LOAD CASE 组输入实测的前后 sag（前沿前叉轴线量——扎带法；后在后轮轴处垂直量），整个 RESULTS 块就变成<strong>该悬挂位置下的实时值</strong>：Rake / Trail / 摇臂角 / 抗蹲 / 运动比 / 轴距全部随之变化——和真实 MotoSPEC 的单一 RESULTS 块一致。默认 0 = 未加载参考态（一个真实的物理状态，不是占位符）；sag 全为 0 时每个结果都精确等于静态值。</p>
+          <p>参考态约定：Chassis 配置里的 Rake / 摇臂角 / 轴距描述的是你测量它们时的姿态，sag 是<strong>相对那个姿态的额外压缩</strong>。Fork Position、Fork Length、Shock Length 相对各自参考值（Chassis 配置的 Reference Setup 组）的差量也进入同一条姿态链——管上提 / 换短叉 = 车头下降，换长避震 = 车尾抬高，都会实时反映到 Rake 上。</p>
           <h4>「Need: …」提示</h4>
-          <p>RESULTS 单元格只有当其依赖的所有叶子输入都被「真实绑定」（来自 chassis 配置 / 选中的部件 / 用户手填）时才显示数值；否则留空，并提示缺什么。例如选了 chassis 没选 fork，「Front Wheel Rate」会显示「Need: Fork specs」。</p>
+          <p>RESULTS 单元格只有当其依赖的所有叶子输入都被「真实绑定」（来自 chassis 配置 / 选中的部件 / 用户手填）时才显示数值；否则留空，并提示缺什么。例如选了 chassis 没选 fork，「Front Wheel Rate」会显示「Need: Fork specs」。Sag 输入默认即真实（0 = 未加载），从不出现在缺失提示里。</p>
           <h4>状态徽章</h4>
           <ul>
             <li><span class="dt-status dt-status-pending">PENDING</span>该输入暂未被任何 RESULTS 公式消费 — 填了也不会影响下面的结果</li>
-            <li><span class="dt-status dt-status-static">STATIC</span>结果直接回显静态输入，不响应动态压缩 / 载荷</li>
           </ul>
         `,
       },
@@ -231,12 +233,14 @@ const STR = {
             <li><strong>Input rows</strong>: type a number directly; empty cells show a tooltip pointing to the usual provider</li>
             <li><strong>RESULTS rows</strong>: read-only, computed from values</li>
           </ul>
+          <h4>Load case / Sag</h4>
+          <p>Type your measured sag into the LOAD CASE group (front along the fork axis — zip-tie method; rear vertically at the axle) and the whole RESULTS block becomes <strong>live at that suspension position</strong>: rake, trail, swingarm angle, anti-squat, motion ratio and wheelbase all respond — one RESULTS block, exactly like the real MotoSPEC. The default 0 means "no load applied" (a physically true state, not a placeholder); at zero sag every result equals its static value exactly.</p>
+          <p>Reference-state contract: the chassis profile's rake / swingarm angle / wheelbase describe the bike at whatever attitude you measured them; sag is <strong>additional compression relative to that same attitude</strong>. Fork position, fork length and shock length deltas against their reference values (the chassis profile's Reference Setup group) feed the same attitude chain — tubes up / a shorter fork drops the front, a longer shock lifts the rear, and rake tracks all of it live.</p>
           <h4>"Need: …" hints</h4>
-          <p>A RESULTS cell only renders a number when every leaf input it depends on is genuinely bound (chassis profile / selected component / typed override). Otherwise it stays blank with a hint naming the missing provider — e.g. "Need: Fork specs" if you've picked a chassis but no fork.</p>
+          <p>A RESULTS cell only renders a number when every leaf input it depends on is genuinely bound (chassis profile / selected component / typed override). Otherwise it stays blank with a hint naming the missing provider — e.g. "Need: Fork specs" if you've picked a chassis but no fork. Sag inputs are real by default (0 = unloaded) and never appear in a missing hint.</p>
           <h4>Status badges</h4>
           <ul>
             <li><span class="dt-status dt-status-pending">PENDING</span>input is not yet consumed by any RESULTS formula — typing here doesn't change anything below</li>
-            <li><span class="dt-status dt-status-static">STATIC</span>result echoes a static input verbatim — does not respond to dynamic compression/load</li>
           </ul>
         `,
       },

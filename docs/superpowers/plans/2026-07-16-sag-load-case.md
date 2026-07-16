@@ -1,9 +1,11 @@
 # Sag Load Case — Design Plan
 
 **Date:** 2026-07-16
-**Status:** Plan only — implementation not started. A separate session is
-currently landing the NaN-guard fixes in `src/linkage.js`; those land first
-(the sag solve path calls straight into the guarded code).
+**Status:** Implemented 2026-07-16 (commits `acc76db` → domain move,
+`0966f09` → data table; sag engine in between; tests in `tests/sag.test.js`).
+Test 4's exact Panigale pins still wait on measured linkage coords —
+direction-level assertions run against the default calibrated linkage.
+Phase 2 (predicted sag from spring data) remains future work.
 
 ## Goal
 

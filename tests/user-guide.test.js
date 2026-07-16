@@ -34,13 +34,19 @@ test('user guide names the key concepts users need', () => {
   assert.match(en, /Save as preset/);
   // Data-table missing-input hint contract
   assert.match(en, /Need: Fork specs/);
-  // Status-badge explanations
+  // Status-badge explanations — the STATIC badge is retired (RESULTS is
+  // a single live block), only PENDING remains documented
   assert.match(en, /PENDING/);
-  assert.match(en, /STATIC/);
+  assert.doesNotMatch(en, /dt-status-static/);
+  // Sag load case
+  assert.match(en, /Load case \/ Sag/);
+  assert.match(en, /unloaded/);
 
   const zh = renderUserGuide({ lang: 'zh' });
   assert.match(zh, /保存为底盘配置/);
   assert.match(zh, /Need:/);
   assert.match(zh, /PENDING/);
-  assert.match(zh, /STATIC/);
+  assert.doesNotMatch(zh, /dt-status-static/);
+  assert.match(zh, /LOAD CASE/);
+  assert.match(zh, /未加载参考态/);
 });
