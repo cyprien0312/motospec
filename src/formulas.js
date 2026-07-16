@@ -28,12 +28,12 @@ export const P = {
   },
   MotoSPEC_Rake: {
     name: 'MotoSPEC_Rake', label: '后倾角', unit: 'deg', type: 'channel',
-    desc: '转向轴相对垂直方向的角度。静态阶段直接等于 Rake_Static；动态俯仰修正暂未启用。',
+    desc: '当前载荷状态下转向轴相对垂直方向的角度。由测量锚点 Rake_Static 减去姿态俯仰修正得到；Sag_* = 0 且无几何差量时等于 Rake_Static。',
     formula: [
-      {ref:'Rake_Static'}
+      {ref:'Rake_Static'}, ' − ', {ref:'Pitch_Sag'}, ' × (180/π)'
     ],
-    deps: ['Rake_Static'],
-    note: 'dynamic phase 时会重新引入 Pitch 修正：Rake_Static − Pitch × (180/π)。'
+    deps: ['Rake_Static', 'Pitch_Sag'],
+    note: '点头（前沉多于后沉）→ Rake 变小 → Trail 缩短。Pitch_Sag 汇集前 sag、前叉差量与后端 shock 差量的全部姿态影响。'
   },
   MotoSPEC_Trail: {
     name: 'MotoSPEC_Trail', label: '动态拖曳距', unit: 'mm', type: 'channel',
@@ -55,12 +55,12 @@ export const P = {
   },
   Swingarm_Angle: {
     name: 'Swingarm_Angle', label: '摇臂角度', unit: 'deg', type: 'channel',
-    desc: '后悬挂压缩时摇臂相对水平面的实时夹角。把 4-bar 反解出的 Δβ 加到静态角上。',
+    desc: '当前载荷状态下摇臂相对地面的夹角。静态角 + shock 差量反解 Δβ + 后 sag 旋转 − 底盘俯仰。',
     formula: [
-      {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}
+      {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π) − ', {ref:'Pitch_Sag'}, ' × (180/π)'
     ],
-    deps: ['beta_static', 'swingarm_delta_solve'],
-    note: 'Δβ 由 swingarm_delta_solve 经 4-bar 闭合解出（点开看完整算法）。Shock_Clevis_RHA > 0 把避震机械加长 → 静态摇臂角度被顶到新位置；Travel_Rear 是相对 RHA 调整后的避震行程。'
+    deps: ['beta_static', 'swingarm_delta_solve', 'delta_beta_sag', 'Pitch_Sag'],
+    note: 'Δβ 由 swingarm_delta_solve 经 4-bar 闭合解出（点开看完整算法）；后 sag 使摇臂转向水平（delta_beta_sag < 0）；底盘俯仰把整个车架相对地面旋转。'
   },
   Anti_Squat: {
     name: 'Anti_Squat', label: '抗蹲百分比', unit: '%', type: 'channel',
@@ -300,6 +300,15 @@ export const P = {
   Lean_Angle:           { name:'Lean_Angle',           label:'倾角', unit:'deg', type:'input',
     desc:'车辆相对垂直方向的倾角 (过弯)。', source:'IMU', typical:'0 – 60°' },
 
+  // ===== 载荷状态输入 (Sag load case) =====
+  // Default 0 = "no load applied" — a physically true statement, not a
+  // placeholder. Typical 30 mm is tooltip text only; it never silently
+  // participates in a computation.
+  Sag_Front:            { name:'Sag_Front',            label:'前部下沉量', unit:'mm', type:'input',
+    desc:'相对参考姿态的前叉压缩量，沿前叉轴线测量（扎带法）。0 = 未加载参考态。', source:'实测（扎带法）', typical:'25 – 35 mm（骑手 sag）' },
+  Sag_Rear:             { name:'Sag_Rear',             label:'后部下沉量', unit:'mm', type:'input',
+    desc:'相对参考姿态的后轮压缩量，在后轮轴处垂直测量。0 = 未加载参考态。', source:'实测（轴心到尾壳垂直距离差）', typical:'25 – 35 mm（骑手 sag）' },
+
   // ===== 新增计算量 (Phase A) =====
   Final_Ratio: {
     name:'Final_Ratio', label:'最终传动比', unit:'—', type:'intermediate',
@@ -307,12 +316,40 @@ export const P = {
     formula: [{ref:'Rear_Sprocket'}, ' / ', {ref:'Front_Sprocket'}],
     deps: ['Front_Sprocket', 'Rear_Sprocket']
   },
+  delta_fork: {
+    name: 'ΔFork', label: '前叉几何差量', unit: 'mm', type: 'intermediate',
+    desc: '当前前叉设定相对参考设定（测 Rake 时的状态）沿前叉轴线的差量。管上提（Fork_Position 增大）或换更短的前叉 → 车头下降，效果与前 sag 完全相同。',
+    formula: [
+      '( ', {ref:'Fork_Position'}, ' − ', {ref:'Fork_Position_ref'}, ' ) + ( ', {ref:'Fork_Length_ref'}, ' − ', {ref:'Fork_Length'}, ' )'
+    ],
+    deps: ['Fork_Position', 'Fork_Position_ref', 'Fork_Length_ref', 'Fork_Length'],
+    note: '正值 = 车头相对参考态下降。默认参考值与当前值相同 → 差量为 0。'
+  },
+  delta_beta_sag: {
+    name: 'Δβ_sag', label: '后 sag 摇臂旋转', unit: 'rad', type: 'intermediate',
+    desc: '后轮相对车架上移 Sag_Rear 引起的摇臂旋转（弧度）。压缩 → 摇臂转向水平 → β 减小，故为负。',
+    formula: [
+      '− arcsin( ', {ref:'Sag_Rear'}, ' / ', {ref:'Swingarm_Length'}, ' )'
+    ],
+    deps: ['Sag_Rear', 'Swingarm_Length'],
+  },
+  Pitch_Sag: {
+    name: 'Pitch_Sag', label: '载荷俯仰角', unit: 'rad', type: 'intermediate',
+    desc: '当前载荷状态相对参考姿态的底盘俯仰角，点头为正。前端下沉 = (前 sag + 前叉差量) 投影到垂直方向（×cos Rake）；后端下沉 = 后 sag − shock 差量引起的车尾抬升。',
+    formula: [
+      ['arctan( (ΔZ_front − ΔZ_rear) / ', {ref:'WB'}, ' )'],
+      ['ΔZ_front = ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × cos(', {ref:'Rake_Static'}, ')'],
+      ['ΔZ_rear = ', {ref:'Sag_Rear'}, ' − ', {ref:'Swingarm_Length'}, ' × ( sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ') − sin(', {ref:'beta_static'}, ') )'],
+    ],
+    deps: ['Sag_Front', 'delta_fork', 'Rake_Static', 'Sag_Rear', 'Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'WB'],
+    note: 'cos(Rake) 把沿前叉轴的行程投影到垂直方向——前后 sag 数值相等时姿态并非不变（前端实际下沉略小）。shock 加长（RHA / ΔShock > 0）→ 车尾抬高 → 点头为正 → Rake 变小。'
+  },
   swingarm_delta_solve: {
-    name: 'Δβ_static', label: '4-bar 反解（RHA → 静态摇臂角变化）', unit: 'deg', type: 'intermediate',
-    desc:'给定 Clevis 调整 Shock_Clevis_RHA，反向求摇臂相对原静态位的旋转角 Δβ_static。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 Swingarm_Angle / Rear_Ride_Height 共用。Travel_Rear 视为 0（静态阶段）。',
+    name: 'Δβ_static', label: '4-bar 反解（shock 差量 → 静态摇臂角变化）', unit: 'deg', type: 'intermediate',
+    desc:'给定 shock 总差量（Clevis 调整 + 当前避震相对参考避震的长度差），反向求摇臂相对原静态位的旋转角 Δβ_static。两层嵌套数值求根：外层二分搜索 δ，内层 Newton-Raphson 解 4-bar 拉杆闭合。被 Swingarm_Angle / Rear_Ride_Height / Pitch_Sag 共用。Travel_Rear 视为 0（静态阶段）。',
     formula: [
       ['Δβ = δ*  s.t.  shock(δ*) = L_target'],
-      ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}],
+      ['L_target = shock(δ=0) + ', {ref:'Shock_Clevis_RHA'}, ' + ( ', {ref:'Shock_Length'}, ' − ', {ref:'Shock_Length_ref'}, ' )'],
       ['外层: 二分搜索 δ ∈ [−45°, +45°]，每步评估 shock(δ_mid)'],
       ['shock(δ) = | rocker_shock_end(δ) − ', {ref:'Frame_Shock_Top_X'}, ',', {ref:'Frame_Shock_Top_Y'}, ' |'],
       ['rocker_shock_end(δ) = ', {ref:'Frame_Rocker_Pivot_X'}, ',', {ref:'Frame_Rocker_Pivot_Y'}, ' + R(Δφ)·(', {ref:'Rocker_To_Shock_X'}, ',', {ref:'Rocker_To_Shock_Y'}, ')'],
@@ -322,24 +359,25 @@ export const P = {
       ['Pro-Link 模式：β 取负，Frame_Shock_Top 在摇臂坐标系中反向旋转一次'],
     ],
     deps: [
-      'Shock_Clevis_RHA',
+      'Shock_Clevis_RHA', 'Shock_Length', 'Shock_Length_ref',
       'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
       'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
       'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
       'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
       'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
     ],
-    note: 'RHA>0 把 shock 物理加长 → 摇臂被顶下 → 静态 δ 为正。Dynamic 阶段（含 Travel_Rear）回归时拆出独立的 swingarm_delta_dynamic 即可。'
+    note: 'shock 总差量 > 0（加长）→ 摇臂被顶下 → 静态 δ 为正。RHA 本质就是一个避震长度差，所以 ΔShock 与它线性叠加进同一约束。Dynamic 阶段（含 Travel_Rear）回归时拆出独立的 swingarm_delta_dynamic 即可。'
   },
   Motion_Ratio: {
     name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',
-    desc:'后轮垂直位移对避震行程的瞬时比值，在静态点 δ=0 用 4-bar 连杆闭合数值微分求得。后轮高度 y_w = Swingarm_Length·sin(beta_static + δ)；避震长度 shock(δ) 由 closeFourBar 在每个摇臂角下解 rocker→shock 端点到 Frame_Shock_Top 的距离。',
+    desc:'后轮垂直位移对避震行程的瞬时比值，在当前载荷点 δ_load 用 4-bar 连杆闭合数值微分求得。后轮高度 y_w = Swingarm_Length·sin(beta_static + δ)；避震长度 shock(δ) 由 closeFourBar 在每个摇臂角下解 rocker→shock 端点到 Frame_Shock_Top 的距离。',
     formula: [
       ['|d ', {ref:'Swingarm_Length'}, '·sin(', {ref:'beta_static'}, '+δ) / dδ|  ÷  |d shock(δ; 4-bar) / dδ|'],
-      ['where: δ = 0  (在静态点求微分)'],
+      ['where: δ = ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π)  (在当前载荷点求微分)'],
     ],
     deps: [
       'Swingarm_Length', 'beta_static',
+      'swingarm_delta_solve', 'delta_beta_sag',
       'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
       'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
       'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
@@ -367,13 +405,13 @@ export const P = {
   },
   Rear_Ride_Height: {
     name:'Rear_Ride_Height', label:'后部车高参考', unit:'mm', type:'intermediate',
-    desc:'后轮轴心相对摇臂枢轴的有符号垂直坐标（轮在枢轴下方为负）。Shock_Clevis_RHA 把避震加长 → 摇臂转得更远离水平 → 后轮下沉，该值更负 → 实际车尾抬高。',
+    desc:'当前载荷状态下后轮轴心相对摇臂枢轴的有符号垂直坐标（轮在枢轴下方为负）。shock 差量把摇臂顶离水平、后 sag 把摇臂转回水平，两者都进入求值角。',
     formula: [
-      ['− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ')'],
-      ['静态简化 (Travel_Rear=0, RHA=0):  − ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ')'],
+      ['− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π))'],
+      ['静态简化 (Sag_Rear=0, RHA=0, ΔShock=0):  − ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ')'],
     ],
-    deps: ['Swingarm_Length', 'beta_static', 'swingarm_delta_solve'],
-    note: 'RHA > 0 把避震机械加长 → 摇臂转得更远离水平 → 后轮下沉，该值更负，实际车尾抬高。点开 swingarm_delta_solve 看 Δβ 的完整反解算法。'
+    deps: ['Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'delta_beta_sag'],
+    note: 'shock 加长（RHA / ΔShock > 0）→ 摇臂转得更远离水平 → 该值更负，实际车尾抬高；后 sag 压缩反向。点开 swingarm_delta_solve 看 Δβ 的完整反解算法。'
   },
   Rear_Wheel_Vertical_Travel: {
     name:'Rear_Wheel_Vertical_Travel', label:'后轮垂直行程', unit:'mm', type:'intermediate',
@@ -399,6 +437,17 @@ export const P = {
     desc:'前轮综合刚度 (轮端)。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = Front_Spring_Rate / MR_front²。',
     formula: [{ref:'Front_Spring_Rate'}, ' × cos²(', {ref:'Rake_Static'}, ')'],
     deps: ['Front_Spring_Rate', 'Rake_Static']
+  },
+  Wheelbase_Live: {
+    name:'Wheelbase_Live', label:'轴距（当前载荷）', unit:'mm', type:'channel',
+    desc:'当前载荷状态下的前后轴水平距离。前 sag / 前叉差量沿转向轴把前轴向后拉；后 sag / shock 差量改变摇臂角，改变后轴的水平投影。未加载时等于 WB。',
+    formula: [
+      [{ref:'WB'}, ' − ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × sin(', {ref:'Rake_Static'}, ')'],
+      ['+ ', {ref:'Swingarm_Length'}, ' × ( cos(β_live) − cos(', {ref:'beta_static'}, ') )'],
+      ['β_live = ', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π)'],
+    ],
+    deps: ['WB', 'Sag_Front', 'delta_fork', 'Rake_Static', 'Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'delta_beta_sag'],
+    note: '真实 MotoSPEC 中轴距是随 shock 长度变化的计算输出（避震 323.5→317 mm 时 1449.9→1446.7）。链条张紧器移轴（ΔSwingarm_Length）与三星台偏移变化的贡献待各自的参考量引入后再进入该通道。'
   },
 };
 
@@ -466,6 +515,9 @@ export const INPUT_META = {
   Frame_Shock_Top_X:    { def: -160, min: -400,  max: 400,   step: 1 },
   Frame_Shock_Top_Y:    { def: 215,  min: -500,  max: 500,   step: 1 },
   Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 0.5 },
+  // Sag load case — 0 means "no load applied", a real value, not a placeholder.
+  Sag_Front:            { def: 0,     min: 0,     max: 150,   step: 1 },
+  Sag_Rear:             { def: 0,     min: 0,     max: 150,   step: 1 },
 };
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
@@ -476,14 +528,41 @@ export const CALC = {
   },
   Pitch:         v => Math.atan((v.Travel_Front - v.Travel_Rear) / v.WB),
   delta_beta:    v => Math.asin(Math.max(-1, Math.min(1, v.Travel_Rear / v.Swingarm_Length))),
-  MotoSPEC_Rake: v => v.Rake_Static,
+  delta_fork: v => {
+    const dPos = v.Fork_Position - v.Fork_Position_ref;
+    const dLen = v.Fork_Length_ref - v.Fork_Length;
+    return (Number.isFinite(dPos) ? dPos : 0) + (Number.isFinite(dLen) ? dLen : 0);
+  },
+  delta_beta_sag: v => {
+    const a = Math.asin(Math.max(-1, Math.min(1, v.Sag_Rear / v.Swingarm_Length)));
+    return a === 0 ? a : -a; // avoid -0 so the unloaded state degenerates exactly
+  },
+  Pitch_Sag: v => {
+    const dzFront = (v.Sag_Front + v.delta_fork) * Math.cos(v.Rake_Static * D2R);
+    // Shock delta rotates the swingarm: axle drop relative to the frame is
+    // frame RISE at the rear once the wheel is on the ground.
+    const rearLift = v.Swingarm_Length *
+      (Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R) - Math.sin(v.beta_static * D2R));
+    const dzRear = v.Sag_Rear - rearLift;
+    return Math.atan((dzFront - dzRear) / v.WB);
+  },
+  MotoSPEC_Rake: v => v.Rake_Static - v.Pitch_Sag * R2D,
   MotoSPEC_Trail: v => {
     const r = v.MotoSPEC_Rake * D2R;
     return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
   Normal_Trail: v => v.Rf * Math.sin(v.MotoSPEC_Rake * D2R) - v.Yoke_Offset,
-  swingarm_delta_solve: v => swingarmDeltaForShockTravel(v, 0, v.Shock_Clevis_RHA || 0),
-  Swingarm_Angle: v => v.beta_static + v.swingarm_delta_solve,
+  swingarm_delta_solve: v => {
+    // RHA is mechanically a shock-length delta; the current-vs-reference
+    // shock length difference joins it linearly in the same constraint.
+    const dShock = v.Shock_Length - v.Shock_Length_ref;
+    const total = (v.Shock_Clevis_RHA || 0) + (Number.isFinite(dShock) ? dShock : 0);
+    // Zero delta = zero rotation by definition — short-circuit so the
+    // unloaded state degenerates EXACTLY (bisection converges to ~1e-7).
+    if (total === 0) return 0;
+    return swingarmDeltaForShockTravel(v, 0, total);
+  },
+  Swingarm_Angle: v => v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D - v.Pitch_Sag * R2D,
   theta_chain_dynamic: v => {
     // Sprocket pitch radii (mm): r = pitch / (2·sin(π/N))
     const rF = v.Chain_Pitch / (2 * Math.sin(Math.PI / v.Front_Sprocket));
@@ -518,9 +597,15 @@ export const CALC = {
 
   // Phase A: real CALC for Final_Ratio; rest are stubs returning NaN until Phase C
   Final_Ratio:               v => v.Rear_Sprocket / v.Front_Sprocket,
-  Motion_Ratio:              v => motionRatio(v, 0, v.Swingarm_Length, v.beta_static),
+  Motion_Ratio:              v => motionRatio(v, v.swingarm_delta_solve + v.delta_beta_sag * R2D, v.Swingarm_Length, v.beta_static),
   Progression:               v => progression(v, v.Swingarm_Length, v.beta_static),
-  Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R),
+  Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R),
+  Wheelbase_Live: v => {
+    const bLive = (v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R;
+    return v.WB
+      - (v.Sag_Front + v.delta_fork) * Math.sin(v.Rake_Static * D2R)
+      + v.Swingarm_Length * (Math.cos(bLive) - Math.cos(v.beta_static * D2R));
+  },
   Rear_Wheel_Vertical_Travel:v => rearVerticalTravel(v, v.Travel_Rear, v.Swingarm_Length, v.beta_static, v.Shock_Clevis_RHA || 0),
   // Motion_Ratio is wheel/shock (≈2–3). Energy identity:
   //   K_wheel = K_spring · (x_spring / x_wheel)² = K_spring / Motion_Ratio²
@@ -541,8 +626,10 @@ export const CALC = {
 // Topological order: every entry's deps appear earlier in the list
 export const TOPO_ORDER = [
   'Trail_Static',
-  'Pitch', 'delta_beta', 'MotoSPEC_Rake', 'MotoSPEC_Trail', 'Normal_Trail',
-  'swingarm_delta_solve',
+  'Pitch', 'delta_beta',
+  // Sag load case: attitude-delta chain feeds the live channels
+  'delta_fork', 'swingarm_delta_solve', 'delta_beta_sag', 'Pitch_Sag',
+  'MotoSPEC_Rake', 'MotoSPEC_Trail', 'Normal_Trail',
   'Swingarm_Angle', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'Anti_Squat',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
@@ -550,6 +637,7 @@ export const TOPO_ORDER = [
   'Final_Ratio',
   'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
   'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
+  'Wheelbase_Live',
 ];
 
 export function defaultValues() {

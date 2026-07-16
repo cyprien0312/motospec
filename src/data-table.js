@@ -118,6 +118,9 @@ function summarizeMissing(missing, providerMap, lang) {
 // incorrectly tagged as needing input.
 export const ALWAYS_READY = new Set([
   'Shock_Clevis_RHA',
+  // Sag defaults to 0 = "no load applied" — physically true, not a placeholder.
+  'Sag_Front',
+  'Sag_Rear',
 ]);
 
 function bikeReadyKeys(bike) {
