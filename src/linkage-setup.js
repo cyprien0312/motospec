@@ -75,16 +75,16 @@ export function currentLengths(values) {
 
 // Definitions for the 4 length inputs shown in length mode.
 export const LINKAGE_LENGTHS = [
-  { key: 'armA',     label_en: 'Rocker Arm → Shock',  label_zh: '摇臂 → 避震 臂长',
+  { key: 'armA',     num: '③–④', label_en: 'Rocker Arm → Shock',  label_zh: '摇臂 → 避震 臂长',
     desc_en: 'Distance from rocker pivot to the shock-attach bolt on the rocker.',
     desc_zh: '从摇臂转点到摇臂上避震连接螺栓中心。' },
-  { key: 'armB',     label_en: 'Rocker Arm → Drag',   label_zh: '摇臂 → 拉杆 臂长',
+  { key: 'armB',     num: '③–⑤', label_en: 'Rocker Arm → Drag',   label_zh: '摇臂 → 拉杆 臂长',
     desc_en: 'Distance from rocker pivot to the drag-link bolt on the rocker.',
     desc_zh: '从摇臂转点到摇臂上拉杆连接螺栓中心。' },
-  { key: 'chord',    label_en: 'Rocker Chord (shock ↔ drag)', label_zh: '摇臂弦长（避震 ↔ 拉杆）',
+  { key: 'chord',    num: '④–⑤', label_en: 'Rocker Chord (shock ↔ drag)', label_zh: '摇臂弦长（避震 ↔ 拉杆）',
     desc_en: 'Straight-line distance between the shock-bolt and drag-bolt on the rocker. Together with the two arm lengths this fixes the rocker triangle.',
     desc_zh: '摇臂上避震螺栓与拉杆螺栓之间的直线距离。配合两段臂长，确定摇臂三角形。' },
-  { key: 'dragLink', label_en: 'Drag/Pull Link Length', label_zh: '拉杆长度',
+  { key: 'dragLink', num: '⑤–⑥', label_en: 'Drag/Pull Link Length', label_zh: '拉杆长度',
     desc_en: 'Length of the drag/pull link rod, end-to-end (bolt centres).',
     desc_zh: '拉杆（活动连杆）从一端到另一端的长度，按螺栓中心量。' },
 ];
@@ -106,6 +106,7 @@ const FIXED_POINT_KEYS = ['frame_rocker_pivot', 'drag_to_swingarm', 'frame_shock
 export const LINKAGE_POINTS = [
   {
     key: 'frame_rocker_pivot',
+    num: '③',
     anchor: 'swingarm',
     label_zh: '摇臂枢轴在车架上的位置',
     label_en: 'Frame Rocker Pivot',
@@ -119,6 +120,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'rocker_to_shock',
+    num: '④',
     anchor: 'rocker',
     label_zh: '摇臂上避震连接点',
     label_en: 'Rocker-to-Shock',
@@ -128,6 +130,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'rocker_to_drag',
+    num: '⑤',
     anchor: 'rocker',
     label_zh: '摇臂上拉杆连接点',
     label_en: 'Rocker-to-Drag',
@@ -137,6 +140,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'drag_to_swingarm',
+    num: '⑥',
     anchor: 'swingarm',
     label_zh: '拉杆与摇臂连接点',
     label_en: 'Drag-to-Swingarm',
@@ -150,6 +154,7 @@ export const LINKAGE_POINTS = [
   },
   {
     key: 'frame_shock_top',
+    num: '⑦',
     anchor: 'swingarm',
     label_zh: '车架上避震顶部固定点',
     label_en: 'Frame Shock Top',
@@ -750,9 +755,10 @@ function renderInputPair(p, values, lang, str, mode) {
   const yMeta = INPUT_META[p.yKey] || { min: -400, max: 400, step: 1 };
   const xVal = values[p.xKey];
   const yVal = values[p.yKey];
+  const num = p.num ? `<span class="linkage-num">${escapeHtml(p.num)}</span> ` : '';
   return `
     <div class="linkage-point">
-      <div class="linkage-point-label">${escapeHtml(label)}</div>
+      <div class="linkage-point-label">${num}${escapeHtml(label)}</div>
       <div class="linkage-point-desc">${escapeHtml(desc)}</div>
       <div class="linkage-xy-row">
         <label>
@@ -780,9 +786,10 @@ function renderLengthCard(def, lengths, lang, str) {
   const labelTxt = lang === 'en' ? def.label_en : def.label_zh;
   const descTxt  = lang === 'en' ? def.desc_en  : def.desc_zh;
   const v = lengths[def.key];
+  const num = def.num ? `<span class="linkage-num">${escapeHtml(def.num)}</span> ` : '';
   return `
     <div class="linkage-point">
-      <div class="linkage-point-label">${escapeHtml(labelTxt)}</div>
+      <div class="linkage-point-label">${num}${escapeHtml(labelTxt)}</div>
       <div class="linkage-point-desc">${escapeHtml(descTxt)}</div>
       <div class="linkage-length-row">
         <label>
