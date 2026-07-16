@@ -442,9 +442,40 @@ export const P = {
   },
   Front_Wheel_Rate: {
     name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
-    desc:'前轮综合刚度 (轮端)。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = Front_Spring_Rate / MR_front²。',
-    formula: [{ref:'Front_Spring_Rate'}, ' × cos²(', {ref:'Rake_Static'}, ')'],
+    desc:'前轮综合刚度 (轮端)，双腿弹簧合计。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = 2 × Front_Spring_Rate / MR_front²。Front_Spring_Rate 按单腿弹簧规格（规格表口径），前叉视为双弹簧。',
+    formula: ['2 × ', {ref:'Front_Spring_Rate'}, ' × cos²(', {ref:'Rake_Static'}, ')'],
     deps: ['Front_Spring_Rate', 'Rake_Static']
+  },
+  Sag_Front_Predicted: {
+    name:'Sag_Front_Predicted', label:'预测前部下沉量', unit:'mm', type:'channel',
+    desc:'由弹簧数据预测的前叉静态下沉（沿叉轴，扎带口径）：前轮静载沿转向轴的分量与双腿主弹簧 + 回顶弹簧平衡。只含螺旋弹簧——气簧（油面/气隙）与摩擦不建模，实测与预测的差即是它们的贡献（弹簧诊断用途）。',
+    formula: [
+      ['F_axial = ', {ref:'W_F_Static'}, ' × cos(', {ref:'Rake_Static'}, ')'],
+      ['回顶区 (x ≤ 回顶长度):  x = (F_axial + 2·', {ref:'Front_Topout_Rate'}, '·', {ref:'Front_Topout_Length'}, ' − 2·', {ref:'Front_Spring_Rate'}, '·', {ref:'Front_Spring_Preload'}, ') / (2·k + 2·k_t)'],
+      ['其后:  x = F_axial / (2·', {ref:'Front_Spring_Rate'}, ') − ', {ref:'Front_Spring_Preload'}],
+    ],
+    deps: ['W_F_Static', 'Rake_Static', 'Front_Spring_Rate', 'Front_Spring_Preload', 'Front_Topout_Rate', 'Front_Topout_Length'],
+    note: '预测明显大于实测 → 实际有效刚度高于铭牌（气簧/更多预载）；明显小于实测 → 弹簧疲软或预载少于设定。'
+  },
+  Sag_Rear_Predicted: {
+    name:'Sag_Rear_Predicted', label:'预测后部下沉量', unit:'mm', type:'channel',
+    desc:'由弹簧数据预测的后轮静态垂直下沉：迭代求解避震行程 s 使弹簧力（主簧 + 回顶）等于 后轮静载 × 该位置的运动比，再经 4-bar 换算成轮端垂直位移。',
+    formula: [
+      ['求 s:  k·(preload + s) − k_t·max(0, 回顶长度 − s) = ', {ref:'W_R_Static'}, ' × MR(δ(s))'],
+      ['δ(s) = 4-bar 反解（shock 压缩 s，含 RHA/ΔShock）'],
+      ['预测下沉 = 轮端垂直位移(δ(s))'],
+    ],
+    deps: [
+      'W_R_Static', 'Rear_Spring_Rate', 'Rear_Spring_Preload', 'Rear_Topout_Rate', 'Rear_Topout_Length',
+      'Shock_Stroke', 'Shock_Clevis_RHA', 'Shock_Length', 'Shock_Length_ref',
+      'Swingarm_Length', 'beta_static',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '平衡点超出 Shock_Stroke（打底）→ NaN。与 LOAD CASE 实测值对比即弹簧刚度诊断。'
   },
   Wheelbase_Live: {
     name:'Wheelbase_Live', label:'轴距（当前载荷）', unit:'mm', type:'channel',
@@ -643,10 +674,61 @@ export const CALC = {
   },
   // MR_front: fork compression per unit vertical front-wheel travel
   //   = 1 / cos(Rake_Static); typically 1.05–1.10 for sportbikes.
-  // Front_Wheel_Rate = Front_Spring_Rate / MR_front² (energy identity).
+  // Front_Wheel_Rate = 2·Front_Spring_Rate / MR_front² (energy identity;
+  // Front_Spring_Rate is per leg, forks carry two springs).
   Front_Wheel_Rate: v => {
     const MR_front = 1 / Math.cos(v.Rake_Static * D2R);
-    return v.Front_Spring_Rate / (MR_front * MR_front);
+    return 2 * v.Front_Spring_Rate / (MR_front * MR_front);
+  },
+  // Coil-spring static equilibrium with a topout spring: in the topout
+  // region both springs act (topout assists compression); past it only
+  // the main spring. F is the axial load, k/p main rate+preload, kt/tl
+  // topout rate+length. Never returns a fake negative: preload beyond
+  // load = sitting on the topout stop = 0 travel.
+  Sag_Front_Predicted: v => {
+    if (!(v.Front_Spring_Rate > 0)) return NaN;
+    const F = v.W_F_Static * Math.cos(v.Rake_Static * D2R);
+    const k = 2 * v.Front_Spring_Rate, kt = 2 * (v.Front_Topout_Rate || 0);
+    const p = v.Front_Spring_Preload, tl = v.Front_Topout_Length || 0;
+    const xTop = (F + kt * tl - k * p) / (k + kt);
+    if (xTop <= tl) return Math.max(0, xTop);
+    return F / k - p;
+  },
+  Sag_Rear_Predicted: v => {
+    const dShock = v.Shock_Length - v.Shock_Length_ref;
+    const rha = (v.Shock_Clevis_RHA || 0) + (Number.isFinite(dShock) ? dShock : 0);
+    const W = v.W_R_Static;
+    const k = v.Rear_Spring_Rate, kt = v.Rear_Topout_Rate || 0;
+    const p = v.Rear_Spring_Preload, tl = v.Rear_Topout_Length || 0;
+    if (!(k > 0) || !Number.isFinite(W)) return NaN;
+    const springF = s => k * (p + s) - (s < tl ? kt * (tl - s) : 0);
+    const resid = s => {
+      const d = swingarmDeltaForShockTravel(v, s, rha);
+      if (!Number.isFinite(d)) return NaN;
+      const mr = motionRatio(v, d, v.Swingarm_Length, v.beta_static);
+      if (!Number.isFinite(mr) || mr <= 0) return NaN;
+      return springF(s) - W * mr; // >0: spring wins → less travel
+    };
+    const r0 = resid(0);
+    if (!Number.isFinite(r0)) return NaN;
+    if (r0 >= 0) return 0; // preload ≥ load: sits on the topout stop
+    const sMax = Number.isFinite(v.Shock_Stroke) ? v.Shock_Stroke : 60;
+    let lo = 0, hi = NaN;
+    for (let s = sMax / 12; s <= sMax + 1e-9; s += sMax / 12) {
+      const r = resid(s);
+      if (!Number.isFinite(r)) return NaN;
+      if (r >= 0) { hi = s; break; }
+      lo = s;
+    }
+    if (!Number.isFinite(hi)) return NaN; // no balance within the stroke: bottomed
+    for (let i = 0; i < 60; i++) {
+      const mid = 0.5 * (lo + hi);
+      const r = resid(mid);
+      if (!Number.isFinite(r)) return NaN;
+      if (Math.abs(r) < 1e-3) { lo = hi = mid; break; }
+      if (r < 0) lo = mid; else hi = mid;
+    }
+    return rearVerticalTravel(v, 0.5 * (lo + hi), v.Swingarm_Length, v.beta_static, rha);
   },
 };
 
@@ -665,6 +747,8 @@ export const TOPO_ORDER = [
   'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
   'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
   'Wheelbase_Live',
+  // Phase 2: predicted sag from spring data (needs W_*_Static above)
+  'Sag_Front_Predicted', 'Sag_Rear_Predicted',
 ];
 
 export function defaultValues() {

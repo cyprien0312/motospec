@@ -272,11 +272,12 @@ test('Final_Ratio matches Rear_Sprocket / Front_Sprocket for each reference bike
 });
 
 
-test('Front_Wheel_Rate = Front_Spring_Rate / (1/cos(Rake_Static))² (energy identity)', () => {
+test('Front_Wheel_Rate = 2·Front_Spring_Rate / (1/cos(Rake_Static))² (twin springs)', () => {
   const inputs = { ...defaultValues(), Front_Spring_Rate: 9.0, Rake_Static: 24 };
   const out = computeAll(inputs);
-  // MR_front = 1/cos(24°) ≈ 1.0946; wheel_rate = 9 / MR² = 9 · cos²(24°)
-  const expected = 9.0 * Math.cos(24 * Math.PI / 180) ** 2;
+  // Spring rate is per leg (spec-sheet convention), forks carry two springs:
+  // MR_front = 1/cos(24°) ≈ 1.0946; wheel_rate = 2·9 / MR² = 18 · cos²(24°)
+  const expected = 2 * 9.0 * Math.cos(24 * Math.PI / 180) ** 2;
   assert.ok(
     Math.abs(out.Front_Wheel_Rate - expected) < 1e-9,
     `expected ${expected}, got ${out.Front_Wheel_Rate}`

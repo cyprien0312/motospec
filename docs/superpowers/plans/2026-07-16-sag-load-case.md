@@ -202,6 +202,11 @@ change enters our model through the RHA/target-length solve path.
 4. `index.html` window-exposure check (no new handlers expected — existing
    `setBikeInput` covers the new input rows).
 5. User guide: new "Load case / Sag" subsection in the datatable anchor.
-6. Phase 2 (separate plan): predicted sag from spring data → consumes the six
-   PENDING inputs; predicted-vs-measured delta row as a spring-rate
-   diagnostic.
+6. Phase 2 — DONE 2026-07-16: `Sag_Front_Predicted` / `Sag_Rear_Predicted`
+   consume the six formerly-PENDING spring inputs (front: axial coil
+   balance, twin springs + topout region; rear: iterative spring-vs-MR
+   equilibrium through the 4-bar). Rows live in LOAD CASE next to the
+   measured inputs; gate on the mass picture (Mass/weight split are
+   measured-only chassis fields). Coil-only by design — the residual vs
+   measured IS the diagnostic. Front_Wheel_Rate fixed to 2× (twin
+   springs) in the same change. Tests: tests/sag-predicted.test.js.
