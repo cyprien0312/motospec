@@ -17,10 +17,10 @@ There is no lint, no build, no bundler. Don't introduce one without asking.
 
 ## Branches, deployment, automation
 
-- **`gh-pages` is the active development branch _and_ the live site.** GitHub Pages serves it directly at https://cyprien0312.github.io/motospec/ — **every push publishes immediately** (no build step, no Actions; an Actions-based deploy is not possible because neither the workflow token nor the stored PAT can enable Pages).
-- **`main` holds a parked Vue 3 + TypeScript rewrite** of this app (different architecture, own CLAUDE.md on that branch). The user shelved it in July 2026 — do not develop there or merge between the branches unless explicitly asked. The pristine v0.1 tree is also tagged `v0.1-js`.
-- **A nightly cron (23:00) runs `scripts/auto-archive.sh`**: it `git add -A`, commits any working-tree changes as `chore: auto-archive …`, and pushes the current branch (log: `logs/auto-archive.log`, gitignored). Consequence: uncommitted WIP left in the tree goes live on the public site overnight — commit deliberately, and don't leave the tree half-broken at the end of a session.
-- `main`'s `docs/` additionally carries `measurement-points.md` + `.svg` (chassis-level points to physically measure on a real bike: RA/FA/SP/CS/SA-U/SA-L/GND-*, origin at rear axle). The linkage-level companion (5 points, origin at swingarm pivot) is this branch's `docs/research/linkage-coords.md`.
+- **`main` is the only branch** — development happens here, and **Vercel auto-deploys every push** (static, no build step). There is no GitHub Pages deployment anymore (the old gh-pages branch was deleted July 2026; neither the workflow token nor the stored PAT can manage Pages, so don't try to resurrect an Actions deploy).
+- History archaeology: the pristine v0.1 tree is tagged `v0.1-js`; a shelved Vue 3 + TS rewrite is tagged `archive/vue-rewrite` (removed from the tree July 2026 at the user's request — don't resurrect it unless explicitly asked).
+- **A nightly cron (23:00) runs `scripts/auto-archive.sh`**: it `git add -A`, commits any working-tree changes as `chore: auto-archive …`, and pushes the current branch (log: `logs/auto-archive.log`, gitignored). Consequence: uncommitted WIP left in the tree goes live on the public deployment overnight — commit deliberately, and don't leave the tree half-broken at the end of a session.
+- `docs/measurement-points.md` + `.svg` list the chassis-level points to physically measure on a real bike (RA/FA/SP/CS/SA-U/SA-L/GND-*, origin at rear axle); the linkage-level companion (5 points, origin at swingarm pivot) is `docs/research/linkage-coords.md`.
 
 ## Architecture
 
