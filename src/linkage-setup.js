@@ -877,17 +877,6 @@ export function renderLinkageSetup(state) {
     </div>
   `;
 
-  // If the current coords exactly match a catalog entry flagged `fitted`
-  // (an oracle-fit equivalence-class member), warn that the drawing is
-  // computation-equivalent but NOT the bike's physical layout.
-  const fittedEntry = Object.values(CATALOGS.linkages || {}).find(e =>
-    e && e.fitted && e.specs &&
-    LINKAGE_COORD_FIELDS.every(k => e.specs[k] === values[k]));
-  const fittedNote = fittedEntry ? `
-    <div class="linkage-fitted-note">${escapeHtml(lang === 'en'
-      ? `⚠ "${fittedEntry.name}" is a fitted equivalence-class solution: every computed channel (MR curve, ride height, progression…) matches the real bike, and the layout is constrained to the owner-described arrangement — but exact positions are approximate, not measured. Measuring the mounting points (docs/research/linkage-coords.md) would make the drawing literal.`
-      : `⚠ 「${fittedEntry.name}」是等价类拟合解：所有计算通道（MR 曲线、车高、渐进性等）与实车一致，布局已按车主描述的相对位置约束——但具体坐标是近似值，非实测。按 docs/research/linkage-coords.md 实测安装点坐标后，图示才完全对应实车。`)}</div>` : '';
-
   return `
     <div class="linkage-page">
       <div class="header">
@@ -904,7 +893,6 @@ export function renderLinkageSetup(state) {
       <div class="linkage-chart-wrap">${renderMotionRatioChart(values, lang)}</div>
 
       <div class="section-title">${escapeHtml(str.diagram_title)}</div>
-      ${fittedNote}
       ${renderTopologySVG(values, mode)}
 
       ${inputsSection}
