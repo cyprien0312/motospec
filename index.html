@@ -1573,8 +1573,7 @@ function setChassisInput(key, raw) {
     }
     return;
   }
-  const m = INPUT_META[key];
-  const v = m ? Math.max(m.min, Math.min(m.max, n)) : n;
+  const v = n; // no mid-typing clamp — min/max remain as element hints only
   state.values[key] = v;
   if (key === 'front_weight_dist') state.values.rear_weight_dist = +(1 - v).toFixed(3);
   if (key === 'rear_weight_dist')  state.values.front_weight_dist = +(1 - v).toFixed(3);
@@ -1613,10 +1612,20 @@ function loadChassisFromLibrary(id) {
 function setBikeInput(bikeIdx, key, raw) {
   const b = state.bikes[bikeIdx];
   if (!b) return;
-  let n = parseFloat(raw);
-  if (isNaN(n)) return;
-  const m = INPUT_META[key];
-  if (m) n = Math.max(m.min, Math.min(m.max, n));
+  const n = parseFloat(raw);
+  if (isNaN(n)) {
+    // Clearing the cell removes the override — the input returns to the
+    // honest unbound state (dependent RESULTS blank again).
+    if (String(raw).trim() === '' && b.overrides && key in b.overrides) {
+      delete b.overrides[key];
+      saveState();
+      patchDataTableView();
+    }
+    return;
+  }
+  // No mid-typing clamp: INPUT_META min/max stay on the element as browser
+  // hints, but silently rewriting a typed value (e.g. "9" on the way to
+  // "95" clamped up to the range floor) falsifies user data.
   if (!b.overrides) b.overrides = {};
   // Track that the user explicitly set this field — drives the
   // "blank until inputs are real" logic in the data table. Chassis-domain
@@ -1626,7 +1635,31 @@ function setBikeInput(bikeIdx, key, raw) {
   b.overrides[key] = n;
   b.values[key] = n;
   saveState();
-  renderContent();
+  patchDataTableView();
+}
+// Recompute the data table but touch ONLY read-only cells (computed
+// results, chassis echoes, missing-input hints) — the <input> the user is
+// typing into is never replaced, so focus and caret survive. Structure
+// (row/cell count) only changes via component selection or add/remove
+// bike, which go through full renderContent().
+function patchDataTableView() {
+  if (stack[stack.length - 1] !== '__datatable') return;
+  const live = document.querySelector('#content .dt-wrap table');
+  if (!live) { renderContent(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderDataTable(state);
+  const fresh = tmp.querySelector('table');
+  const liveCells = live.querySelectorAll('td.dt-readonly');
+  const freshCells = fresh ? fresh.querySelectorAll('td.dt-readonly') : [];
+  if (!fresh || liveCells.length !== freshCells.length) { renderContent(); return; }
+  liveCells.forEach((td, i) => {
+    const next = freshCells[i];
+    if (td.outerHTML !== next.outerHTML) {
+      td.className = next.className;
+      td.title = next.getAttribute('title') || '';
+      td.innerHTML = next.innerHTML;
+    }
+  });
 }
 function setCatalogTab(catalogKey) {
   if (!CATALOG_KEYS.includes(catalogKey)) return;
