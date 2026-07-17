@@ -62,13 +62,14 @@ const STR = {
         body: `
           <p>填入：</p>
           <ul>
-            <li>车架几何：Rake_Static、WB（轴距）、Swingarm_Length、beta_static、Yoke_Offset、Fork_Length、Fork_Position</li>
+            <li>车架几何：Rake_Static、WB（轴距）、beta_static</li>
+            <li>基线设定：Yoke_Offset、Fork_Position、Swingarm_Length、Shock_Length —— 全部指<strong>测量 Rake/WB 那天车上装的值</strong>，也是数据表新列的起点</li>
             <li>质量与重心：Mass、H_CG、L_CG、前 / 后轮静态重量分配</li>
             <li>气动：前 / 后轮下压力分配（自动镜像，和为 1）</li>
             <li>轮胎与传动：Rf（前轮半径）、Front_Sprocket_X / Y、Chain_Pitch</li>
           </ul>
           <p>右上侧视图随 WB 和 Rf 自动等比缩放。点击「保存为底盘配置」会把 <code>CHASSIS_SPEC_FIELDS</code> 列出的全部字段一起存入 chassis catalog（缺失字段会回填默认值）。已保存的配置可从下拉中重新加载。</p>
-          <p><strong>Yoke_Offset 和 Fork_Position 属于底盘配置</strong>（每车设置参数），不属于前叉规格 — 同一支前叉可在不同车上有不同的伸出量。</p>
+          <p><strong>每个设定量只有一个输入框</strong>：填的是测量基线时的值（内部同时写入 live 与 <code>*_ref</code> 两个键，保证加载后所有差量为零）。「车现在装的是 27.5 offset」这类当前状态不存在配置里——去数据表对应列直接改（琥珀色 = 与配置分歧，清空恢复）。Yoke_Offset / Fork_Position 属于底盘配置而非前叉规格 — 同一支前叉可在不同车上有不同的伸出量。</p>
         `,
       },
       'linkage': {
@@ -95,11 +96,12 @@ const STR = {
           <ul>
             <li><strong>下拉行</strong>（Chassis、Fork、Shock、Linkage）：从对应 catalog 选择条目，对应 specs 自动并入该列的 values</li>
             <li><strong>输入行</strong>：直接键入数值；空白时显示工具提示告诉你「该字段通常来自 X 配置 / 也可手填」</li>
+            <li><strong>设定覆盖行</strong>（Yoke Offset / Fork Position / Swingarm Length）：选定 chassis 配置后变为可编辑，键入即在该列覆盖配置值（琥珀色边框提示分歧，清空恢复配置值）；未选配置时不可编辑——差量链需要配置里的基线</li>
             <li><strong>RESULTS 行</strong>：只读，根据公式从 values 计算</li>
           </ul>
           <h4>载荷状态（LOAD CASE）/ Sag</h4>
           <p>在 LOAD CASE 组输入实测的前后 sag（前沿前叉轴线量——扎带法；后在后轮轴处垂直量），整个 RESULTS 块就变成<strong>该悬挂位置下的实时值</strong>：Rake / Trail / 摇臂角 / 抗蹲 / 运动比 / 轴距全部随之变化——和真实 MotoSPEC 的单一 RESULTS 块一致。默认 0 = 未加载参考态（一个真实的物理状态，不是占位符）；sag 全为 0 时每个结果都精确等于静态值。填好弹簧数据（刚度/预载/回顶）和称重数据后，「预测下沉量」行会给出纯弹簧模型的理论 sag——与实测值的差就是气簧/摩擦/刚度偏差的诊断信号。</p>
-          <p>参考态约定：Chassis 配置里的 Rake / 摇臂角 / 轴距描述的是你测量它们时的姿态，sag 是<strong>相对那个姿态的额外压缩</strong>。Fork Position、Shock Length 相对各自参考值（Chassis 配置的 Reference Setup 组）的差量，以及直接输入的前叉长度差（FRONT SETTINGS →「前叉长度差」，两叉并排实测）也进入同一条姿态链——管上提 / 换短叉 = 车头下降，换长避震 = 车尾抬高，都会实时反映到 Rake 上。</p>
+          <p>参考态约定：Chassis 配置里的 Rake / 摇臂角 / 轴距描述的是你测量它们时的姿态，sag 是<strong>相对那个姿态的额外压缩</strong>。Fork Position、Shock Length 相对各自基线值（Chassis 配置的基线设定组）的差量，以及直接输入的前叉长度差（FRONT SETTINGS →「前叉长度差」，两叉并排实测）也进入同一条姿态链——管上提 / 换短叉 = 车头下降，换长避震 = 车尾抬高，都会实时反映到 Rake 上。</p>
           <h4>「Need: …」提示</h4>
           <p>RESULTS 单元格只有当其依赖的所有叶子输入都被「真实绑定」（来自 chassis 配置 / 选中的部件 / 用户手填）时才显示数值；否则留空，并提示缺什么。例如选了 chassis 没选 fork，「Front Wheel Rate」会显示「Need: Fork specs」。Sag 输入默认即真实（0 = 未加载），从不出现在缺失提示里。</p>
           <h4>状态徽章</h4>
@@ -198,13 +200,14 @@ const STR = {
         body: `
           <p>Fields cover:</p>
           <ul>
-            <li>Frame geometry: Rake_Static, WB, Swingarm_Length, beta_static, Yoke_Offset, Fork_Length, Fork_Position</li>
+            <li>Frame geometry: Rake_Static, WB, beta_static</li>
+            <li>Baseline setup: Yoke_Offset, Fork_Position, Swingarm_Length, Shock_Length — all meaning <strong>what was fitted the day Rake/WB were measured</strong>; also the starting values for new table columns</li>
             <li>Mass &amp; CG: Mass, H_CG, L_CG, front / rear static weight distribution</li>
             <li>Aero: front / rear downforce share (auto-mirrored, sums to 1)</li>
             <li>Tire &amp; drivetrain: Rf, Front_Sprocket_X / Y, Chain_Pitch</li>
           </ul>
           <p>The side-view diagram auto-fits to your WB and Rf. "Save chassis profile" stores every field in <code>CHASSIS_SPEC_FIELDS</code> (missing fields are backfilled with defaults). Saved profiles can be reloaded from the dropdown.</p>
-          <p><strong>Yoke_Offset and Fork_Position belong to the chassis profile</strong> (per-bike setup numbers), not to the fork spec — the same fork can have different stick-out across bikes.</p>
+          <p><strong>One input per setup quantity</strong>: what you type is the measurement-baseline value (both the live key and its <code>*_ref</code> are written together, so a loaded profile always starts at zero delta). "The bike currently runs 27.5 offset" does not live in the profile — dial it per-column in the Data Table (amber = diverging from the profile; clear to restore). Yoke_Offset / Fork_Position belong to the chassis profile, not the fork spec — the same fork can have different stick-out across bikes.</p>
         `,
       },
       'linkage': {
@@ -231,11 +234,12 @@ const STR = {
           <ul>
             <li><strong>Dropdown rows</strong> (Chassis, Fork, Shock, Linkage): pick a catalog entry; its specs merge into that column's values automatically</li>
             <li><strong>Input rows</strong>: type a number directly; empty cells show a tooltip pointing to the usual provider</li>
+            <li><strong>Setup override rows</strong> (Yoke Offset / Fork Position / Swingarm Length): editable once a chassis profile is selected — typing overrides the profile for that column only (amber border = diverging; clear to restore). Not editable without a profile: the delta chain needs the profile's baseline</li>
             <li><strong>RESULTS rows</strong>: read-only, computed from values</li>
           </ul>
           <h4>Load case / Sag</h4>
           <p>Type your measured sag into the LOAD CASE group (front along the fork axis — zip-tie method; rear vertically at the axle) and the whole RESULTS block becomes <strong>live at that suspension position</strong>: rake, trail, swingarm angle, anti-squat, motion ratio and wheelbase all respond — one RESULTS block, exactly like the real MotoSPEC. The default 0 means "no load applied" (a physically true state, not a placeholder); at zero sag every result equals its static value exactly. With spring data (rate/preload/topout) and wheel weights entered, the Predicted Sag rows give the coil-spring-model sag — the gap to your measured value is a diagnostic for air-spring/friction/rate deviations.</p>
-          <p>Reference-state contract: the chassis profile's rake / swingarm angle / wheelbase describe the bike at whatever attitude you measured them; sag is <strong>additional compression relative to that same attitude</strong>. Fork position and shock length deltas against their reference values (the chassis profile's Reference Setup group), plus the typed fork-length difference (FRONT SETTINGS → "Fork Length Δ"), feed the same attitude chain — tubes up / a shorter fork drops the front, a longer shock lifts the rear, and rake tracks all of it live.</p>
+          <p>Reference-state contract: the chassis profile's rake / swingarm angle / wheelbase describe the bike at whatever attitude you measured them; sag is <strong>additional compression relative to that same attitude</strong>. Fork position and shock length deltas against their baseline values (the chassis profile's Baseline Setup group), plus the typed fork-length difference (FRONT SETTINGS → "Fork Length Δ"), feed the same attitude chain — tubes up / a shorter fork drops the front, a longer shock lifts the rear, and rake tracks all of it live.</p>
           <h4>"Need: …" hints</h4>
           <p>A RESULTS cell only renders a number when every leaf input it depends on is genuinely bound (chassis profile / selected component / typed override). Otherwise it stays blank with a hint naming the missing provider — e.g. "Need: Fork specs" if you've picked a chassis but no fork. Sag inputs are real by default (0 = unloaded) and never appear in a missing hint.</p>
           <h4>Status badges</h4>

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderChassisSetup, CHASSIS_GROUPS, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, slugifyChassisName, buildChassisPresetEntry } from '../src/chassis-setup.js';
+import { renderChassisSetup, CHASSIS_GROUPS, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, SETUP_MIRROR, slugifyChassisName, buildChassisPresetEntry } from '../src/chassis-setup.js';
 import { defaultValues } from '../src/formulas.js';
 
 test('chassis-setup: renders every grouped field as an input', () => {
@@ -10,6 +10,40 @@ test('chassis-setup: renders every grouped field as an input', () => {
       assert.match(html, new RegExp(`oninput="setChassisInput\\('${f}'`),
         `missing input wired to setChassisInput for ${f}`);
     }
+  }
+});
+
+test('chassis-setup: one input per setup quantity — live setup keys are not rendered', () => {
+  const html = renderChassisSetup({ values: defaultValues(), lang: 'en' });
+  // The page edits only the *_ref baselines; the live keys mirror them.
+  // Rendering both would recreate the two-Yoke-Offset confusion.
+  for (const live of Object.values(SETUP_MIRROR)) {
+    assert.doesNotMatch(html, new RegExp(`setChassisInput\\('${live}'`),
+      `${live} must not render — its baseline ${Object.keys(SETUP_MIRROR).find(r => SETUP_MIRROR[r] === live)} is the single input`);
+  }
+  const grouped = CHASSIS_GROUPS.flatMap(g => g.fields);
+  for (const live of Object.values(SETUP_MIRROR)) {
+    assert.ok(!grouped.includes(live), `${live} must not appear in CHASSIS_GROUPS`);
+  }
+  for (const ref of Object.keys(SETUP_MIRROR)) {
+    assert.ok(grouped.includes(ref), `${ref} must remain the visible input`);
+  }
+});
+
+test('buildChassisPresetEntry: live setup keys mirror the refs (zero-delta profile)', () => {
+  // Stale live values in page state (e.g. from an old session where the
+  // setup group was still editable) must never survive into a save.
+  const entry = buildChassisPresetEntry('X', {
+    ...defaultValues(),
+    Yoke_Offset: 32, Yoke_Offset_ref: 26,
+    Fork_Position: 5, Fork_Position_ref: 28,
+    Swingarm_Length: 580, Swingarm_Length_ref: 594.5,
+  });
+  assert.equal(entry.specs.Yoke_Offset, 26);
+  assert.equal(entry.specs.Fork_Position, 28);
+  assert.equal(entry.specs.Swingarm_Length, 594.5);
+  for (const [ref, live] of Object.entries(SETUP_MIRROR)) {
+    assert.equal(entry.specs[live], entry.specs[ref], `${live} must equal ${ref} in a saved profile`);
   }
 });
 

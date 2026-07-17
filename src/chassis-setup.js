@@ -16,19 +16,18 @@ export const CHASSIS_GROUPS = [
     key: 'geometry',
     label_zh: '车架几何',
     label_en: 'Frame Geometry',
-    fields: ['Rake_Static', 'WB', 'Swingarm_Length', 'beta_static'],
+    fields: ['Rake_Static', 'WB', 'beta_static'],
   },
-  {
-    key: 'setup',
-    label_zh: '车架设定',
-    label_en: 'Chassis Setup',
-    fields: ['Yoke_Offset', 'Fork_Position'],
-  },
+  // ONE input per setup quantity: the profile records the baseline (the
+  // setup fitted when Rake/WB were measured). The live setup keys
+  // (Yoke_Offset / Fork_Position / Swingarm_Length) are not shown — they
+  // mirror the refs on edit and on save, and per-column experiments live
+  // in the Data Table (SETUP_OVERRIDABLE), not in the shared profile.
   {
     key: 'reference',
-    label_zh: '参考设定（测量 Rake 时的状态）',
-    label_en: 'Reference Setup (as measured for Rake)',
-    fields: ['Fork_Position_ref', 'Shock_Length_ref', 'Swingarm_Length_ref', 'Yoke_Offset_ref'],
+    label_zh: '基线设定（测量 Rake/WB 时的装车状态 — 数据表新列的起点）',
+    label_en: 'Baseline Setup (as measured for Rake/WB — seeds new table columns)',
+    fields: ['Yoke_Offset_ref', 'Fork_Position_ref', 'Swingarm_Length_ref', 'Shock_Length_ref'],
   },
   {
     key: 'mass_cg',
@@ -68,6 +67,18 @@ export const CHASSIS_SPEC_FIELDS = [
   'Front_Sprocket_X', 'Front_Sprocket_Y', 'Chain_Pitch',
 ];
 
+// ref field → live setup key it mirrors into. The Chassis Setup UI edits
+// only the refs; the live keys follow (on edit via setChassisInput, on
+// save via buildChassisPresetEntry) so a freshly loaded profile always
+// starts at the measured baseline with every delta at zero. "The bike
+// currently runs 27.5 yokes" is a per-column Data Table override, not a
+// profile fact.
+export const SETUP_MIRROR = {
+  Yoke_Offset_ref:     'Yoke_Offset',
+  Fork_Position_ref:   'Fork_Position',
+  Swingarm_Length_ref: 'Swingarm_Length',
+};
+
 // Fields with no universal real-world default: mass picture and sprocket
 // position are bike/build-specific measurements. They render blank ("N/A")
 // until measured, are NEVER backfilled from INPUT_META defaults on save,
@@ -87,10 +98,10 @@ const FIELD_LABELS = {
   beta_static:        { en: 'Static Swingarm Angle (deg)',     zh: '静态摇臂角 (度)' },
   Yoke_Offset:        { en: 'Yoke Offset (mm)',                zh: '三星台偏移 (mm)' },
   Fork_Position:      { en: 'Fork Position (mm)',              zh: '前叉伸出量 (mm)' },
-  Fork_Position_ref:  { en: 'Ref Fork Position (mm)',          zh: '参考前叉伸出量 (mm)' },
-  Shock_Length_ref:   { en: 'Ref Shock Length (mm)',           zh: '参考后避震长度 (mm)' },
-  Swingarm_Length_ref:{ en: 'Ref Swingarm Length (mm)',        zh: '参考摇臂长度 (mm)' },
-  Yoke_Offset_ref:    { en: 'Ref Yoke Offset (mm)',            zh: '参考三星台偏移 (mm)' },
+  Fork_Position_ref:  { en: 'Fork Position (mm)',              zh: '前叉伸出量 (mm)' },
+  Shock_Length_ref:   { en: 'Shock Length (mm)',               zh: '后避震长度 (mm)' },
+  Swingarm_Length_ref:{ en: 'Swingarm Length (mm)',            zh: '摇臂长度 (mm)' },
+  Yoke_Offset_ref:    { en: 'Yoke Offset (mm)',                zh: '三星台偏移 (mm)' },
   Mass:               { en: 'Mass — bike + rider (kg)',        zh: '总质量 (kg)' },
   H_CG:               { en: 'CG Height (mm)',                  zh: '重心高度 (mm)' },
   L_CG:               { en: 'CG → Rear Axle Horizontal (mm)',  zh: '重心到后轴水平距离 (mm)' },
@@ -171,6 +182,12 @@ export function buildChassisPresetEntry(name, values) {
   // Recompute linked pairs from primaries to guarantee the profile is consistent.
   if (specs.front_weight_dist != null) specs.rear_weight_dist = +(1 - specs.front_weight_dist).toFixed(3);
   if (specs.C_f_aero != null)          specs.C_r_aero         = +(1 - specs.C_f_aero).toFixed(3);
+  // A profile IS its measurement baseline: live setup keys mirror the refs
+  // at save time, so a loaded profile always starts with zero deltas
+  // (stale live values from old page state can never leak into a save).
+  for (const [ref, live] of Object.entries(SETUP_MIRROR)) {
+    if (Number.isFinite(specs[ref])) specs[live] = specs[ref];
+  }
   return { name: String(name || '').trim() || 'Chassis Profile', specs };
 }
 

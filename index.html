@@ -718,7 +718,7 @@ import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATAL
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
-import { renderChassisSetup, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
+import { renderChassisSetup, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, SETUP_MIRROR, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
 import { renderUserGuide, GUIDE_ANCHORS } from './src/user-guide.js';
 
 
@@ -1585,6 +1585,10 @@ function setChassisInput(key, raw) {
   if (key === 'rear_weight_dist')  state.values.front_weight_dist = +(1 - v).toFixed(3);
   if (key === 'C_f_aero')          state.values.C_r_aero          = +(1 - v).toFixed(3);
   if (key === 'C_r_aero')          state.values.C_f_aero          = +(1 - v).toFixed(3);
+  // The Chassis Setup page edits only the *_ref baselines; the live setup
+  // keys mirror them so the preview/formulas stay at zero delta. Per-column
+  // divergence belongs to Data Table overrides, not to this page.
+  if (SETUP_MIRROR[key]) state.values[SETUP_MIRROR[key]] = v;
   saveState();
   clearCache();
   syncControls(key);
