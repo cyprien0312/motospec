@@ -57,6 +57,18 @@ export const SETUP_OVERRIDABLE = new Set([
   'Yoke_Offset', 'Fork_Position', 'Swingarm_Length',
 ]);
 
+// Chassis-domain keys describing the MASS PICTURE (bike + rider + build).
+// Unlike SETUP_OVERRIDABLE these have no `*_ref` coupling — no delta chain
+// diffs against them — so a typed value is real physics even with no
+// chassis profile selected. They render as ordinary editable inputs, the
+// override both feeds compute AND creates readiness, and a chassis
+// profile (when selected and carrying the optional mass fields) merely
+// provides the starting value. Typing front_weight_dist auto-derives
+// rear_weight_dist = 1 − front, mirroring the Chassis Setup page.
+export const MASS_OVERRIDABLE = new Set([
+  'Mass', 'H_CG', 'L_CG', 'front_weight_dist',
+]);
+
 // Inputs that a saved Linkage profile contributes (matches
 // LINKAGE_COORD_FIELDS in linkage-setup.js; Linkage_Mode is non-numeric
 // and never gates readiness). Same duplication contract as above —
@@ -158,9 +170,13 @@ function bikeReadyKeys(bike) {
   // feed the compute (see effectiveBikeValues). This includes the
   // SETUP_OVERRIDABLE keys — an override alone never makes them ready;
   // readiness comes from the selected chassis profile providing them.
+  // MASS_OVERRIDABLE keys are the exception: no ref coupling, so a typed
+  // measurement is real on its own and DOES create readiness.
   for (const k of Object.keys(bike?.overrides || {})) {
-    if (!CHASSIS_PROVIDED.has(k)) keys.add(k);
+    if (!CHASSIS_PROVIDED.has(k) || MASS_OVERRIDABLE.has(k)) keys.add(k);
   }
+  // Typing the front weight share derives the rear share (1 − front).
+  if (Number.isFinite(bike?.overrides?.front_weight_dist)) keys.add('rear_weight_dist');
   return keys;
 }
 
@@ -194,6 +210,14 @@ export function effectiveBikeValues(bike) {
     // a chassis profile that actually provides the key — the `*_ref`
     // baseline the delta chain diffs against comes from that profile.
     else if (SETUP_OVERRIDABLE.has(k) && chassisSpecs && k in chassisSpecs) v[k] = val;
+    // Mass-picture keys have no ref coupling — a typed measurement applies
+    // with or without a chassis profile. front share derives rear share.
+    else if (MASS_OVERRIDABLE.has(k)) {
+      v[k] = val;
+      if (k === 'front_weight_dist' && Number.isFinite(val)) {
+        v.rear_weight_dist = +(1 - val).toFixed(3);
+      }
+    }
   }
   return v;
 }
@@ -232,6 +256,19 @@ export const ROW_GROUPS = [
     { spec: 'Topout Spring Rate (N/mm)',                            spec_zh: '后避震回顶刚度 (N/mm)', input: 'Rear_Topout_Rate' },
     { spec: 'Topout Spring Effective Length (mm)',                  spec_zh: '后避震回顶长度 (mm)',  input: 'Rear_Topout_Length' },
     { spec: 'Linkage',                                              spec_zh: '连杆',                 component: 'linkage' },
+  ]},
+  // Mass picture — per-column measurements (bike + rider + build), typed
+  // directly or seeded from a chassis profile that carries the optional
+  // mass fields. No ref coupling → editable with or without a profile.
+  { header: 'MASS & CG', header_zh: '质量与重心', rows: [
+    { spec: 'Mass — bike + rider (kg)',                             spec_zh: '总质量 — 车 + 骑手 (kg)', input: 'Mass',
+      hint: { en: 'Wheel weights with rider aboard, race trim (front + rear scale).', zh: '骑手在车上、比赛状态下的前后轮称重之和。' } },
+    { spec: 'CG Height (mm)',                                       spec_zh: '重心高度 (mm)',        input: 'H_CG',
+      hint: { en: 'Raised-axle weighing method — see docs/measurement-points.md.', zh: '抬轴称重法求得——见 docs/measurement-points.md。' } },
+    { spec: 'CG → Rear Axle Horizontal (mm)',                       spec_zh: '重心到后轴水平距离 (mm)', input: 'L_CG',
+      hint: { en: 'front share × wheelbase, from level wheel weights.', zh: '= 前轮重量占比 × 轴距（水平称重求得）。' } },
+    { spec: 'Front Weight Share (0–1)',                             spec_zh: '前轮重量分配 (0–1)',   input: 'front_weight_dist',
+      hint: { en: 'Rear share auto-derives as 1 − front.', zh: '后轮占比自动 = 1 − 前轮占比。' } },
   ]},
   // Mirrors real MotoSPEC's DYNAMIC READINGS group — its potentiometer
   // inputs at 0 play exactly the role our sag inputs play at 0.
@@ -461,7 +498,21 @@ export function renderDataTable(state) {
         } else if (row.input) {
           const has = readyByBike[i].has(row.input);
           if (CHASSIS_PROVIDED.has(row.input)) {
-            if (SETUP_OVERRIDABLE.has(row.input) && has) {
+            if (MASS_OVERRIDABLE.has(row.input)) {
+              // Mass-picture measurement: always editable (no ref
+              // coupling). A chassis profile carrying the optional mass
+              // fields seeds the value; a typed override diverging from
+              // that seed gets the amber accent, same as setup keys.
+              const baseline = chassisSpecsOf(b)?.[row.input];
+              const cur = has ? effVals[i][row.input] : null;
+              const overridden = Number.isFinite(baseline) && Number.isFinite(cur) && cur !== baseline;
+              const title = overridden
+                ? (lang === 'en'
+                    ? `Overriding chassis profile value ${fmtNum(baseline)} — clear the cell to restore`
+                    : `已覆盖 Chassis 配置值 ${fmtNum(baseline)}——清空单元格即可恢复`)
+                : (has ? (row.hint?.[lang] || null) : (row.hint?.[lang] || inputMissingTitle(row.input)));
+              cells += inputCell(i, row.input, cur, title, !has, overridden);
+            } else if (SETUP_OVERRIDABLE.has(row.input) && has) {
               // Adjustable setup number layered on the selected chassis
               // profile (like real MotoSPEC: pick a frame, then dial
               // offset / fork position / chain adjuster). The profile's

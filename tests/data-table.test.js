@@ -71,11 +71,12 @@ test('numeric input rows render <input type="number"> cells per bike', () => {
 
 test('chassis-domain rows are not editable without a chassis profile', () => {
   const html = render();
-  // Without a selected chassis there is no `*_ref` baseline, so even the
+  // Without a selected chassis there is no `*_ref` baseline, so the
   // SETUP_OVERRIDABLE keys must not render editable cells — an override
-  // diffed against placeholder defaults would be fake data.
+  // diffed against placeholder defaults would be fake data. (The
+  // MASS_OVERRIDABLE keys are exempt: no ref coupling — see below.)
   for (const key of ['Yoke_Offset', 'Fork_Position', 'Swingarm_Length',
-                     'front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
+                     'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
     assert.doesNotMatch(html, new RegExp(`setBikeInput\\(\\d+, '${key}'`),
       `${key} must not be editable without a chassis profile`);
   }
@@ -172,17 +173,37 @@ test('every ROW_GROUPS row has at least one of input/computed/component/literal/
 });
 
 test('FRAME GEOMETRY carries only the chassis selector — echo rows removed', () => {
-  // Chassis geometry is defined in Chassis Setup, full stop. The
-  // weight/aero echo rows and the CofG pseudo-results are gone (an echo
-  // dressed as a result is what the honesty rules forbid).
+  // Chassis geometry is defined in Chassis Setup, full stop. The aero echo
+  // rows and the CofG pseudo-results are gone (an echo dressed as a result
+  // is what the honesty rules forbid). The mass picture returned as
+  // EDITABLE measurement rows (MASS & CG group) — not echoes — and only
+  // the front share renders (rear auto-derives).
   const allRows = ROW_GROUPS.flatMap(g => g.rows);
-  for (const k of ['front_weight_dist', 'rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
+  for (const k of ['rear_weight_dist', 'C_f_aero', 'C_r_aero']) {
     assert.ok(!allRows.some(r => r.input === k), `echo row for ${k} should be removed`);
   }
   const frame = ROW_GROUPS.find(g => g.header === 'FRAME GEOMETRY');
   assert.equal(frame.rows.length, 1);
   assert.equal(frame.rows[0].component, 'chassis');
   assert.ok(!allRows.some(r => /CofG/.test(r.spec)), 'CofG echo rows should be removed');
+  const mass = ROW_GROUPS.find(g => g.header === 'MASS & CG');
+  for (const k of ['Mass', 'H_CG', 'L_CG', 'front_weight_dist']) {
+    assert.ok(mass.rows.some(r => r.input === k), `MASS & CG should carry an editable ${k} row`);
+  }
+});
+
+test('mass keys are editable without a chassis and the override is real', () => {
+  // No ref coupling → typed measurements stand on their own.
+  const html = render();
+  for (const k of ['Mass', 'H_CG', 'L_CG', 'front_weight_dist']) {
+    const cells = html.match(new RegExp(`oninput="setBikeInput\\(\\d+, '${k}'`, 'g')) || [];
+    assert.equal(cells.length, 3, `${k} should render an editable cell per bike even without a chassis`);
+  }
+  const bike = { ...blankBike(0), components: {}, overrides: { Mass: 172, front_weight_dist: 0.51 } };
+  const v = effectiveBikeValues(bike);
+  assert.equal(v.Mass, 172);
+  assert.equal(v.front_weight_dist, 0.51);
+  assert.equal(v.rear_weight_dist, 0.49, 'rear share must auto-derive from the typed front share');
 });
 
 test('LOAD CASE group renders editable sag inputs that default to 0 (always ready)', () => {
