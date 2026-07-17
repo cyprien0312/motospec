@@ -457,7 +457,7 @@ function renderMotionRatioChart(values, lang) {
   const yTitleR = lang === 'en' ? 'Wheel Rate (N/mm)' : '后轮综合刚度 (N/mm)';
   const axisTitles = `
     <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="16" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
-    <text x="14" y="${(H + padT - padB) / 2}" fill="#4ea1ff" font-size="16" text-anchor="middle" font-weight="600"
+    <text x="14" y="${(H + padT - padB) / 2}" fill="#2997ff" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitleL)}</text>
     <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#f472b6" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(90, ${W - 14}, ${(H + padT - padB) / 2})">${escapeHtml(yTitleR)}</text>
@@ -491,8 +491,8 @@ function renderMotionRatioChart(values, lang) {
   // Legend
   const legend = `
     <g font-size="16" font-weight="600">
-      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 32}" y2="${padT + 8}" stroke="#4ea1ff" stroke-width="2.6"/>
-      <text x="${padL + 38}" y="${padT + 13}" fill="#4ea1ff">MR</text>
+      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 32}" y2="${padT + 8}" stroke="#2997ff" stroke-width="2.6"/>
+      <text x="${padL + 38}" y="${padT + 13}" fill="#2997ff">MR</text>
       <line x1="${padL + 80}" y1="${padT + 8}" x2="${padL + 106}" y2="${padT + 8}" stroke="#f472b6" stroke-width="2.6" stroke-dasharray="5 3"/>
       <text x="${padL + 112}" y="${padT + 13}" fill="#f472b6">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
     </g>
@@ -507,14 +507,14 @@ function renderMotionRatioChart(values, lang) {
          data-wr-y-min="${wrYMin.toFixed(3)}" data-wr-y-max="${wrYMax.toFixed(3)}"
          data-samples='${blob}'
          style="touch-action: none;">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #0f141b)"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #1d1d1f)"/>
       ${grid}
       <path d="${mrArea}" fill="rgba(78,161,255,0.14)" stroke="none"/>
-      <polyline points="${mrPts}" fill="none" stroke="#4ea1ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${mrPts}" fill="none" stroke="#2997ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
       <polyline points="${wrPts}" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="5 3" stroke-linejoin="round" stroke-linecap="round"/>
       <line id="linkage-readout-vline" x1="${x0.toFixed(1)}" y1="${padT}" x2="${x0.toFixed(1)}" y2="${H - padB}" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
-      <circle id="linkage-readout-dot-mr" cx="${x0.toFixed(1)}" cy="${y0mr.toFixed(1)}" r="6" fill="#fbbf24" stroke="#0c1116" stroke-width="1.8" style="cursor: ew-resize;"/>
-      <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#fbbf24" stroke="#0c1116" stroke-width="1.8" style="cursor: ew-resize;"/>
+      <circle id="linkage-readout-dot-mr" cx="${x0.toFixed(1)}" cy="${y0mr.toFixed(1)}" r="6" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1.8" style="cursor: ew-resize;"/>
+      <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1.8" style="cursor: ew-resize;"/>
       ${axisTitles}
       ${legend}
       <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#fbbf24" font-size="16" font-weight="700">${escapeHtml(readoutText)}</text>
@@ -617,7 +617,7 @@ function renderTopologySVG(values, mode = 'linked') {
     <text x="${W-30}" y="${groundY-6}" fill="#5a6878" font-size="11" text-anchor="end">ground (reference)</text>
   `;
 
-  const cSwg = '#5a6878', cSwgLink = '#4ade80', cDrag = '#c084fc', cRock = '#4ea1ff', cShock = '#ff8c5a';
+  const cSwg = '#5a6878', cSwgLink = '#4ade80', cDrag = '#c084fc', cRock = '#2997ff', cShock = '#ff8c5a';
   // Mode-aware colors for the two points whose host body changes.
   // Linked: rocker pivot is FRAME-fixed (cRock), drag-to-swingarm is on the SWINGARM (cSwgLink).
   // Pro-link: rocker pivot is on the SWINGARM (cSwgLink), drag-to-frame is FRAME-fixed (cRock).
@@ -676,11 +676,11 @@ function renderTopologySVG(values, mode = 'linked') {
   `;
 
   const dot = (p, color, r = 5) =>
-    `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#0c1116" stroke-width="1.5"/>`;
+    `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#1d1d1f" stroke-width="1.5"/>`;
 
   // Tiny numeric tag next to each dot — keyed to the legend in the top-right.
   const tag = (p, n, color, dx = 7, dy = -7) =>
-    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#0c1116;stroke-width:3px;">${n}</text>`;
+    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#1d1d1f;stroke-width:3px;">${n}</text>`;
 
   const points = `
     ${dot(P.pivot, '#e6edf3', 6)}      ${tag(P.pivot,    '①', '#e6edf3')}
@@ -711,7 +711,7 @@ function renderTopologySVG(values, mode = 'linked') {
       ${legendItems.map((it, i) => {
         const cy = legY + 18 + i * 18;
         return `
-          <circle cx="${legX + 14}" cy="${cy - 4}" r="4.5" fill="${it.color}" stroke="#0c1116" stroke-width="1"/>
+          <circle cx="${legX + 14}" cy="${cy - 4}" r="4.5" fill="${it.color}" stroke="#1d1d1f" stroke-width="1"/>
           <text x="${legX + 26}" y="${cy}" fill="${it.color}" font-size="11" font-weight="700">${it.n}</text>
           <text x="${legX + 44}" y="${cy}" fill="#cbd5e1" font-size="11">${escapeHtml(it.text)}</text>
         `;

@@ -4,42 +4,46 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MotoSPEC Formula Explorer · 公式探索器</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* Apple-gallery light theme (docs/DESIGN-apple.md → ~/Documents):
+     parchment canvas, white panels, near-black ink, ONE Action Blue for
+     everything interactive, hairlines instead of shadows, system fonts
+     (SF Pro on Apple devices). Diagrams / formula boxes stay near-black
+     "dark tiles" — the Apple pattern of a dark product tile on a light
+     page — so the SVG renderers' light strokes keep working unchanged. */
   :root {
-    --bg: #0f1419;
-    --panel: #1a212b;
-    --panel-2: #232c39;
-    --border: #2d3847;
-    --text: #e6edf3;
-    --text-dim: #8b98a7;
-    --accent: #4ea1ff;
-    --accent-hover: #7ab8ff;
-    --channel: #ff8c5a;
-    --intermediate: #c084fc;
-    --input: #4ade80;
-    --formula-bg: #0c1116;
+    color-scheme: light;
+    --bg: #f5f5f7;            /* parchment page canvas */
+    --panel: #ffffff;         /* white cards / tables */
+    --panel-2: #f5f5f7;       /* secondary surface */
+    --border: #e0e0e0;        /* hairline */
+    --divider: #f0f0f0;       /* soft inner-cell divider */
+    --text: #1d1d1f;          /* ink */
+    --text-dim: #6e6e73;      /* muted ink */
+    --accent: #0066cc;        /* Action Blue — the single interactive color */
+    --accent-hover: #0071e3;  /* focus blue */
+    --accent-on-dark: #2997ff;/* sky link blue, dark tiles only */
+    --channel: #c2410c;       /* semantic data colors, recalibrated for light */
+    --intermediate: #7c3aed;
+    --input: #15803d;
+    --formula-bg: #1d1d1f;    /* the dark tile */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     --sidebar-w: 264px;
-    background:
-      radial-gradient(1200px 600px at -10% -10%, rgba(78,161,255,0.08), transparent 60%),
-      radial-gradient(900px 600px at 110% 0%, rgba(255,140,90,0.05), transparent 55%),
-      var(--bg);
+    /* No decorative gradients — the parchment canvas IS the background. */
+    background: var(--bg);
     color: var(--text);
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
-    font-feature-settings: "ss01", "cv11";
-    line-height: 1.55; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Segoe UI", Inter, sans-serif;
+    letter-spacing: -0.1px; /* the quiet "Apple tight" tracking */
+    line-height: 1.47; min-height: 100vh;
     display: grid; grid-template-columns: var(--sidebar-w) 1fr;
     transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
   body.sidebar-collapsed { --sidebar-w: 64px; }
 
   aside {
-    background: linear-gradient(180deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 92%, black) 100%);
+    background: var(--panel);
     border-right: 1px solid var(--border);
     padding: 16px 12px; height: 100vh; overflow-y: auto; overflow-x: hidden;
     position: sticky; top: 0;
@@ -52,22 +56,19 @@
   }
   .sidebar-brand .brand-mark {
     width: 30px; height: 30px; flex-shrink: 0;
-    border-radius: 7px;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--channel) 100%);
+    border-radius: 8px;
+    background: var(--accent);
     display: grid; place-items: center;
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 700; font-size: 15px; color: var(--bg);
-    box-shadow: 0 4px 14px -4px rgba(78,161,255,0.5);
+    font-weight: 600; font-size: 15px; color: #fff;
   }
   .sidebar-brand .brand-text {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+    font-weight: 600; font-size: 15px; letter-spacing: -0.02em;
     color: var(--text); white-space: nowrap; overflow: hidden;
     transition: opacity 0.18s;
   }
   .sidebar-brand .brand-text small {
-    display: block; font-family: 'JetBrains Mono', monospace;
-    font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
+    display: block;
+    font-size: 9px; font-weight: 500; letter-spacing: 0.14em;
     color: var(--text-dim); text-transform: uppercase; margin-top: 1px;
   }
   .sidebar-toggle {
@@ -86,8 +87,7 @@
   body.sidebar-collapsed .sidebar-toggle:hover { transform: rotate(180deg) scale(1.08); }
 
   aside h2 {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; font-weight: 500; letter-spacing: 0.18em;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
     color: var(--text-dim); text-transform: uppercase;
     margin: 12px 4px 6px;
   }
@@ -112,8 +112,8 @@
   .nav-item:hover { background: var(--panel-2); border-color: var(--border); }
   .nav-item:hover .nav-icon { transform: scale(1.1); }
   .nav-item.active {
-    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, var(--panel-2) 60%);
-    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   }
   .nav-item.active::before {
     content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
@@ -170,8 +170,9 @@
     text-transform: uppercase; margin-top: 28px; margin-bottom: 12px;
   }
   .formula-box {
-    background: var(--formula-bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 24px 28px; font-size: 19px;
+    /* Dark tile on the light page — no border, the surface change IS the frame. */
+    background: var(--formula-bg); border: none; color: #f5f5f7;
+    border-radius: 18px; padding: 24px 28px; font-size: 19px;
     font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
     line-height: 2.2; word-spacing: 2px; overflow-x: auto;
   }
@@ -216,7 +217,7 @@
   .bike-svg {
     width: 100%; max-width: 760px; height: auto;
     background: var(--formula-bg);
-    border: 1px solid var(--border); border-radius: 8px;
+    border: none; border-radius: 18px;
     display: block; margin-bottom: 6px;
   }
   .diagram-note { font-size: 12px; color: var(--text-dim); margin-top: 2px; padding-left: 4px; }
@@ -236,10 +237,10 @@
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 8px; padding: 18px 20px;
   }
-  .input-control input[type="range"] { width: 100%; accent-color: var(--input); }
+  .input-control input[type="range"] { width: 100%; accent-color: var(--accent); }
   .input-control input[type="number"] {
-    background: var(--formula-bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 5px; padding: 7px 10px; font-family: "SF Mono", Monaco, monospace;
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; font-family: "SF Mono", Monaco, monospace;
     font-size: 14px; width: 100%;
   }
   .input-control .range-label { display: flex; justify-content: space-between; color: var(--text-dim); font-size: 11px; margin-top: 5px; }
@@ -283,19 +284,24 @@
   .formula-card-body  { font-family: "SF Mono", Monaco, monospace; font-size: 13px; line-height: 1.7; color: var(--text); word-break: break-word; }
   .formula-line { display: block; margin: 2px 0; }
   .formula-line.formula-line-aux { color: var(--text-dim); font-size: 0.92em; padding-left: 12px; border-left: 2px solid var(--border); margin-top: 6px; }
+  /* On-dark variants inside the formula tile */
+  .formula-box .formula-line-aux { color: #a1a1a6; border-left-color: #3a3a3c; }
 
   .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
   .preset-btn {
-    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-    padding: 7px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--border); color: var(--accent);
+    padding: 7px 14px; border-radius: 9999px; font-size: 12px; cursor: pointer;
     transition: all 0.15s; font-family: inherit;
   }
-  .preset-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .preset-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   .preset-btn.reset { color: var(--text-dim); }
   .preset-btn.reset:hover { background: var(--panel); color: var(--text); border-color: var(--text-dim); }
+  /* The system-wide press micro-interaction */
+  .preset-btn:active, .lang-btn:active, .cat-btn:active, .chassis-btn:active,
+  .dt-col-add:active, .linkage-mode-btn:active { transform: scale(0.96); }
 
-  .nav-item.dashboard { background: rgba(78,161,255,0.08); border-color: rgba(78,161,255,0.3); margin-bottom: 14px; }
-  .nav-item.dashboard.active { background: rgba(78,161,255,0.15); border-color: var(--accent); }
+  .nav-item.dashboard { background: rgba(0,102,204,0.06); border-color: rgba(0,102,204,0.25); margin-bottom: 14px; }
+  .nav-item.dashboard.active { background: rgba(0,102,204,0.10); border-color: var(--accent); }
 
   .lang-bar {
     display: flex; gap: 6px; margin-bottom: 18px; padding-bottom: 14px;
@@ -303,12 +309,12 @@
   }
   .lang-btn {
     flex: 1; background: var(--panel-2); border: 1px solid var(--border);
-    color: var(--text-dim); padding: 7px 0; border-radius: 5px;
+    color: var(--text-dim); padding: 7px 0; border-radius: 9999px;
     font-size: 12px; font-weight: 600; cursor: pointer;
     transition: all 0.15s; font-family: inherit; letter-spacing: 0.5px;
   }
   .lang-btn:hover { color: var(--text); border-color: var(--text-dim); }
-  .lang-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .lang-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   @media (max-width: 768px) {
     body { grid-template-columns: 1fr; --sidebar-w: 100%; }
@@ -318,44 +324,46 @@
     .sidebar-toggle { display: none; }
   }
 
-  /* Typography polish — distinctive but legible */
+  /* Typography — SF Pro Display voice: weight 600, negative tracking */
   h1 {
-    font-family: 'Bricolage Grotesque', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "PingFang SC", sans-serif;
     font-weight: 600; letter-spacing: -0.02em; font-size: 30px;
   }
   .formula-box, .param-chip,
   .formula-card-name, .formula-card-body,
   .live-value, .dash-card .dash-name, .dash-card .dash-val,
   .dep-card .dep-name {
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace !important;
   }
   .section-title {
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.1em;
   }
+  /* Frosted parchment bar — the Apple sub-nav treatment */
   .breadcrumbs {
-    padding: 8px 12px; background: color-mix(in srgb, var(--panel) 70%, transparent);
-    border: 1px solid var(--border); border-radius: 8px;
-    backdrop-filter: blur(6px);
+    padding: 8px 12px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    border: 1px solid var(--divider); border-radius: 12px;
+    backdrop-filter: saturate(180%) blur(20px);
   }
 /* ==== Chassis Setup ==== */
 .chassis-page { max-width: none; }
 .chassis-desc { color: var(--text-dim, #94a3b8); font-size: 13px; margin: 6px 0 14px; }
 .chassis-readout-strip { margin-bottom: 14px; }
-.chassis-diagram-wrap { background: var(--formula-bg, #0f141b); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 8px; padding: 8px; margin-bottom: 14px; }
+.chassis-diagram-wrap { background: var(--formula-bg); border: none; border-radius: 18px; padding: 8px; margin-bottom: 14px; }
 .chassis-diagram { width: 100%; height: auto; display: block; }
 .chassis-actions { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
-.chassis-library, .chassis-btn { background: #1f2630; color: var(--text); border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
-.chassis-library:hover, .chassis-btn:hover { border-color: #4ea1ff; }
-.chassis-group { margin-bottom: 18px; background: var(--panel); border: 1px solid rgba(148,163,184,0.15); border-radius: 8px; padding: 14px; }
-.chassis-group-title { font-size: 15px; font-weight: 600; margin: 0 0 10px; color: #cbd5e1; }
+.chassis-library { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 9999px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+.chassis-btn { background: var(--accent); color: #fff; border: 1px solid var(--accent); border-radius: 9999px; padding: 6px 16px; font-size: 13px; cursor: pointer; }
+.chassis-library:hover { border-color: var(--accent); }
+.chassis-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.chassis-group { margin-bottom: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.chassis-group-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 10px; color: var(--text); }
 .chassis-table-wrap { overflow-x: auto; max-width: 100%; }
 .chassis-table { border-collapse: collapse; width: auto; font-size: 12px; background: var(--panel); color: var(--text); }
-.chassis-table th, .chassis-table td { border: 1px solid var(--border); padding: 2px 6px; line-height: 1.25; text-align: left; vertical-align: middle; white-space: nowrap; }
-.chassis-table thead th { background: var(--panel); color: var(--accent); font-weight: 600; font-size: 11px; }
-.chassis-table .chassis-input { width: 100%; min-width: 70px; box-sizing: border-box; background: var(--formula-bg, #111); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; font: inherit; font-size: 12px; }
+.chassis-table th, .chassis-table td { border: 1px solid var(--divider); padding: 2px 6px; line-height: 1.25; text-align: left; vertical-align: middle; white-space: nowrap; }
+.chassis-table thead th { background: var(--panel); color: var(--text-dim); font-weight: 600; font-size: 11px; }
+.chassis-table .chassis-input { width: 100%; min-width: 70px; box-sizing: border-box; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 1px 4px; font: inherit; font-size: 12px; }
 .chassis-table .chassis-input:focus { outline: none; border-color: var(--accent); }
-.chassis-input:focus { outline: none; border-color: #4ea1ff; }
+.chassis-input:focus { outline: none; border-color: var(--accent); }
 
 /* Data Table */
 /* The table scrolls inside its own viewport-height box, so the sticky
@@ -365,17 +373,17 @@
 .dt-bike-head { position: relative; }
 .dt-col-remove {
   position: absolute; top: 2px; right: 2px;
-  background: transparent; color: #94a3b8; border: 1px solid rgba(148,163,184,0.25);
-  border-radius: 4px; cursor: pointer;
+  background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 9999px; cursor: pointer;
   width: 18px; height: 18px; line-height: 14px; font-size: 12px; padding: 0;
 }
-.dt-col-remove:hover { color: #f87171; border-color: #f87171; }
+.dt-col-remove:hover { color: #b91c1c; border-color: #b91c1c; }
 .dt-col-add {
-  background: rgba(78,161,255,0.10); color: #4ea1ff;
-  border: 1px dashed rgba(78,161,255,0.6); border-radius: 5px;
-  padding: 4px 10px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  background: var(--panel); color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 9999px;
+  padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
 }
-.dt-col-add:hover { background: rgba(78,161,255,0.18); border-style: solid; }
+.dt-col-add:hover { background: var(--accent); color: #fff; }
 .dt-bike-add { vertical-align: middle; }
 .dt-empty { display: flex; justify-content: center; padding: 32px 16px; }
 .dt-empty-hint { color: var(--text-dim); font-size: 13px; text-align: center; padding-bottom: 16px; }
@@ -394,7 +402,7 @@ table.dt.dt-compact .dt-readonly span { padding: 1px 4px; font-size: 12px; }
 table.dt.dt-compact .dt-status { font-size: 8px; padding: 0 4px; margin-left: 4px; }
 table.dt.dt-compact tr.dt-group th { padding: 3px 6px; font-size: 11px; letter-spacing: 0.4px; }
 table.dt th, table.dt td {
-  border: 1px solid var(--border);
+  border: 1px solid var(--divider);
   padding: 6px 10px;
   text-align: left;
   vertical-align: top;
@@ -418,7 +426,7 @@ table.dt thead th.dt-spec {
 }
 table.dt tbody tr:nth-child(even) td,
 table.dt tbody tr:nth-child(even) th {
-  background: rgba(255,255,255,0.02);
+  background: rgba(0,0,0,0.015);
 }
 table.dt tr.dt-group th {
   background: var(--panel);
@@ -431,7 +439,7 @@ table.dt tr.dt-group th {
   cursor: pointer;
   user-select: none;
 }
-table.dt tr.dt-group th:hover { background: rgba(78,161,255,0.10); }
+table.dt tr.dt-group th:hover { background: rgba(0,102,204,0.06); }
 .dt-caret { display: inline-block; width: 14px; color: var(--text-dim); }
 .dt-group-count { color: var(--text-dim); font-weight: 500; text-transform: none; }
 table.dt td.dt-current,
@@ -448,10 +456,10 @@ table.dt input.dt-input,
 table.dt select.dt-input {
   width: 100%;
   box-sizing: border-box;
-  background: var(--formula-bg, #111);
+  background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 4px 6px;
   font: inherit;
   font-size: 12px;
@@ -483,9 +491,9 @@ table.dt td.dt-readonly span {
   vertical-align: middle;
   cursor: help;
 }
-.dt-status-pending { background: rgba(239, 68, 68, 0.15);  color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+.dt-status-pending { background: rgba(185, 28, 28, 0.08);  color: #b91c1c; border: 1px solid rgba(185, 28, 28, 0.3); }
 table.dt td.dt-missing {
-  background: rgba(148, 163, 184, 0.05);
+  background: rgba(0, 0, 0, 0.025);
   cursor: help;
 }
 table.dt td.dt-missing span {
@@ -497,13 +505,13 @@ table.dt td.dt-missing span {
 }
 table.dt input.dt-input-missing {
   border-style: dashed;
-  border-color: rgba(148, 163, 184, 0.4);
+  border-color: rgba(0, 0, 0, 0.18);
 }
 /* Setup value diverging from the selected chassis profile (per-column
    override) — amber accent so the divergence is visible at a glance. */
 table.dt input.dt-input-override {
-  border-color: rgba(245, 158, 11, 0.55);
-  color: #fbbf24;
+  border-color: rgba(180, 83, 9, 0.5);
+  color: #b45309;
 }
 
 /* ==== Help FAB + User Guide ==== */
@@ -536,7 +544,7 @@ table.dt input.dt-input-override {
 .guide-page .guide-section { padding: 18px 0; border-top: 1px solid var(--border); scroll-margin-top: 60px; }
 .guide-page .guide-section.focused { animation: guide-flash 1.4s ease-out; }
 @keyframes guide-flash {
-  0%   { background: rgba(99, 179, 237, 0.12); }
+  0%   { background: rgba(0, 102, 204, 0.10); }
   100% { background: transparent; }
 }
 .guide-page h2 { font-size: 20px; margin-bottom: 10px; }
@@ -567,25 +575,25 @@ table.cat-table {
 table.cat-table th, table.cat-table td { padding: 4px 6px; border: 1px solid var(--border); text-align: left; }
 table.cat-table th { background: var(--panel-2); font-weight: 600; font-size: 11px; color: var(--text-dim); }
 table.cat-table td.cat-id code { color: var(--accent); font-size: 11px; }
-table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
+table.cat-table tr.cat-add-row { background: rgba(0,102,204,0.04); }
 .cat-input {
   width: 100%; min-width: 80px; padding: 4px 6px;
-  background: var(--formula-bg); color: var(--text);
-  border: 1px solid var(--border); border-radius: 3px; font-size: 12px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; font-size: 12px;
   font-family: inherit;
 }
 .cat-input:focus { outline: none; border-color: var(--accent); }
 .cat-btn {
-  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
-  padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  padding: 5px 12px; border-radius: 9999px; cursor: pointer; font-size: 12px;
 }
-.cat-btn:hover { background: var(--border); }
-.cat-btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.cat-btn:hover { border-color: var(--text-dim); }
+.cat-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
 .cat-btn-primary:hover { background: var(--accent-hover); }
-.cat-btn-danger { color: #f87171; border-color: rgba(239,68,68,0.4); padding: 2px 8px; }
-.cat-btn-danger:hover { background: rgba(239,68,68,0.15); }
-.cat-btn-warn { color: #fbbf24; border-color: rgba(251,191,36,0.4); }
-.cat-btn-warn:hover { background: rgba(251,191,36,0.1); }
+.cat-btn-danger { color: #b91c1c; border-color: rgba(185,28,28,0.35); padding: 2px 10px; }
+.cat-btn-danger:hover { background: rgba(185,28,28,0.06); }
+.cat-btn-warn { color: #b45309; border-color: rgba(180,83,9,0.35); }
+.cat-btn-warn:hover { background: rgba(180,83,9,0.06); }
 
 /* Linkage Setup page */
 .linkage-page .header { margin-bottom: 6px; }
@@ -602,18 +610,18 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-readout-val { color: var(--text); font-size: 20px; font-weight: 600; margin-top: 2px; }
 .linkage-svg {
   width: 100%; max-width: none; height: auto;
-  background: var(--formula-bg); border: 1px solid var(--border);
-  border-radius: 8px; display: block;
+  background: var(--formula-bg); border: none;
+  border-radius: 18px; display: block;
 }
 .linkage-chart-wrap { margin: 8px 0 14px 0; }
 .linkage-chart {
   width: 100%; max-width: none; height: auto;
-  background: var(--formula-bg); border: 1px solid var(--border);
-  border-radius: 8px; display: block;
+  background: var(--formula-bg); border: none;
+  border-radius: 18px; display: block;
 }
 .linkage-chart-empty {
-  background: var(--formula-bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 18px; color: var(--text-dim);
+  background: var(--formula-bg); border: none;
+  border-radius: 18px; padding: 18px; color: #a1a1a6;
   font-size: 13px; text-align: center;
 }
 .linkage-points-grid {
@@ -638,8 +646,8 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-xy-row label > .linkage-unit    { grid-area: unit; justify-self: end; }
 .linkage-xy-row input[type="number"] {
   grid-area: input;
-  background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: 4px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
   font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
   text-align: right;
 }
@@ -649,7 +657,7 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-unit { color: var(--text-dim); font-size: 11px; }
 .linkage-num {
   display: inline-block; min-width: 20px; text-align: center;
-  color: #4ea1ff; font-weight: 700; font-size: 13px;
+  color: var(--accent); font-weight: 700; font-size: 13px;
 }
 .linkage-guide {
   background: var(--panel); border: 1px solid var(--border);
@@ -664,13 +672,13 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-mode-title { font-size: 12px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 6px; }
 .linkage-mode-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .linkage-mode-btn {
-  background: var(--formula-bg); color: var(--text-dim);
-  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--panel-2); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 9999px;
   padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .linkage-mode-btn:hover { color: var(--text); border-color: var(--accent); }
 .linkage-mode-btn.active {
-  background: rgba(78,161,255,0.15); color: var(--accent);
+  background: rgba(0,102,204,0.08); color: var(--accent);
   border-color: var(--accent);
 }
 .linkage-mode-desc { color: var(--text-dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
@@ -687,8 +695,8 @@ table.cat-table tr.cat-add-row { background: rgba(78,161,255,0.05); }
 .linkage-length-row label > .linkage-unit    { grid-area: unit; justify-self: end; }
 .linkage-length-row input[type="number"] {
   grid-area: input;
-  background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: 4px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 4px 8px; font-size: 14px; width: 100%; min-width: 0;
   font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
   text-align: right;
 }
@@ -874,7 +882,8 @@ applySidebarState();
 // ============================================================
 // 几何图示：将参数标注在简化的车架线条图上
 // ============================================================
-const SC = { base:'#5a6878', ground:'#3a4555', hi:'#4ea1ff', hi2:'#ff8c5a', hi3:'#c084fc', hi4:'#4ade80' };
+// Diagram palette — drawn on the dark tile, so these stay the bright on-dark hues.
+const SC = { base:'#5a6878', ground:'#3a4555', hi:'#2997ff', hi2:'#ff8c5a', hi3:'#c084fc', hi4:'#4ade80' };
 const BIKE = {
   W: 760, H: 380, groundY: 340,
   rearAxle:  { x: 195, y: 280 },

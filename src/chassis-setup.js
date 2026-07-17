@@ -335,12 +335,12 @@ function renderChassisDiagram(values, lang) {
   const ln = (a, b, stroke = '#cbd5e1', sw = 2, dash = '') =>
     `<line x1="${px(a.x).toFixed(1)}" y1="${py(a.y).toFixed(1)}" x2="${px(b.x).toFixed(1)}" y2="${py(b.y).toFixed(1)}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ''} stroke-linecap="round"/>`;
   const dot = (p, r = 4, fill = '#fbbf24') =>
-    `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="${r}" fill="${fill}" stroke="#0c1116" stroke-width="1.2"/>`;
+    `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="${r}" fill="${fill}" stroke="#1d1d1f" stroke-width="1.2"/>`;
   // Halo stroke around every text label so a passing geometry line can never
   // visually cross the glyphs. paint-order: stroke draws the dark halo first,
   // then the fill on top — net effect is a 3-px-wide background outline that
   // matches the canvas bg.
-  const TXT_HALO = 'paint-order:stroke;stroke:#0c1116;stroke-width:3px;stroke-linejoin:round';
+  const TXT_HALO = 'paint-order:stroke;stroke:#1d1d1f;stroke-width:3px;stroke-linejoin:round';
   const txt = (p, s, fill = '#cbd5e1', size = 11, anchor = 'middle', dxPx = 0, dyPx = 0) =>
     `<text x="${(px(p.x) + dxPx).toFixed(1)}" y="${(py(p.y) + dyPx).toFixed(1)}" fill="${fill}" font-size="${size}" text-anchor="${anchor}" font-weight="600" style="${TXT_HALO}">${escapeHtml(s)}</text>`;
 
@@ -363,10 +363,10 @@ function renderChassisDiagram(values, lang) {
 
   // WB dimension
   const wbY = py(-80);
-  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${wbY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1.5"/>`);
-  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${groundY}" x2="${px(g.rearContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(`<line x1="${px(g.frontContact.x)}" y1="${groundY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#4ea1ff" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#4ea1ff', 18, 'middle', 0, -6));
+  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${wbY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1.5"/>`);
+  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${groundY}" x2="${px(g.rearContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1" stroke-dasharray="2 3"/>`);
+  annot.push(`<line x1="${px(g.frontContact.x)}" y1="${groundY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1" stroke-dasharray="2 3"/>`);
+  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#2997ff', 18, 'middle', 0, -6));
 
   // Rake arc + label (at steering head)
   const rakeArcR = 60;
@@ -467,7 +467,7 @@ function renderChassisDiagram(values, lang) {
   annot.push(`<text x="${yokeLabelX.toFixed(1)}" y="${yokeLabelY.toFixed(1)}" fill="#fbbf24" font-size="18" text-anchor="middle" font-weight="600" style="${TXT_HALO}">Yoke ${escapeHtml(fmt(g.yoke, 0))}</text>`);
 
   // Fork position tick on the fork tube
-  annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#0c1116" stroke-width="1"/>`);
+  annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1"/>`);
 
   // Weight distribution — compact pill in the top-right corner, only when
   // the split has actually been measured (optional field).
@@ -478,7 +478,7 @@ function renderChassisDiagram(values, lang) {
     annot.push(`
       <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(15,20,27,0.85)" stroke="#3a4555" stroke-width="1"/>
       <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#1f2630"/>
-      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#4ea1ff" opacity="0.85"/>
+      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#2997ff" opacity="0.85"/>
       <text x="${wpX + 8}" y="${wpY + 16}" fill="#cbd5e1" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
     `);
   }
@@ -486,7 +486,7 @@ function renderChassisDiagram(values, lang) {
   return `
     <svg class="chassis-diagram" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
          aria-label="${lang === 'en' ? 'Sport-bike side-view with annotated chassis fields' : '运动车侧视图与车架标注'}">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #0f141b)"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #1d1d1f)"/>
       ${annot.join('\n')}
       <!-- swingarm -->
       ${ln(g.swingPivot, g.rearAxle, '#cbd5e1', 4)}
