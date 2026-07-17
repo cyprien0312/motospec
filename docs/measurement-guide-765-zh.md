@@ -7,6 +7,12 @@
 配套文档：测量点定义见 `measurement-points.md`（含七段距离协议的完整
 细节）；等价类结论与 oracle 数据见 `research/triumph-765-motospec.md`。
 
+**3D 扫描替代路线**：取点图见 [`scan-points-zh.svg`](scan-points-zh.svg)
+（车头朝左的侧视投影，含连杆放大图）。如果能借到 3D 扫描仪，**一次
+扫描（悬挂完全伸展、含地面）替代本指南 Session A + B + C 的全部几何
+测量**——rake / WB / Rf / β / offset / 全部连杆坐标都从标记点坐标直接
+导出，免七段距离法和倾角仪。Session D（称重）无论哪条路线都要单独做。
+
 ## 0. 五张截图已经给了什么、还缺什么
 
 | 截图内容 | 对你的改装车还有用吗 |
