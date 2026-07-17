@@ -358,7 +358,10 @@
 .chassis-input:focus { outline: none; border-color: #4ea1ff; }
 
 /* Data Table */
-.dt-wrap { overflow-x: auto; max-width: 100%; }
+/* The table scrolls inside its own viewport-height box, so the sticky
+   thead (bike names) and sticky left column (parameter names) stay
+   visible however long the row list grows. */
+.dt-wrap { overflow: auto; max-width: 100%; max-height: calc(100vh - 30px); }
 .dt-bike-head { position: relative; }
 .dt-col-remove {
   position: absolute; top: 2px; right: 2px;
@@ -401,6 +404,7 @@ table.dt thead th {
   color: var(--accent);
   font-weight: 600;
   position: sticky; top: 0;
+  z-index: 2; /* above the sticky-left body cells while rows scroll under */
 }
 table.dt th.dt-spec {
   position: sticky; left: 0;
@@ -410,7 +414,7 @@ table.dt th.dt-spec {
   z-index: 1;
 }
 table.dt thead th.dt-spec {
-  z-index: 2;
+  z-index: 3;
 }
 table.dt tbody tr:nth-child(even) td,
 table.dt tbody tr:nth-child(even) th {
@@ -424,7 +428,12 @@ table.dt tr.dt-group th {
   letter-spacing: 0.5px;
   font-size: 12px;
   border-top: 2px solid var(--accent);
+  cursor: pointer;
+  user-select: none;
 }
+table.dt tr.dt-group th:hover { background: rgba(78,161,255,0.10); }
+.dt-caret { display: inline-block; width: 14px; color: var(--text-dim); }
+.dt-group-count { color: var(--text-dim); font-weight: 500; text-transform: none; }
 table.dt td.dt-current,
 table.dt th.dt-current {
   border-left: 2px solid var(--accent);
@@ -1294,7 +1303,8 @@ function loadState() {
       if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
       const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];
       const linkageDraft = (s.linkageDraft && typeof s.linkageDraft === 'object') ? s.linkageDraft : null;
-      return { values: merged, bikes, catalogTab, linkageDraft, __optionalCleaned: true };
+      const dtCollapsed = (s.dtCollapsed && typeof s.dtCollapsed === 'object') ? s.dtCollapsed : {};
+      return { values: merged, bikes, catalogTab, linkageDraft, dtCollapsed, __optionalCleaned: true };
     }
   } catch (e) {}
   return null;
@@ -1311,7 +1321,7 @@ function freshValues() {
   for (const f of OPTIONAL_CHASSIS_FIELDS) delete v[f];
   return v;
 }
-const state = loadState() || { values: freshValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0], __optionalCleaned: true };
+const state = loadState() || { values: freshValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0], dtCollapsed: {}, __optionalCleaned: true };
 if (!Array.isArray(state.bikes) || state.bikes.length > MAX_BIKES) state.bikes = defaultBikes();
 if (!state.catalogTab) state.catalogTab = CATALOG_KEYS[0];
 // Per-mode coord drafts: each mode keeps its own snapshot of the 10
@@ -1619,6 +1629,12 @@ function loadChassisFromLibrary(id) {
   clearCache();
   if (stack[stack.length - 1] === '__chassis') renderContent();
 }
+function toggleDtGroup(header) {
+  if (!state.dtCollapsed || typeof state.dtCollapsed !== 'object') state.dtCollapsed = {};
+  state.dtCollapsed[header] = !state.dtCollapsed[header];
+  saveState();
+  renderContent(); // structural change — full re-render, not a patch
+}
 function setBikeInput(bikeIdx, key, raw) {
   const b = state.bikes[bikeIdx];
   if (!b) return;
@@ -1659,7 +1675,10 @@ function patchDataTableView() {
   const live = document.querySelector('#content .dt-wrap table');
   if (!live) { renderContent(); return; }
   const tmp = document.createElement('div');
-  tmp.innerHTML = renderDataTable(state);
+  // `lang` lives outside `state` — pass it explicitly or the patch render
+  // silently falls back to zh and rewrites read-only cells in the wrong
+  // language while typing in EN mode.
+  tmp.innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, lang });
   const fresh = tmp.querySelector('table');
   const liveCells = live.querySelectorAll('td.dt-readonly');
   const freshCells = fresh ? fresh.querySelectorAll('td.dt-readonly') : [];
@@ -1964,7 +1983,7 @@ function renderContent() {
   const id = stack[stack.length - 1];
   if (id === '__dashboard') return renderDashboard();
   if (id === '__datatable') {
-    document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, lang });
+    document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, lang });
     return;
   }
   if (id === '__chassis') {
@@ -2151,7 +2170,7 @@ function linkageReadoutUp(evt) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary, openGuide, openGuideForCurrentPage });
+Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary, openGuide, openGuideForCurrentPage });
 
 render();
 </script>

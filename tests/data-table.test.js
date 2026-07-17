@@ -253,6 +253,26 @@ test('Dynamic-only rows are removed from RESULTS (static-first mode)', () => {
   }
 });
 
+test('collapsible groups: collapsed group hides its rows but keeps a clickable header', () => {
+  const html = render({ dtCollapsed: { 'FRONT SETTINGS': true } });
+  // Header still renders, with caret + hidden-row count, wired to the toggle.
+  assert.match(html, /toggleDtGroup\('FRONT SETTINGS'\)/);
+  assert.match(html, /▸/);
+  const front = ROW_GROUPS.find(g => g.header === 'FRONT SETTINGS');
+  assert.match(html, new RegExp(`\\(${front.rows.length}\\)`));
+  // Rows inside the collapsed group are gone…
+  assert.doesNotMatch(html, /setBikeInput\(\d+, 'Front_Spring_Rate'/);
+  // …while other groups still render theirs.
+  assert.match(html, /setBikeInput\(\d+, 'Rear_Spring_Rate'/);
+});
+
+test('collapsible groups: default state renders everything expanded', () => {
+  const html = render();
+  assert.doesNotMatch(html, /▸/, 'no group should start collapsed');
+  const carets = html.match(/▾/g) || [];
+  assert.equal(carets.length, ROW_GROUPS.length, 'every group header carries an expanded caret');
+});
+
 test('defaultBikes seeds three neutral placeholder bikes', () => {
   const bikes = defaultBikes();
   assert.equal(bikes.length, 3);

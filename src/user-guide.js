@@ -91,7 +91,7 @@ const STR = {
       'datatable': {
         h: '数据表（Data Table）',
         body: `
-          <p>多车横向对比工具。列数可变（0–5），通过表头的「+ 新增车型」/「×」按钮增删。</p>
+          <p>多车横向对比工具。列数可变（0–5），通过表头的「+ 新增车型」/「×」按钮增删。表格在自己的视口内滚动：车名表头和参数列始终可见；<strong>点击任意分组标题可折叠/展开该组</strong>（折叠状态会记住），把长表收成一屏。</p>
           <h4>行类型</h4>
           <ul>
             <li><strong>下拉行</strong>（Chassis、Fork、Shock、Linkage）：从对应 catalog 选择条目，对应 specs 自动并入该列的 values</li>
@@ -229,7 +229,7 @@ const STR = {
       'datatable': {
         h: 'Data Table',
         body: `
-          <p>Side-by-side bike comparison. Columns are variable (0–5), added/removed via the "+ Add Bike" / "×" buttons.</p>
+          <p>Side-by-side bike comparison. Columns are variable (0–5), added/removed via the "+ Add Bike" / "×" buttons. The table scrolls inside its own viewport — bike names and the parameter column stay visible — and <strong>clicking any group header collapses/expands that group</strong> (remembered across sessions), folding the long table down to one screen.</p>
           <h4>Row types</h4>
           <ul>
             <li><strong>Dropdown rows</strong> (Chassis, Fork, Shock, Linkage): pick a catalog entry; its specs merge into that column's values automatically</li>

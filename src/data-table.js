@@ -482,12 +482,22 @@ export function renderDataTable(state) {
     `;
   }
 
+  // Collapsible groups: clicking a group header folds its rows away
+  // (state.dtCollapsed, persisted). The header row stays, showing a caret
+  // and the hidden-row count, so a long table folds down to one screen.
+  const dtCollapsed = (state && state.dtCollapsed && typeof state.dtCollapsed === 'object')
+    ? state.dtCollapsed : {};
+
   let body = '';
   for (const group of ROW_GROUPS) {
     const groupLabel = lang === 'en'
       ? group.header
       : `${group.header} (${group.header_zh})`;
-    body += `<tr class="dt-group"><th colspan="${groupColspan}">${escapeHtml(groupLabel)}</th></tr>`;
+    const isCollapsed = !!dtCollapsed[group.header];
+    const caret = `<span class="dt-caret">${isCollapsed ? '▸' : '▾'}</span>`;
+    const count = isCollapsed ? ` <span class="dt-group-count">(${group.rows.length})</span>` : '';
+    body += `<tr class="dt-group" onclick="toggleDtGroup('${escapeHtml(group.header)}')"><th colspan="${groupColspan}">${caret}${escapeHtml(groupLabel)}${count}</th></tr>`;
+    if (isCollapsed) continue;
     for (const row of group.rows) {
       const baseLabel = lang === 'en' ? row.spec : (row.spec_zh || row.spec);
       const badge = row.status && STATUS_BADGE[row.status]
