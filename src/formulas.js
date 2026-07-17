@@ -39,18 +39,18 @@ export const P = {
     name: 'MotoSPEC_Trail', label: '动态拖曳距', unit: 'mm', type: 'channel',
     desc: '前轮接地点到转向轴地面交点的距离。Rake 变小时 Trail 急剧缩短，是前轮"路感"的核心来源。',
     formula: [
-      '( ', {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}, ' ) / cos(', {ref:'MotoSPEC_Rake'}, ')'
+      '( (', {ref:'Rf'}, ' + ', {ref:'Tire_Rf_Delta'}, ') × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}, ' ) / cos(', {ref:'MotoSPEC_Rake'}, ')'
     ],
-    deps: ['Rf', 'MotoSPEC_Rake', 'Yoke_Offset'],
-    note: '使用动态 Rake（已转为弧度）代入。重刹时 Trail 谷底过低 → 前轮反馈模糊。'
+    deps: ['Rf', 'Tire_Rf_Delta', 'MotoSPEC_Rake', 'Yoke_Offset'],
+    note: '使用动态 Rake（已转为弧度）与当前胎的有效半径（基线 Rf + 胎差）代入。重刹时 Trail 谷底过低 → 前轮反馈模糊。'
   },
   Normal_Trail: {
     name: 'Normal_Trail', label: '法向拖曳距', unit: 'mm', type: 'channel',
     desc: '前轮接地点到转向轴的最短距离（垂直于转向轴量）。等于 Ground_Trail × cos(Rake)。',
     formula: [
-      {ref:'Rf'}, ' × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}
+      '(', {ref:'Rf'}, ' + ', {ref:'Tire_Rf_Delta'}, ') × sin(', {ref:'MotoSPEC_Rake'}, ') − ', {ref:'Yoke_Offset'}
     ],
-    deps: ['Rf', 'MotoSPEC_Rake', 'Yoke_Offset'],
+    deps: ['Rf', 'Tire_Rf_Delta', 'MotoSPEC_Rake', 'Yoke_Offset'],
     note: 'Normal Trail 是转向力矩臂的真正长度；Ground Trail = Normal_Trail / cos(Rake)。'
   },
   Swingarm_Angle: {
@@ -184,8 +184,8 @@ export const P = {
   WB: { name:'WB', label:'轴距 (Wheelbase)', unit:'mm', type:'input',
     desc:'前后轮轴中心的水平距离。', source:'车架手册',
     typical:'1340 – 1440 mm（运动车）' },
-  Rf: { name:'Rf', label:'前轮滚动半径', unit:'mm', type:'input',
-    desc:'前轮在载荷下的实际滚动半径（含轮胎形变修正）。', source:'轮胎规格 + 形变系数',
+  Rf: { name:'Rf', label:'前轮滚动半径（基线胎）', unit:'mm', type:'input',
+    desc:'测量 Rake_Static / WB / Trail 那天装的前胎在载荷下的滚动半径（含形变修正）——它是基线恒等式的一部分（765 的 304.6 即由 trail 反推）。换胎不改此值：胎的半径差走 Tire_Rf_Delta。', source:'轮胎规格 + 形变系数，或由基线 trail 反推',
     typical:'300 – 320 mm（17 寸轮）' },
   beta_static: { name:'β_Static', label:'静态摇臂角度', unit:'deg', type:'input',
     desc:'车辆静止时摇臂轴心到后轮轴心的连线相对水平面的夹角。', source:'车架手册或实测',
@@ -238,6 +238,10 @@ export const P = {
     desc:'测量 Rake_Static 时的前叉伸出量。当前 Fork_Position 相对该值的差是姿态修正链的输入之一。', source:'测量 Rake 时记录', typical:'0 – 15 mm' },
   Fork_Length_Delta:    { name:'Fork_Length_Delta',    label:'前叉长度差 (vs 参考)', unit:'mm', type:'input',
     desc:'当前前叉相对测量 Rake_Static 时那支前叉的总长差（正 = 更长 = 车头抬高）。0 = 同一支叉，物理真实的默认值。两支叉并排实测差值即可，无需绝对总长。', source:'两叉并排实测差值', typical:'−15 – +15 mm' },
+  Tire_Rf_Delta:        { name:'Tire_Rf_Delta',        label:'前胎半径差 (vs 基线胎)', unit:'mm', type:'input',
+    desc:'当前前胎相对基线胎（测 Rake/WB/Trail 时装的那条）的受载滚动半径差（正 = 更高 = 车头抬高 → Rake 增大）。0 = 同款胎，物理真实的默认值。同时进入姿态俯仰链与 Trail 公式的有效半径（Rf + Δ）。', source:'两胎受载轴心离地高实测差值', typical:'−10 – +10 mm' },
+  Tire_Rr_Delta:        { name:'Tire_Rr_Delta',        label:'后胎半径差 (vs 基线胎)', unit:'mm', type:'input',
+    desc:'当前后胎相对基线胎的受载滚动半径差（正 = 更高 = 车尾抬高 → Rake 减小）。0 = 同款胎。只进入姿态俯仰链（后轴垂直位置），不改变摇臂-连杆几何。', source:'两胎受载轴心离地高实测差值', typical:'−10 – +10 mm' },
   Shock_Stroke:         { name:'Shock_Stroke',         label:'后避震行程', unit:'mm', type:'input',
     desc:'后避震杆的最大压缩行程（全伸展到打底）。定义 Progression 的"全避震行程"扫描范围——与真实 MotoSPEC 的 Full Shock Travel 一致。', source:'避震规格表', typical:'55 – 65 mm' },
   Swingarm_Length_ref:  { name:'Swingarm_Length_ref',  label:'参考摇臂长度', unit:'mm', type:'input',
@@ -341,13 +345,13 @@ export const P = {
   },
   Pitch_Sag: {
     name: 'Pitch_Sag', label: '载荷俯仰角', unit: 'rad', type: 'intermediate',
-    desc: '当前载荷状态相对参考姿态的底盘俯仰角，点头为正。前端下沉 = (前 sag + 前叉差量) 投影到垂直方向（×cos Rake）；后端下沉 = 后 sag − 车尾抬升（shock 差量转摇臂 + 调轴改变轴心深度，均相对参考摇臂长度计）。',
+    desc: '当前载荷状态相对参考姿态的底盘俯仰角，点头为正。前端下沉 = (前 sag + 前叉差量) 投影到垂直方向（×cos Rake）− 前胎半径差；后端下沉 = 后 sag − 车尾抬升（shock 差量转摇臂 + 调轴改变轴心深度，均相对参考摇臂长度计）− 后胎半径差。胎差是纯垂直量，不投影。',
     formula: [
       ['arctan( (ΔZ_front − ΔZ_rear) / ', {ref:'WB'}, ' )'],
-      ['ΔZ_front = ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × cos(', {ref:'Rake_Static'}, ')'],
-      ['ΔZ_rear = ', {ref:'Sag_Rear'}, ' − ( ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ') − ', {ref:'Swingarm_Length_ref'}, ' × sin(', {ref:'beta_static'}, ') )'],
+      ['ΔZ_front = ( ', {ref:'Sag_Front'}, ' + ', {ref:'delta_fork'}, ' ) × cos(', {ref:'Rake_Static'}, ') − ', {ref:'Tire_Rf_Delta'}],
+      ['ΔZ_rear = ', {ref:'Sag_Rear'}, ' − ( ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ') − ', {ref:'Swingarm_Length_ref'}, ' × sin(', {ref:'beta_static'}, ') ) − ', {ref:'Tire_Rr_Delta'}],
     ],
-    deps: ['Sag_Front', 'delta_fork', 'Rake_Static', 'Sag_Rear', 'Swingarm_Length', 'Swingarm_Length_ref', 'beta_static', 'swingarm_delta_solve', 'WB'],
+    deps: ['Sag_Front', 'delta_fork', 'Rake_Static', 'Sag_Rear', 'Swingarm_Length', 'Swingarm_Length_ref', 'beta_static', 'swingarm_delta_solve', 'WB', 'Tire_Rf_Delta', 'Tire_Rr_Delta'],
     note: 'cos(Rake) 把沿前叉轴的行程投影到垂直方向——前后 sag 数值相等时姿态并非不变（前端实际下沉略小）。shock 加长（RHA / ΔShock > 0）或调轴后移（轴更深于枢轴下方）→ 车尾抬高 → 点头为正 → Rake 变小。'
   },
   swingarm_delta_solve: {
@@ -564,6 +568,9 @@ export const INPUT_META = {
   // Sag load case — 0 means "no load applied", a real value, not a placeholder.
   Sag_Front:            { def: 0,     min: 0,     max: 150,   step: 1 },
   Sag_Rear:             { def: 0,     min: 0,     max: 150,   step: 1 },
+  // Tire radius deltas — 0 means "same tire as the baseline", physically true.
+  Tire_Rf_Delta:        { def: 0,     min: -30,   max: 30,    step: 0.5 },
+  Tire_Rr_Delta:        { def: 0,     min: -30,   max: 30,    step: 0.5 },
 };
 
 // Each calc takes a `v` object containing already-computed values for its dependencies
@@ -584,7 +591,10 @@ export const CALC = {
     return a === 0 ? a : -a; // avoid -0 so the unloaded state degenerates exactly
   },
   Pitch_Sag: v => {
-    const dzFront = (v.Sag_Front + v.delta_fork) * Math.cos(v.Rake_Static * D2R);
+    // Tire radius deltas are vertical axle-height changes (taller tire =
+    // that end rises), no fork-axis projection.
+    const dzFront = (v.Sag_Front + v.delta_fork) * Math.cos(v.Rake_Static * D2R)
+      - (v.Tire_Rf_Delta || 0);
     // Axle depth below the pivot, live vs reference: a shock delta rotates
     // the swingarm, a chain-adjuster move (ΔSwingarm_Length) slides the
     // axle along it — either way, deeper axle = frame RISE at the rear
@@ -592,15 +602,16 @@ export const CALC = {
     const rearLift =
       v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve) * D2R)
       - v.Swingarm_Length_ref * Math.sin(v.beta_static * D2R);
-    const dzRear = v.Sag_Rear - rearLift;
+    const dzRear = v.Sag_Rear - rearLift - (v.Tire_Rr_Delta || 0);
     return Math.atan((dzFront - dzRear) / v.WB);
   },
   MotoSPEC_Rake: v => v.Rake_Static - v.Pitch_Sag * R2D,
   MotoSPEC_Trail: v => {
     const r = v.MotoSPEC_Rake * D2R;
-    return (v.Rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
+    const rf = v.Rf + (v.Tire_Rf_Delta || 0);
+    return (rf * Math.sin(r) - v.Yoke_Offset) / Math.cos(r);
   },
-  Normal_Trail: v => v.Rf * Math.sin(v.MotoSPEC_Rake * D2R) - v.Yoke_Offset,
+  Normal_Trail: v => (v.Rf + (v.Tire_Rf_Delta || 0)) * Math.sin(v.MotoSPEC_Rake * D2R) - v.Yoke_Offset,
   swingarm_delta_solve: v => {
     // RHA is mechanically a shock-length delta; the current-vs-reference
     // shock length difference joins it linearly in the same constraint.

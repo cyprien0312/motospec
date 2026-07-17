@@ -148,6 +148,9 @@ export const ALWAYS_READY = new Set([
   'Sag_Rear',
   // 0 = same fork as the reference setup — physically true, not a placeholder.
   'Fork_Length_Delta',
+  // 0 = same tire as the baseline tire — physically true, not a placeholder.
+  'Tire_Rf_Delta',
+  'Tire_Rr_Delta',
 ]);
 
 function bikeReadyKeys(bike) {
@@ -238,6 +241,8 @@ export const ROW_GROUPS = [
     { spec: 'Fork Position (mm)',                                   spec_zh: '前叉伸出量 (mm)',      input: 'Fork_Position' },
     { spec: 'Fork Length Δ vs Reference (mm)',                      spec_zh: '前叉长度差 vs 参考 (mm)', input: 'Fork_Length_Delta',
       hint: { en: 'Measured length difference vs the reference fork (butt them together). 0 = same fork. Positive = longer = front up.', zh: '与参考前叉并排实测的长度差。0 = 同一支叉。正 = 更长 = 车头抬高。' } },
+    { spec: 'Front Tire Radius Δ vs Baseline (mm)',                 spec_zh: '前胎半径差 vs 基线胎 (mm)', input: 'Tire_Rf_Delta',
+      hint: { en: 'Loaded rolling-radius difference vs the tire fitted at the baseline measurement. 0 = same tire. Positive = taller = front up, rake opens, and the trail formula uses Rf + Δ.', zh: '相对基线测量时那条前胎的受载滚动半径差。0 = 同款胎。正 = 更高 = 车头抬高、Rake 增大，Trail 公式用 Rf + Δ。' } },
     { spec: 'Fork',                                                 spec_zh: '前叉',                 component: 'fork' },
     { spec: 'Spring Rate (N/mm)',                                   spec_zh: '前叉弹簧刚度 (N/mm)',  input: 'Front_Spring_Rate' },
     { spec: 'Spring Preload (mm)',                                  spec_zh: '前叉弹簧预压 (mm)',    input: 'Front_Spring_Preload' },
@@ -247,6 +252,8 @@ export const ROW_GROUPS = [
   ]},
   { header: 'REAR SETTINGS', header_zh: '后部设置', rows: [
     { spec: 'Swingarm Length (mm)',                                 spec_zh: '摇臂长度 (mm)',        input: 'Swingarm_Length' },
+    { spec: 'Rear Tire Radius Δ vs Baseline (mm)',                  spec_zh: '后胎半径差 vs 基线胎 (mm)', input: 'Tire_Rr_Delta',
+      hint: { en: 'Loaded rolling-radius difference vs the baseline rear tire. 0 = same tire. Positive = taller = rear up, rake closes.', zh: '相对基线后胎的受载滚动半径差。0 = 同款胎。正 = 更高 = 车尾抬高、Rake 减小。' } },
     { spec: 'Shock Clevis Ride Height Adjustment (mm)',             spec_zh: '后避震Clevis调整 (mm)', input: 'Shock_Clevis_RHA' },
     { spec: 'Shock',                                                spec_zh: '避震',                 component: 'shock' },
     { spec: 'Shock Length (mm)',                                    spec_zh: '后避震长度 (mm)',      input: 'Shock_Length' },
