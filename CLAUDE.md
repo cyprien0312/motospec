@@ -15,6 +15,8 @@ MotoSPEC Formula Explorer — a static, single-page motorcycle chassis geometry 
 
 There is no lint, no build, no bundler. Don't introduce one without asking.
 
+- **Windows exe**: `MotoSPEC.exe` at the repo root is a self-contained double-click launcher (embedded copies of `index.html` + `src/*.js` + `data/*.json`, minimal loopback HTTP server, opens the default browser). Rebuild it with `powershell -ExecutionPolicy Bypass -File windows-launcher\build.ps1` (uses the csc.exe that ships with Windows — no SDK) **whenever `index.html`, `src/`, or `data/` change**, or the exe serves stale files. Source: `windows-launcher/MotoSpecLauncher.cs`.
+
 ## Branches, deployment, automation
 
 - **`main` is the only branch** — development happens here, and **Vercel auto-deploys every push** (static, no build step). There is no GitHub Pages deployment anymore (the old gh-pages branch was deleted July 2026; neither the workflow token nor the stored PAT can manage Pages, so don't try to resurrect an Actions deploy).

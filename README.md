@@ -10,6 +10,20 @@ No bundler, no build step — plain ES modules served over HTTP.
 
 ## Run it locally
 
+### Windows — 双击即用 / double-click exe
+
+Download [`MotoSPEC.exe`](https://github.com/cyprien0312/motospec/raw/main/MotoSPEC.exe)
+(≈340 KB, no install, nothing else required) and double-click it. It starts a
+local server on `127.0.0.1` and opens the app in your default browser; close
+the console window to quit. Windows SmartScreen may warn because the exe is
+unsigned — click "More info → Run anyway" (更多信息 → 仍要运行).
+
+The exe embeds the whole app; it is rebuilt from source by
+[`windows-launcher/build.ps1`](windows-launcher/build.ps1) using the C#
+compiler that ships with Windows (no SDK needed).
+
+### Any OS — serve the repo
+
 Requires **Node 22+** (for JSON Import Attributes and the built-in test runner).
 
 ```bash
