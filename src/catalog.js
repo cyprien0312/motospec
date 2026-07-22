@@ -29,6 +29,12 @@ export const CATALOG_KEYS = Object.keys(BASE);
 // `{ __deleted: true }` tombstones a baseline entry.
 let userOverlay = Object.fromEntries(CATALOG_KEYS.map(k => [k, {}]));
 
+// Shared library loaded from Supabase. `null` until the first fetch resolves;
+// once loaded it is the authoritative live set (it is seeded with the bundled
+// baseline, so it is a superset of BASE) and replaces BASE as the base layer.
+// The bundled BASE remains the first-paint / offline-no-cache fallback.
+let remoteOverlay = null;
+
 export const CATALOGS = {};
 rebuild();
 
@@ -37,10 +43,15 @@ function deepClone(v) {
   return structuredClone(v);
 }
 
+function baseLayer() {
+  return remoteOverlay || BASE;
+}
+
 function rebuild() {
+  const base = baseLayer();
   for (const cat of CATALOG_KEYS) {
     const merged = {};
-    for (const [id, entry] of Object.entries(BASE[cat])) merged[id] = deepClone(entry);
+    for (const [id, entry] of Object.entries(base[cat] || {})) merged[id] = deepClone(entry);
     for (const [id, entry] of Object.entries(userOverlay[cat] || {})) {
       if (entry && entry.__deleted) {
         delete merged[id];
@@ -104,6 +115,17 @@ export function getUserOverlay() {
   return deepClone(userOverlay);
 }
 
+// Drop a single id from the local overlay WITHOUT tombstoning it (used once
+// an entry has been successfully written to the shared library, so it is
+// served from the remote layer instead of shadowed by a stale local copy).
+export function clearLocalOverlayEntry(catalogKey, id) {
+  if (!userOverlay[catalogKey] || !(id in userOverlay[catalogKey])) return;
+  const next = { ...userOverlay[catalogKey] };
+  delete next[id];
+  userOverlay[catalogKey] = next;
+  rebuild();
+}
+
 export function applyUserOverlay(overlay) {
   if (!overlay || typeof overlay !== 'object') return;
   const fresh = Object.fromEntries(CATALOG_KEYS.map(k => [k, {}]));
@@ -116,6 +138,57 @@ export function applyUserOverlay(overlay) {
 
 export function resetUserOverlay() {
   applyUserOverlay({});
+}
+
+// ----- Shared (remote) library layer -----
+
+function ensureRemoteSeeded() {
+  // Seed from the bundled baseline so a partial write never drops baseline
+  // entries out of view before a full fetch has populated the remote layer.
+  if (remoteOverlay === null) {
+    remoteOverlay = {};
+    for (const k of CATALOG_KEYS) remoteOverlay[k] = deepClone(BASE[k]);
+  }
+}
+
+// Replace the whole shared layer with a freshly fetched snapshot
+// (`{ catalog: { id: entry } }`, live entries only).
+export function applyRemoteCatalogs(remote) {
+  const fresh = Object.fromEntries(CATALOG_KEYS.map(k => [k, {}]));
+  if (remote && typeof remote === 'object') {
+    for (const k of CATALOG_KEYS) {
+      if (remote[k] && typeof remote[k] === 'object') fresh[k] = deepClone(remote[k]);
+    }
+  }
+  remoteOverlay = fresh;
+  rebuild();
+}
+
+export function hasRemoteCatalogs() {
+  return remoteOverlay !== null;
+}
+
+// Snapshot of the shared layer (for caching to localStorage).
+export function getRemoteCatalogs() {
+  return remoteOverlay ? deepClone(remoteOverlay) : null;
+}
+
+// Optimistically apply one entry to the shared layer after a successful
+// server write (avoids a full re-fetch per edit).
+export function setRemoteEntry(catalogKey, id, entry) {
+  if (!CATALOG_KEYS.includes(catalogKey)) throw new Error(`Unknown catalog: ${catalogKey}`);
+  ensureRemoteSeeded();
+  remoteOverlay[catalogKey] = { ...remoteOverlay[catalogKey], [id]: deepClone(entry) };
+  rebuild();
+}
+
+// Drop one entry from the shared layer after a successful soft-delete.
+export function removeRemoteEntry(catalogKey, id) {
+  ensureRemoteSeeded();
+  const next = { ...remoteOverlay[catalogKey] };
+  delete next[id];
+  remoteOverlay[catalogKey] = next;
+  rebuild();
 }
 
 // ----- Bike materialization (Phase 1) -----

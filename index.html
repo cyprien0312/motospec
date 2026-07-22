@@ -529,6 +529,17 @@ table.dt input.dt-input-override {
   transition: color .15s, border-color .15s, transform .15s;
 }
 .help-fab:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+  max-width: min(90vw, 460px); padding: 10px 18px;
+  background: var(--text); color: var(--bg);
+  border-radius: 10px; font-size: 13px; font-weight: 500;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  opacity: 0; pointer-events: none; z-index: 200;
+  transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.toast-warn { background: #b45309; color: #fff; }
 .guide-page { max-width: 820px; line-height: 1.65; }
 .guide-page .guide-header h1 { font-size: 28px; margin-bottom: 8px; }
 .guide-page .guide-intro { color: var(--text-dim); margin-bottom: 24px; }
@@ -731,7 +742,8 @@ table.cat-table tr.cat-add-row { background: rgba(0,102,204,0.04); }
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
 import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG } from './src/data-table.js';
-import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay } from './src/catalog.js';
+import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay, clearLocalOverlayEntry, applyRemoteCatalogs, hasRemoteCatalogs, setRemoteEntry, removeRemoteEntry, getRemoteCatalogs } from './src/catalog.js';
+import { fetchSharedCatalogs, upsertSharedEntry, softDeleteSharedEntry, bulkUpsertShared } from './src/supabase.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
 import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
 import { renderChassisSetup, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, SETUP_MIRROR, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
@@ -1586,7 +1598,7 @@ function loadLinkageFromLibrary(id) {
   clearCache();
   renderContent();
 }
-function saveLinkageAsPreset() {
+async function saveLinkageAsPreset() {
   const promptMsg = lang === 'en'
     ? 'Name for this linkage preset?'
     : '保存这个连杆预设的名称？';
@@ -1596,15 +1608,18 @@ function saveLinkageAsPreset() {
   const id = slugifyLinkageName(name, existing);
   const entry = buildLinkagePresetEntry(name, state.values);
   try {
-    setCatalogEntry('linkages', id, entry);
+    setCatalogEntry('linkages', id, entry);   // optimistic
   } catch (e) {
     console.error(e);
     alert(lang === 'en' ? 'Save failed: ' + e.message : '保存失败：' + e.message);
     return;
   }
   saveState();
-  alert(lang === 'en' ? `Saved as "${name}" (id: ${id})` : `已保存为 “${name}”（id: ${id}）`);
+  const ok = await pushEntryToShared('linkages', id, entry);
   renderContent();
+  alert(ok
+    ? (lang === 'en' ? `Saved to the shared library as "${name}" (id: ${id})` : `已保存到共享库 “${name}”（id: ${id}）`)
+    : (lang === 'en' ? `Saved locally as "${name}" (id: ${id}) — shared sync failed` : `已本地保存 “${name}”（id: ${id}）— 共享同步失败`));
 }
 function patchLinkageView() {
   const content = document.getElementById('content');
@@ -1668,16 +1683,20 @@ function setChassisInput(key, raw) {
   updateLiveValues();
   if (stack[stack.length - 1] === '__chassis') patchChassisView();
 }
-function saveChassisAsPreset() {
+async function saveChassisAsPreset() {
   const name = (typeof prompt === 'function')
     ? prompt(lang === 'en' ? 'Name this chassis profile (e.g. "Yamaha R7 (2022)")' : '为该底盘配置命名（例如 "Yamaha R7 (2022)"）')
     : null;
   if (!name) return;
   const id = slugifyChassisName(name);
   const entry = buildChassisPresetEntry(name, state.values);
-  setCatalogEntry('chassis', id, entry);
+  setCatalogEntry('chassis', id, entry);   // optimistic
   saveState();
+  const ok = await pushEntryToShared('chassis', id, entry);
   if (stack[stack.length - 1] === '__chassis') renderContent();
+  toast(ok
+    ? (lang === 'en' ? 'Chassis profile saved to the shared library' : '底盘配置已保存到共享库')
+    : (lang === 'en' ? 'Saved locally — shared sync failed' : '已本地保存 — 共享同步失败'), ok ? '' : 'warn');
 }
 function loadChassisFromLibrary(id) {
   if (!id) return;
@@ -1766,31 +1785,100 @@ function coerceCatalogValue(raw) {
   const n = Number(raw);
   return Number.isFinite(n) && raw.trim() !== '' ? n : raw;
 }
-function setCatalogField(catalogKey, id, fieldPath, raw) {
+// ---- Shared component library plumbing ----
+const REMOTE_CACHE_KEY = 'motospec_shared_catalogs_v1';
+const AUTHOR_KEY = 'motospec_author_v1';
+function getAuthor() { try { return localStorage.getItem(AUTHOR_KEY) || null; } catch (e) { return null; } }
+function cacheRemote() {
+  try { const r = getRemoteCatalogs(); if (r) localStorage.setItem(REMOTE_CACHE_KEY, JSON.stringify(r)); } catch (e) {}
+}
+function toast(msg, kind) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.className = 'toast show' + (kind ? ' toast-' + kind : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = 'toast'; }, 3400);
+}
+function rerenderCatalogSurfaces() {
+  const id = stack[stack.length - 1];
+  if (id === '__catalogs' || id === '__datatable' || id === '__chassis' || id === '__linkage') renderContent();
+}
+// Load the shared library: hydrate instantly from cache, then refresh live.
+async function initSharedCatalogs() {
+  try {
+    const cached = localStorage.getItem(REMOTE_CACHE_KEY);
+    if (cached) { applyRemoteCatalogs(JSON.parse(cached)); rerenderCatalogSurfaces(); }
+  } catch (e) {}
+  try {
+    const remote = await fetchSharedCatalogs();
+    applyRemoteCatalogs(remote);
+    cacheRemote();
+    rerenderCatalogSurfaces();
+  } catch (e) {
+    console.warn('shared catalog fetch failed; using cache/baseline', e);
+  }
+}
+// Push one entry to the shared library; on success serve it from the remote
+// layer and drop the optimistic local copy. Returns true on success.
+async function pushEntryToShared(catalogKey, id, entry) {
+  try {
+    const stored = await upsertSharedEntry(catalogKey, id, entry, getAuthor());
+    setRemoteEntry(catalogKey, id, stored);
+    clearLocalOverlayEntry(catalogKey, id);
+    cacheRemote();
+    return true;
+  } catch (e) {
+    console.error(e);
+    toast(lang === 'en' ? 'Saved locally — shared sync failed (offline?)' : '已本地保存 — 共享同步失败（离线？）', 'warn');
+    return false;
+  }
+}
+
+async function setCatalogField(catalogKey, id, fieldPath, raw) {
   const value = (fieldPath === 'name' || fieldPath === 'manufacturer') ? raw : coerceCatalogValue(raw);
   try { patchCatalogEntry(catalogKey, id, fieldPath, value); }
   catch (e) { console.error(e); return; }
   saveState();
+  const entry = CATALOGS[catalogKey]?.[id];
+  if (entry) await pushEntryToShared(catalogKey, id, entry);
   renderContent();
 }
-function addCatalogEntryUI(catalogKey) {
+async function addCatalogEntryUI(catalogKey) {
   const input = document.getElementById('cat-add-' + catalogKey);
   const id = (input?.value || '').trim();
   if (!id) { alert(lang === 'en' ? 'Enter an ID first' : '请先输入 ID'); return; }
   if (CATALOGS[catalogKey]?.[id]) { alert(lang === 'en' ? 'ID already exists' : 'ID 已存在'); return; }
-  setCatalogEntry(catalogKey, id, { name: id, manufacturer: '', specs: {} });
+  const entry = { name: id, manufacturer: '', specs: {} };
+  setCatalogEntry(catalogKey, id, entry);   // optimistic
   saveState();
+  const ok = await pushEntryToShared(catalogKey, id, entry);
   renderContent();
+  if (ok) toast(lang === 'en' ? 'Added to the shared library' : '已加入共享库');
 }
-function removeCatalogEntryUI(catalogKey, id) {
-  const ok = confirm((lang === 'en' ? 'Remove ' : '删除 ') + catalogKey + '/' + id + '?');
+async function removeCatalogEntryUI(catalogKey, id) {
+  const ok = confirm((lang === 'en'
+    ? 'Remove ' + catalogKey + '/' + id + ' from the shared library?\n(Soft-delete — reversible from history.)'
+    : '从共享库删除 ' + catalogKey + '/' + id + '？\n（软删除，可从历史恢复。）'));
   if (!ok) return;
-  removeCatalogEntry(catalogKey, id);
+  removeRemoteEntry(catalogKey, id);   // optimistic
+  removeCatalogEntry(catalogKey, id);  // clear any local copy/tombstone
   saveState();
   renderContent();
+  try {
+    await softDeleteSharedEntry(catalogKey, id);
+    clearLocalOverlayEntry(catalogKey, id);
+    cacheRemote();
+    toast(lang === 'en' ? 'Removed from the shared library' : '已从共享库删除');
+  } catch (e) {
+    console.error(e);
+    toast(lang === 'en' ? 'Removed locally — shared sync failed' : '已本地删除 — 共享同步失败', 'warn');
+  }
 }
 function exportCatalogs() {
-  const json = JSON.stringify(getUserOverlay(), null, 2);
+  // Back up the full effective library (everything currently visible).
+  const snapshot = Object.fromEntries(CATALOG_KEYS.map(k => [k, CATALOGS[k] || {}]));
+  const json = JSON.stringify(snapshot, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1803,22 +1891,50 @@ function importCatalogs() {
   input.type = 'file'; input.accept = 'application/json,.json';
   input.onchange = async () => {
     const f = input.files?.[0]; if (!f) return;
+    const ok = confirm(lang === 'en'
+      ? 'Publish the entries in this file to the shared library (visible to everyone)?'
+      : '把该文件里的条目发布到共享库（所有人可见）？');
+    if (!ok) return;
     try {
-      const txt = await f.text();
-      const parsed = JSON.parse(txt);
-      applyUserOverlay(parsed);
-      saveState();
-      renderContent();
+      const parsed = JSON.parse(await f.text());
+      const n = await bulkUpsertShared(parsed, getAuthor());
+      const remote = await fetchSharedCatalogs();
+      applyRemoteCatalogs(remote); cacheRemote(); renderContent();
+      toast((lang === 'en' ? 'Published ' : '已发布 ') + n + (lang === 'en' ? ' entries to the shared library' : ' 条到共享库'));
     } catch (e) { alert((lang === 'en' ? 'Import failed: ' : '导入失败：') + e.message); }
   };
   input.click();
 }
 function resetCatalogs() {
-  const ok = confirm(lang === 'en' ? 'Reset all catalog edits to baseline?' : '清除所有部件库编辑，恢复出厂数据？');
+  // Only clears THIS browser's local edits; the shared library is untouched.
+  const ok = confirm(lang === 'en'
+    ? 'Clear your local (unsynced) catalog edits? The shared library is not affected.'
+    : '清除本浏览器的本地（未同步）编辑？共享库不受影响。');
   if (!ok) return;
   resetUserOverlay();
   saveState();
   renderContent();
+}
+// One-time migration: publish this browser's local overlay to the shared library.
+async function publishLocalToShared() {
+  const overlay = getUserOverlay();
+  const count = CATALOG_KEYS.reduce((s, k) => s + Object.values(overlay[k] || {}).filter(e => e && !e.__deleted).length, 0);
+  if (!count) { toast(lang === 'en' ? 'No local entries to publish' : '没有本地条目可发布'); return; }
+  const ok = confirm(lang === 'en'
+    ? `Publish your ${count} local component(s) to the shared library so everyone can see them?`
+    : `把你本地的 ${count} 个部件发布到共享库，让所有人都能看到？`);
+  if (!ok) return;
+  try {
+    const n = await bulkUpsertShared(overlay, getAuthor());
+    resetUserOverlay();                 // local now redundant with shared
+    const remote = await fetchSharedCatalogs();
+    applyRemoteCatalogs(remote); cacheRemote();
+    saveState(); renderContent();
+    toast((lang === 'en' ? 'Published ' : '已发布 ') + n + (lang === 'en' ? ' to the shared library' : ' 个到共享库'));
+  } catch (e) {
+    console.error(e);
+    toast(lang === 'en' ? 'Publish failed (offline?)' : '发布失败（离线？）', 'warn');
+  }
 }
 function setBikeComponent(bikeIdx, componentKey, id) {
   const b = state.bikes[bikeIdx];
@@ -2230,9 +2346,10 @@ function linkageReadoutUp(evt) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary, openGuide, openGuideForCurrentPage });
+Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, publishLocalToShared, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary, openGuide, openGuideForCurrentPage });
 
 render();
+initSharedCatalogs();
 </script>
 </body>
 </html>

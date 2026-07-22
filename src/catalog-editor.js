@@ -99,17 +99,18 @@ export function renderCatalogEditor({ catalogKey, lang }) {
 
   const title = lng === 'en' ? 'Component Library' : '部件库';
   const help = lng === 'en'
-    ? 'Edits persist in your browser. Use Export to share or back up.'
-    : '编辑会保存在浏览器本地。使用导出功能可共享或备份。';
+    ? 'Shared library — everything you add or edit is visible to everyone. Removals are soft-deletes (reversible from history).'
+    : '共享库 — 你添加或修改的内容所有人都能看到。删除为软删除（可从历史恢复）。';
 
   return `
     <div class="cat-wrap">
       <div class="cat-header">
         <h1>${escapeHtml(title)}</h1>
         <div class="cat-actions">
+          <button class="cat-btn" onclick="publishLocalToShared()">${escapeHtml(lng === 'en' ? 'Publish local → shared' : '本地 → 共享')}</button>
           <button class="cat-btn" onclick="exportCatalogs()">${escapeHtml(lng === 'en' ? 'Export JSON' : '导出 JSON')}</button>
           <button class="cat-btn" onclick="importCatalogs()">${escapeHtml(lng === 'en' ? 'Import JSON' : '导入 JSON')}</button>
-          <button class="cat-btn cat-btn-warn" onclick="resetCatalogs()">${escapeHtml(lng === 'en' ? 'Reset to baseline' : '重置')}</button>
+          <button class="cat-btn cat-btn-warn" onclick="resetCatalogs()">${escapeHtml(lng === 'en' ? 'Clear local edits' : '清除本地编辑')}</button>
         </div>
       </div>
       <p class="cat-help">${escapeHtml(help)}</p>

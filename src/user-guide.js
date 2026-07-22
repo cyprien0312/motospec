@@ -113,11 +113,11 @@ const STR = {
       'catalogs': {
         h: '部件库（Component Library）',
         body: `
-          <p>4 个分类：chassis、forks、shocks、linkages。每个分类的有效条目 = 基线 JSON ⊕ 用户覆盖层（localStorage）。</p>
+          <p>4 个分类：chassis、forks、shocks、linkages。这是一个<strong>共享库</strong>——所有人看到同一份数据，你新增或修改的条目所有人都能看到。有效条目 = 共享库（Supabase）⊕ 本浏览器的本地未同步编辑。</p>
           <ul>
-            <li>用户覆盖可以：新增条目、覆盖 / 扩展已有条目（specs 字段深度合并）、用墓碑对象（<code>{ __deleted: true }</code>）逻辑删除基线条目</li>
-            <li>「导出 JSON」只导出覆盖层；「导入 JSON」会替换整个覆盖层</li>
-            <li>「重置」清空覆盖层、回到出厂基线</li>
+            <li>新增 / 修改条目会写入共享库；删除是<strong>软删除</strong>（标记 deleted，可从历史恢复），不会硬删数据</li>
+            <li>「本地 → 共享」把本浏览器的旧本地条目发布到共享库；「导入 JSON」把文件里的条目发布到共享库</li>
+            <li>「导出 JSON」备份当前完整库；「清除本地编辑」只清本浏览器未同步的改动，不影响共享库</li>
           </ul>
           <p>注意：<code>data/chassis.json</code> 出厂为空 — chassis 条目完全由 Chassis Setup 页面的「保存为底盘配置」生成。同理 linkage 预设由 Linkage Setup 页面保存。</p>
         `,
@@ -251,11 +251,11 @@ const STR = {
       'catalogs': {
         h: 'Component Library',
         body: `
-          <p>Four catalogs: chassis, forks, shocks, linkages. Effective entries = baseline JSON ⊕ user overlay (localStorage).</p>
+          <p>Four catalogs: chassis, forks, shocks, linkages. This is a <strong>shared library</strong> — everyone sees the same data, and anything you add or edit is visible to everyone. Effective entries = the shared library (Supabase) ⊕ this browser's local unsynced edits.</p>
           <ul>
-            <li>The user overlay can: add new entries, override or extend baseline ones (deep-merge on <code>specs</code>), or tombstone a baseline entry (<code>{ __deleted: true }</code>)</li>
-            <li>"Export JSON" exports just the overlay; "Import JSON" replaces the entire overlay</li>
-            <li>"Reset" wipes the overlay and falls back to the shipped baselines</li>
+            <li>Adding or editing an entry writes to the shared library; removing is a <strong>soft-delete</strong> (flags <code>deleted</code>, reversible from history) — nothing is hard-deleted</li>
+            <li>"Publish local → shared" pushes this browser's old local entries up; "Import JSON" publishes a file's entries to the shared library</li>
+            <li>"Export JSON" backs up the full current library; "Clear local edits" only drops this browser's unsynced changes and leaves the shared library untouched</li>
           </ul>
           <p>Note: <code>data/chassis.json</code> ships empty — chassis entries are populated entirely by "Save chassis profile" on the Chassis Setup page. Linkage presets work the same way (saved from Linkage Setup).</p>
         `,
