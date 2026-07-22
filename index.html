@@ -846,11 +846,11 @@ const P_EN = {
 // ============================================================
 const UI = {
   zh: {
-    dashboard_nav: '📊 仪表盘', dashboard_sub: '公式总览',
-    datatable_nav: '📋 数据表', datatable_sub: '参考车型对照',
-    chassis_nav: '🏗 底盘设置', chassis_sub: '车架几何 · 重心 · 气动',
-    linkage_nav: '🔧 连杆几何', linkage_sub: '后悬挂点位测量',
-    guide_nav: '📖 使用指南', guide_sub: '术语 · 工作流 · FAQ',
+    dashboard_nav: '仪表盘', dashboard_sub: '公式总览',
+    datatable_nav: '数据表', datatable_sub: '参考车型对照',
+    chassis_nav: '底盘设置', chassis_sub: '车架几何 · 重心 · 气动',
+    linkage_nav: '连杆几何', linkage_sub: '后悬挂点位测量',
+    guide_nav: '使用指南', guide_sub: '术语 · 工作流 · FAQ',
     help_tooltip: '查看本页使用指南',
     linkage_kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
     linkage_desc: '所有坐标以摇臂枢轴为原点 (+X 朝前、+Y 朝上、单位 mm)。',
@@ -869,11 +869,11 @@ const UI = {
     drill_hint: '（点击下钻）',
   },
   en: {
-    dashboard_nav: '📊 Dashboard', dashboard_sub: 'Formula reference',
-    datatable_nav: '📋 Data Table', datatable_sub: 'Reference bike comparison',
-    chassis_nav: '🏗 Chassis Setup', chassis_sub: 'Frame · CG · aero',
-    linkage_nav: '🔧 Linkage Setup', linkage_sub: 'Rear suspension geometry',
-    guide_nav: '📖 User Guide', guide_sub: 'Terminology · workflow · FAQ',
+    dashboard_nav: 'Dashboard', dashboard_sub: 'Formula reference',
+    datatable_nav: 'Data Table', datatable_sub: 'Reference bike comparison',
+    chassis_nav: 'Chassis Setup', chassis_sub: 'Frame · CG · aero',
+    linkage_nav: 'Linkage Setup', linkage_sub: 'Rear suspension geometry',
+    guide_nav: 'User Guide', guide_sub: 'Terminology · workflow · FAQ',
     help_tooltip: 'Open this page in the user guide',
     linkage_kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
     linkage_desc: 'All coords use the swingarm pivot as origin (+X forward, +Y up, mm).',
@@ -1962,21 +1962,18 @@ function renderNav() {
   // parameters happens by clicking param chips in the formula cards on
   // the dashboard, or via dependency cards on a parameter's detail page.
   const current = stack[stack.length - 1];
-  // Split a label like "📊 仪表盘" into [icon, text]; first whitespace-delimited
-  // token is treated as the icon glyph for the collapsed sidebar.
-  const splitLabel = (s) => {
-    const m = String(s).match(/^(\S+)\s+(.+)$/);
-    return m ? [m[1], m[2]] : ['•', s];
-  };
+  // Labels are plain text (no emoji). Use the first character as a monogram
+  // glyph for the collapsed sidebar, where the text label is hidden.
   const navItem = (key, primaryLabel, sub, title) => {
-    const [icon, text] = splitLabel(primaryLabel);
+    const text = String(primaryLabel).trim();
+    const icon = [...text][0] || '•';
     const active = current === key ? ' active' : '';
     return `<div class="nav-item dashboard${active}" onclick="navigateRoot('${key}')" title="${escapeHtml(title || text)}">
       <span class="nav-icon">${escapeHtml(icon)}</span>
       <span class="nav-text"><strong>${escapeHtml(text)}</strong><span class="label">${escapeHtml(sub)}</span></span>
     </div>`;
   };
-  const catLabel = lang === 'en' ? '🗂 Component Library' : '🗂 部件库';
+  const catLabel = lang === 'en' ? 'Component Library' : '部件库';
   const catSub   = lang === 'en' ? 'Forks · Shocks · Linkages …' : '前叉 · 避震 · 连杆 …';
   const dashHTML = [
     navItem('__dashboard', T('dashboard_nav'), T('dashboard_sub')),
@@ -2098,7 +2095,7 @@ function renderContent() {
         ? (home === 'chassis' ? 'Chassis Setup' : home === 'linkage' ? 'Linkage Setup' : 'Data Table')
         : (home === 'chassis' ? '底盘设置' : home === 'linkage' ? '连杆几何' : '数据表');
       const editHere = lang === 'en' ? 'Edit on' : '编辑入口：';
-      html += `<div class="footnote">📍 ${escapeHtml(editHere)} <a href="javascript:void(0)" onclick="navigateRoot('${homeNav}')" style="color:var(--channel)">${escapeHtml(homeLabel)}</a></div>`;
+      html += `<div class="footnote">${escapeHtml(editHere)} <a href="javascript:void(0)" onclick="navigateRoot('${homeNav}')" style="color:var(--channel)">${escapeHtml(homeLabel)}</a></div>`;
     }
     html += `<div class="section-title">${escapeHtml(T('param_info'))}</div>`;
     html += `<dl class="info-grid">
@@ -2113,7 +2110,7 @@ function renderContent() {
     </div>`;
 
     if (p.note) {
-      html += `<div class="footnote">📌 ${escapeHtml(tr(id,'note'))}</div>`;
+      html += `<div class="footnote">${escapeHtml(tr(id,'note'))}</div>`;
     }
 
     html += `<div class="section-title">${escapeHtml(T('deps_title'))}</div>`;

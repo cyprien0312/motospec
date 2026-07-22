@@ -115,11 +115,11 @@ const FIELD_LABELS = {
 
 const UI = {
   zh: {
-    title: '🏗 底盘设置',
+    title: '底盘设置',
     kicker: '车架几何 · 质量重心 · 气动分配 · 轮胎',
     desc: '直接输入或从底盘库选择已保存的设定。链接对（前/后重量、前/后气动）会自动同步。',
-    save_profile: '💾 保存为底盘配置',
-    load_profile: '📂 从底盘库加载',
+    save_profile: '保存为底盘配置',
+    load_profile: '从底盘库加载',
     library_placeholder: '— 选择底盘配置 —',
     save_prompt: '为该底盘配置命名（例如 "Yamaha R7 (2022)"）',
     readout_trail: '静态拖曳距',
@@ -128,11 +128,11 @@ const UI = {
     readout_aero_sum: '气动分配总和',
   },
   en: {
-    title: '🏗 Chassis Setup',
+    title: 'Chassis Setup',
     kicker: 'Frame · Mass & CG · Aero · Tire',
     desc: 'Type values directly or load a saved chassis profile from the library. Linked pairs (front/rear weight, front/rear aero) auto-sync.',
-    save_profile: '💾 Save as Chassis Profile',
-    load_profile: '📂 Load from Chassis Library',
+    save_profile: 'Save as Chassis Profile',
+    load_profile: 'Load from Chassis Library',
     library_placeholder: '— pick a chassis profile —',
     save_prompt: 'Name this chassis profile (e.g. "Yamaha R7 (2022)")',
     readout_trail: 'Static Trail',

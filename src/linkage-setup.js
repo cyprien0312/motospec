@@ -273,12 +273,12 @@ export function matchesPlaceholder(values, mode) {
 
 const UI = {
   zh: {
-    nav: '🔧 连杆几何',
+    nav: '连杆几何',
     nav_sub: '后悬挂点位测量',
     title: '连杆几何 / Linkage Setup',
     kicker: '输入实测连杆坐标 → 真实的运动比、渐进性与车高',
-    save_preset: '💾 保存为预设',
-    load_library: '📚 从组件库加载…',
+    save_preset: '保存为预设',
+    load_library: '从组件库加载…',
     load_library_default: '— 选择库中已有连杆 —',
     desc: '所有坐标以摇臂枢轴螺栓中心为原点，+X 朝前（向前轮）、+Y 朝上，单位 mm。图示按右侧视图绘制——车头朝左、+X 在屏幕上向左。占位坐标只为让公式有数值；实测后图示与运动比才有意义。',
     readouts: '实时读数（Live Readouts）',
@@ -311,12 +311,12 @@ const UI = {
     lengths_desc:    '卡尺或直尺量螺栓中心的距离即可。摇臂三角形的两个点（摇臂→避震、摇臂→拉杆）会自动重算。',
   },
   en: {
-    nav: '🔧 Linkage Setup',
+    nav: 'Linkage Setup',
     nav_sub: 'Rear suspension geometry',
     title: 'Linkage Setup',
     kicker: 'Enter measured linkage coords → real Motion Ratio, Progression, ride height',
-    save_preset: '💾 Save as preset',
-    load_library: '📚 Load from Library…',
+    save_preset: 'Save as preset',
+    load_library: 'Load from Library…',
     load_library_default: '— Pick a linkage from the library —',
     desc: 'All coordinates use the swingarm pivot bolt as origin, +X forward (toward the front wheel), +Y up, units mm. The diagram is a right-side view — bike faces left, so +X-forward points left on screen. Placeholder coords just keep the formulas numerical; the diagram and motion ratio only become meaningful once you enter real measurements.',
     readouts: 'Live Readouts',
