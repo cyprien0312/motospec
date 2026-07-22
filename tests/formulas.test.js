@@ -272,16 +272,21 @@ test('Final_Ratio matches Rear_Sprocket / Front_Sprocket for each reference bike
 });
 
 
-test('Front_Wheel_Rate = 2·Front_Spring_Rate / (1/cos(Rake_Static))² (twin springs)', () => {
+test('Front_Wheel_Rate = 2·Front_Spring_Rate · (1/cos(Rake_Static))² (twin springs)', () => {
   const inputs = { ...defaultValues(), Front_Spring_Rate: 9.0, Rake_Static: 24 };
   const out = computeAll(inputs);
-  // Spring rate is per leg (spec-sheet convention), forks carry two springs:
-  // MR_front = 1/cos(24°) ≈ 1.0946; wheel_rate = 2·9 / MR² = 18 · cos²(24°)
-  const expected = 2 * 9.0 * Math.cos(24 * Math.PI / 180) ** 2;
+  // Spring rate is per leg (spec-sheet convention), forks carry two springs.
+  // MR_front = fork travel / wheel travel = 1/cos(24°) ≈ 1.0946. The inclined
+  // fork strokes MORE than the wheel rises, so by the energy identity
+  // K_wheel = K_spring·MR² the wheel rate EXCEEDS the spring rate:
+  //   wheel_rate = 2·9 · MR² = 18 / cos²(24°) ≈ 21.57 N/mm.
+  const expected = 2 * 9.0 / Math.cos(24 * Math.PI / 180) ** 2;
   assert.ok(
     Math.abs(out.Front_Wheel_Rate - expected) < 1e-9,
     `expected ${expected}, got ${out.Front_Wheel_Rate}`
   );
+  // Sanity: wheel rate must be stiffer than the combined spring rate (2·9=18).
+  assert.ok(out.Front_Wheel_Rate > 18, `wheel rate ${out.Front_Wheel_Rate} should exceed 18`);
 });
 
 test('Rear_Wheel_Rate = Rear_Spring_Rate / Motion_Ratio² (energy identity)', () => {

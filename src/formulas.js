@@ -446,8 +446,8 @@ export const P = {
   },
   Front_Wheel_Rate: {
     name:'Front_Wheel_Rate', label:'前轮综合刚度', unit:'N/mm', type:'channel',
-    desc:'前轮综合刚度 (轮端)，双腿弹簧合计。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；Front_Wheel_Rate = 2 × Front_Spring_Rate / MR_front²。Front_Spring_Rate 按单腿弹簧规格（规格表口径），前叉视为双弹簧。',
-    formula: ['2 × ', {ref:'Front_Spring_Rate'}, ' × cos²(', {ref:'Rake_Static'}, ')'],
+    desc:'前轮综合刚度 (轮端)，双腿弹簧合计。MR_front = 1 / cos(Rake_Static) ≈ 1.05–1.10 表示前叉每单位前轮垂直行程的压缩量；前叉行程大于轮端垂直行程，故轮端刚度高于弹簧刚度：Front_Wheel_Rate = 2 × Front_Spring_Rate × MR_front² = 2 × Front_Spring_Rate ÷ cos²(Rake_Static)。Front_Spring_Rate 按单腿弹簧规格（规格表口径），前叉视为双弹簧。',
+    formula: ['2 × ', {ref:'Front_Spring_Rate'}, ' ÷ cos²(', {ref:'Rake_Static'}, ')'],
     deps: ['Front_Spring_Rate', 'Rake_Static']
   },
   Sag_Front_Predicted: {
@@ -685,11 +685,15 @@ export const CALC = {
   },
   // MR_front: fork compression per unit vertical front-wheel travel
   //   = 1 / cos(Rake_Static); typically 1.05–1.10 for sportbikes.
-  // Front_Wheel_Rate = 2·Front_Spring_Rate / MR_front² (energy identity;
-  // Front_Spring_Rate is per leg, forks carry two springs).
+  // Energy identity K_wheel = K_spring·(x_spring/x_wheel)². Here MR_front IS
+  // x_spring/x_wheel (fork travel per wheel travel), so we MULTIPLY by MR²:
+  //   Front_Wheel_Rate = 2·Front_Spring_Rate · MR_front² = 2·Front_Spring_Rate / cos²(Rake_Static).
+  // The inclined fork strokes MORE than the wheel rises, so the wheel rate
+  // exceeds the spring rate (matches Fw force = fork force / cos(rake) above).
+  // Front_Spring_Rate is per leg, forks carry two springs.
   Front_Wheel_Rate: v => {
     const MR_front = 1 / Math.cos(v.Rake_Static * D2R);
-    return 2 * v.Front_Spring_Rate / (MR_front * MR_front);
+    return 2 * v.Front_Spring_Rate * (MR_front * MR_front);
   },
   // Coil-spring static equilibrium with a topout spring: in the topout
   // region both springs act (topout assists compression); past it only
