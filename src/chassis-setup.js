@@ -332,16 +332,16 @@ function renderChassisDiagram(values, lang) {
   const vMargin = (H - mmH * scale) / 2;
   const px = (x) => W - hMargin - (x - minX) * scale;
   const py = (y) => H - vMargin - (y - minY) * scale;
-  const ln = (a, b, stroke = '#cbd5e1', sw = 2, dash = '') =>
+  const ln = (a, b, stroke = '#44515f', sw = 2, dash = '') =>
     `<line x1="${px(a.x).toFixed(1)}" y1="${py(a.y).toFixed(1)}" x2="${px(b.x).toFixed(1)}" y2="${py(b.y).toFixed(1)}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ''} stroke-linecap="round"/>`;
-  const dot = (p, r = 4, fill = '#fbbf24') =>
-    `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="${r}" fill="${fill}" stroke="#1d1d1f" stroke-width="1.2"/>`;
+  const dot = (p, r = 4, fill = '#b45309') =>
+    `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="${r}" fill="${fill}" stroke="#ffffff" stroke-width="1.2"/>`;
   // Halo stroke around every text label so a passing geometry line can never
   // visually cross the glyphs. paint-order: stroke draws the dark halo first,
   // then the fill on top — net effect is a 3-px-wide background outline that
   // matches the canvas bg.
-  const TXT_HALO = 'paint-order:stroke;stroke:#1d1d1f;stroke-width:3px;stroke-linejoin:round';
-  const txt = (p, s, fill = '#cbd5e1', size = 11, anchor = 'middle', dxPx = 0, dyPx = 0) =>
+  const TXT_HALO = 'paint-order:stroke;stroke:#ffffff;stroke-width:3px;stroke-linejoin:round';
+  const txt = (p, s, fill = '#44515f', size = 11, anchor = 'middle', dxPx = 0, dyPx = 0) =>
     `<text x="${(px(p.x) + dxPx).toFixed(1)}" y="${(py(p.y) + dyPx).toFixed(1)}" fill="${fill}" font-size="${size}" text-anchor="${anchor}" font-weight="600" style="${TXT_HALO}">${escapeHtml(s)}</text>`;
 
   // Wheel: simple tire ring + small hub dot. No spokes, no second rim line.
@@ -349,8 +349,8 @@ function renderChassisDiagram(values, lang) {
     const cxp = px(center.x), cyp = py(center.y);
     const Rpx = R * scale;
     return `
-      <circle cx="${cxp.toFixed(1)}" cy="${cyp.toFixed(1)}" r="${Rpx.toFixed(1)}" fill="none" stroke="#cbd5e1" stroke-width="2.5"/>
-      <circle cx="${cxp.toFixed(1)}" cy="${cyp.toFixed(1)}" r="3" fill="#cbd5e1"/>
+      <circle cx="${cxp.toFixed(1)}" cy="${cyp.toFixed(1)}" r="${Rpx.toFixed(1)}" fill="none" stroke="#44515f" stroke-width="2.5"/>
+      <circle cx="${cxp.toFixed(1)}" cy="${cyp.toFixed(1)}" r="3" fill="#44515f"/>
     `;
   };
 
@@ -359,25 +359,25 @@ function renderChassisDiagram(values, lang) {
   const annot = [];
 
   // Ground line
-  annot.push(`<line x1="${px(minX + 100)}" y1="${groundY}" x2="${px(maxX - 100)}" y2="${groundY}" stroke="#5a6878" stroke-width="1" stroke-dasharray="3 4"/>`);
+  annot.push(`<line x1="${px(minX + 100)}" y1="${groundY}" x2="${px(maxX - 100)}" y2="${groundY}" stroke="#44515f" stroke-width="1" stroke-dasharray="3 4"/>`);
 
   // WB dimension
   const wbY = py(-80);
-  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${wbY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1.5"/>`);
-  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${groundY}" x2="${px(g.rearContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(`<line x1="${px(g.frontContact.x)}" y1="${groundY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#2997ff" stroke-width="1" stroke-dasharray="2 3"/>`);
-  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#2997ff', 18, 'middle', 0, -6));
+  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${wbY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#0066cc" stroke-width="1.5"/>`);
+  annot.push(`<line x1="${px(g.rearContact.x)}" y1="${groundY}" x2="${px(g.rearContact.x)}" y2="${wbY}" stroke="#0066cc" stroke-width="1" stroke-dasharray="2 3"/>`);
+  annot.push(`<line x1="${px(g.frontContact.x)}" y1="${groundY}" x2="${px(g.frontContact.x)}" y2="${wbY}" stroke="#0066cc" stroke-width="1" stroke-dasharray="2 3"/>`);
+  annot.push(txt({ x: (g.rearContact.x + g.frontContact.x) / 2, y: -80 }, `WB ${fmt(g.WB, 0)} mm`, '#0066cc', 18, 'middle', 0, -6));
 
   // Rake arc + label (at steering head)
   const rakeArcR = 60;
   const sh = g.steerHead;
   const rakeArc = `
-    <line x1="${px(sh.x)}" y1="${py(sh.y)}" x2="${px(sh.x)}" y2="${py(sh.y) + 80}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 3"/>
-    <line x1="${px(sh.x)}" y1="${py(sh.y)}" x2="${(px(sh.x) - rakeArcR * Math.sin(g.rake)).toFixed(1)}" y2="${(py(sh.y) + rakeArcR * Math.cos(g.rake)).toFixed(1)}" stroke="#f472b6" stroke-width="2"/>
-    <path d="M ${px(sh.x)},${py(sh.y) + rakeArcR} A ${rakeArcR},${rakeArcR} 0 0 0 ${(px(sh.x) - rakeArcR * Math.sin(g.rake)).toFixed(1)},${(py(sh.y) + rakeArcR * Math.cos(g.rake)).toFixed(1)}" fill="none" stroke="#f472b6" stroke-width="1.5"/>
+    <line x1="${px(sh.x)}" y1="${py(sh.y)}" x2="${px(sh.x)}" y2="${py(sh.y) + 80}" stroke="#6e6e73" stroke-width="1" stroke-dasharray="2 3"/>
+    <line x1="${px(sh.x)}" y1="${py(sh.y)}" x2="${(px(sh.x) - rakeArcR * Math.sin(g.rake)).toFixed(1)}" y2="${(py(sh.y) + rakeArcR * Math.cos(g.rake)).toFixed(1)}" stroke="#db2777" stroke-width="2"/>
+    <path d="M ${px(sh.x)},${py(sh.y) + rakeArcR} A ${rakeArcR},${rakeArcR} 0 0 0 ${(px(sh.x) - rakeArcR * Math.sin(g.rake)).toFixed(1)},${(py(sh.y) + rakeArcR * Math.cos(g.rake)).toFixed(1)}" fill="none" stroke="#db2777" stroke-width="1.5"/>
   `;
   annot.push(rakeArc);
-  annot.push(txt({ x: sh.x, y: sh.y }, `${fmt(g.rake / D2R, 1)}°`, '#f472b6', 18, 'start', -16, 56));
+  annot.push(txt({ x: sh.x, y: sh.y }, `${fmt(g.rake / D2R, 1)}°`, '#db2777', 18, 'start', -16, 56));
 
   // Swingarm angle β — vertex at the REAR AXLE (where there's open space and
   // the wheel center is a natural reference). Mirrors the caster-angle indicator
@@ -393,13 +393,13 @@ function renderChassisDiagram(values, lang) {
   // Horizontal reference: from the axle FORWARD (on screen: leftward, since
   // +X-mm maps to −X-screen). Dashed in β colour so it reads as a measurement
   // aid and not a structural member.
-  annot.push(`<line x1="${saxs.toFixed(1)}" y1="${says.toFixed(1)}" x2="${(saxs - betaArcR - 28).toFixed(1)}" y2="${says.toFixed(1)}" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2 3" opacity="0.6"/>`);
+  annot.push(`<line x1="${saxs.toFixed(1)}" y1="${says.toFixed(1)}" x2="${(saxs - betaArcR - 28).toFixed(1)}" y2="${says.toFixed(1)}" stroke="#7c3aed" stroke-width="1" stroke-dasharray="2 3" opacity="0.6"/>`);
   // Arc: from horizontal-forward end (saxs - R, says) sweeping COUNTER-clockwise
   // (sweep flag 0; SVG +Y is down → CCW visual = upward) up to the swingarm
   // direction. End point = axle + R · (axle→pivot unit).
   const arcEndX = saxs + betaArcR * a2pUx;
   const arcEndY = says + betaArcR * a2pUy;
-  annot.push(`<path d="M ${(saxs - betaArcR).toFixed(1)},${says.toFixed(1)} A ${betaArcR},${betaArcR} 0 0 0 ${arcEndX.toFixed(1)},${arcEndY.toFixed(1)}" fill="none" stroke="#a78bfa" stroke-width="1.5"/>`);
+  annot.push(`<path d="M ${(saxs - betaArcR).toFixed(1)},${says.toFixed(1)} A ${betaArcR},${betaArcR} 0 0 0 ${arcEndX.toFixed(1)},${arcEndY.toFixed(1)}" fill="none" stroke="#7c3aed" stroke-width="1.5"/>`);
   // β label inside the wedge: bisect the two ray directions (horizontal-fwd
   // = (-1, 0) and axle→pivot = (a2pUx, a2pUy)) and project outward by labelR.
   let bisectX = -1 + a2pUx, bisectY = 0 + a2pUy;
@@ -408,7 +408,7 @@ function renderChassisDiagram(values, lang) {
   const labelR = betaArcR + 18;
   const betaLabelX = saxs + labelR * bisectX;
   const betaLabelY = says + labelR * bisectY + 4;
-  annot.push(`<text x="${betaLabelX.toFixed(1)}" y="${betaLabelY.toFixed(1)}" fill="#a78bfa" font-size="18" text-anchor="end" font-weight="600" style="${TXT_HALO}">β ${escapeHtml(fmt(g.beta / D2R, 1))}°</text>`);
+  annot.push(`<text x="${betaLabelX.toFixed(1)}" y="${betaLabelY.toFixed(1)}" fill="#7c3aed" font-size="18" text-anchor="end" font-weight="600" style="${TXT_HALO}">β ${escapeHtml(fmt(g.beta / D2R, 1))}°</text>`);
 
   // Swingarm-length callout — placed BELOW the swingarm (opposite side from
   // the chain, which runs above), rotated parallel to the member.
@@ -427,14 +427,14 @@ function renderChassisDiagram(values, lang) {
   const lLabelY = swMidYscr + perpY * lOffsetPx;
   let armAngDeg = Math.atan2(swUy, swUx) * 180 / Math.PI;
   if (armAngDeg > 90 || armAngDeg < -90) armAngDeg += 180;
-  annot.push(`<text x="${lLabelX.toFixed(1)}" y="${lLabelY.toFixed(1)}" fill="#a78bfa" font-size="18" text-anchor="middle" font-weight="600" transform="rotate(${armAngDeg.toFixed(1)}, ${lLabelX.toFixed(1)}, ${lLabelY.toFixed(1)})" style="${TXT_HALO}">L ${escapeHtml(fmt(g.LSA, 0))} mm</text>`);
+  annot.push(`<text x="${lLabelX.toFixed(1)}" y="${lLabelY.toFixed(1)}" fill="#7c3aed" font-size="18" text-anchor="middle" font-weight="600" transform="rotate(${armAngDeg.toFixed(1)}, ${lLabelX.toFixed(1)}, ${lLabelY.toFixed(1)})" style="${TXT_HALO}">L ${escapeHtml(fmt(g.LSA, 0))} mm</text>`);
 
   // H_CG / L_CG annotations only when the CG is actually measured.
   if (g.hasCG) {
-    annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="3 3"/>`);
-    annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#22d3ee', 18, 'start', 6, 4));
-    annot.push(`<line x1="${px(g.rearContact.x)}" y1="${py(-30)}" x2="${px(g.cg.x)}" y2="${py(-30)}" stroke="#22d3ee" stroke-width="1.5"/>`);
-    annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#22d3ee', 18, 'middle', 0, -4));
+    annot.push(`<line x1="${px(g.cg.x)}" y1="${groundY}" x2="${px(g.cg.x)}" y2="${py(g.cg.y)}" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="3 3"/>`);
+    annot.push(txt({ x: g.cg.x, y: g.cg.y / 2 }, `H_CG ${fmt(g.HCG, 0)}`, '#0891b2', 18, 'start', 6, 4));
+    annot.push(`<line x1="${px(g.rearContact.x)}" y1="${py(-30)}" x2="${px(g.cg.x)}" y2="${py(-30)}" stroke="#0891b2" stroke-width="1.5"/>`);
+    annot.push(txt({ x: (g.rearContact.x + g.cg.x) / 2, y: -30 }, `L_CG ${fmt(g.LCG, 0)}`, '#0891b2', 18, 'middle', 0, -4));
   }
 
   // Yoke offset indicator — drawn at the FORK CROWN (steering head), not the
@@ -449,10 +449,10 @@ function renderChassisDiagram(values, lang) {
   const sh_sx = px(sh.x), sh_sy = py(sh.y);
   const ye_sx = px(yokeEnd.x), ye_sy = py(yokeEnd.y);
   // Tick line + small end caps so it reads as a dimension marker.
-  annot.push(`<line x1="${sh_sx.toFixed(1)}" y1="${sh_sy.toFixed(1)}" x2="${ye_sx.toFixed(1)}" y2="${ye_sy.toFixed(1)}" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>`);
+  annot.push(`<line x1="${sh_sx.toFixed(1)}" y1="${sh_sy.toFixed(1)}" x2="${ye_sx.toFixed(1)}" y2="${ye_sy.toFixed(1)}" stroke="#b45309" stroke-width="2" stroke-linecap="round"/>`);
   // End cap dots
-  annot.push(`<circle cx="${sh_sx.toFixed(1)}" cy="${sh_sy.toFixed(1)}" r="2.5" fill="#fbbf24"/>`);
-  annot.push(`<circle cx="${ye_sx.toFixed(1)}" cy="${ye_sy.toFixed(1)}" r="2.5" fill="#fbbf24"/>`);
+  annot.push(`<circle cx="${sh_sx.toFixed(1)}" cy="${sh_sy.toFixed(1)}" r="2.5" fill="#b45309"/>`);
+  annot.push(`<circle cx="${ye_sx.toFixed(1)}" cy="${ye_sy.toFixed(1)}" r="2.5" fill="#b45309"/>`);
   // Label adjacent to the tick midpoint, offset perpendicular to it (in
   // screen coords, on the upper side: negative-Y direction).
   const ymidX = (sh_sx + ye_sx) / 2, ymidY = (sh_sy + ye_sy) / 2;
@@ -464,10 +464,10 @@ function renderChassisDiagram(values, lang) {
   const yoff = 12;
   const yokeLabelX = ymidX + ynx * yoff;
   const yokeLabelY = ymidY + yny * yoff + 4; // +4 baseline correction for font
-  annot.push(`<text x="${yokeLabelX.toFixed(1)}" y="${yokeLabelY.toFixed(1)}" fill="#fbbf24" font-size="18" text-anchor="middle" font-weight="600" style="${TXT_HALO}">Yoke ${escapeHtml(fmt(g.yoke, 0))}</text>`);
+  annot.push(`<text x="${yokeLabelX.toFixed(1)}" y="${yokeLabelY.toFixed(1)}" fill="#b45309" font-size="18" text-anchor="middle" font-weight="600" style="${TXT_HALO}">Yoke ${escapeHtml(fmt(g.yoke, 0))}</text>`);
 
   // Fork position tick on the fork tube
-  annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1"/>`);
+  annot.push(`<circle cx="${px(g.fpTick.x).toFixed(1)}" cy="${py(g.fpTick.y).toFixed(1)}" r="3.5" fill="#b45309" stroke="#ffffff" stroke-width="1"/>`);
 
   // Weight distribution — compact pill in the top-right corner, only when
   // the split has actually been measured (optional field).
@@ -476,38 +476,38 @@ function renderChassisDiagram(values, lang) {
     const wpX = W - wbW - 14, wpY = 14;
     const wbSplitX = wpX + 8 + (wbW - 16) * g.fwd;
     annot.push(`
-      <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(15,20,27,0.85)" stroke="#3a4555" stroke-width="1"/>
-      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#1f2630"/>
-      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#2997ff" opacity="0.85"/>
-      <text x="${wpX + 8}" y="${wpY + 16}" fill="#cbd5e1" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
+      <rect x="${wpX}" y="${wpY}" width="${wbW}" height="${wbH}" rx="6" ry="6" fill="rgba(255,255,255,0.9)" stroke="#c7cbd1" stroke-width="1"/>
+      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${wbW - 16}" height="3" fill="#eceef1"/>
+      <rect x="${wpX + 8}" y="${wpY + wbH - 9}" width="${(wbSplitX - (wpX + 8)).toFixed(1)}" height="3" fill="#0066cc" opacity="0.85"/>
+      <text x="${wpX + 8}" y="${wpY + 16}" fill="#44515f" font-size="12" font-weight="700" style="${TXT_HALO}">F ${fmt(g.fwd * 100, 0)}% · R ${fmt((1 - g.fwd) * 100, 0)}%</text>
     `);
   }
 
   return `
     <svg class="chassis-diagram" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
          aria-label="${lang === 'en' ? 'Sport-bike side-view with annotated chassis fields' : '运动车侧视图与车架标注'}">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #1d1d1f)"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #ffffff)"/>
       ${annot.join('\n')}
       <!-- swingarm -->
-      ${ln(g.swingPivot, g.rearAxle, '#cbd5e1', 4)}
+      ${ln(g.swingPivot, g.rearAxle, '#44515f', 4)}
       <!-- forks -->
-      ${ln(g.forkTop, g.forkBottom, '#cbd5e1', 4)}
+      ${ln(g.forkTop, g.forkBottom, '#44515f', 4)}
       <!-- frame skeleton: steering head → swingarm pivot -->
-      ${ln(g.steerHead, g.swingPivot, '#cbd5e1', 1.6, '4 4')}
+      ${ln(g.steerHead, g.swingPivot, '#44515f', 1.6, '4 4')}
       <!-- wheels -->
       ${wheel(g.frontAxle, g.Rf)}
       ${wheel(g.rearAxle,  g.Rr)}
       <!-- chain: drawn only when the front sprocket position is measured -->
       ${g.hasChain ? `
-      <circle cx="${px(g.frontSprocket.x).toFixed(1)}" cy="${py(g.frontSprocket.y).toFixed(1)}" r="${(g.rSprF * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
-      <circle cx="${px(g.rearSprocket.x).toFixed(1)}"  cy="${py(g.rearSprocket.y).toFixed(1)}"  r="${(g.rSprR * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#84cc16" stroke-width="1.5"/>
-      ${ln(g.chainTop1, g.chainTop2, '#84cc16', 2)}
-      ${ln(g.chainBot1, g.chainBot2, '#84cc16', 1.6, '4 3')}
-      ${dot(g.frontSprocket, 2.5, '#84cc16')}` : ''}
+      <circle cx="${px(g.frontSprocket.x).toFixed(1)}" cy="${py(g.frontSprocket.y).toFixed(1)}" r="${(g.rSprF * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#15803d" stroke-width="1.5"/>
+      <circle cx="${px(g.rearSprocket.x).toFixed(1)}"  cy="${py(g.rearSprocket.y).toFixed(1)}"  r="${(g.rSprR * scale).toFixed(1)}" fill="rgba(132,204,22,0.10)" stroke="#15803d" stroke-width="1.5"/>
+      ${ln(g.chainTop1, g.chainTop2, '#15803d', 2)}
+      ${ln(g.chainBot1, g.chainBot2, '#15803d', 1.6, '4 3')}
+      ${dot(g.frontSprocket, 2.5, '#15803d')}` : ''}
       <!-- key dots: swingarm pivot, CG (when measured), steering head -->
-      ${dot(g.swingPivot, 4, '#a78bfa')}
-      ${g.hasCG ? dot(g.cg, 5, '#22d3ee') + txt(g.cg, 'CG', '#22d3ee', 18, 'start', 8, -4) : ''}
-      ${dot(g.steerHead, 4, '#f472b6')}
+      ${dot(g.swingPivot, 4, '#7c3aed')}
+      ${g.hasCG ? dot(g.cg, 5, '#0891b2') + txt(g.cg, 'CG', '#0891b2', 18, 'start', 8, -4) : ''}
+      ${dot(g.steerHead, 4, '#db2777')}
     </svg>
   `;
 }

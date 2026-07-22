@@ -26,7 +26,7 @@
     --channel: #c2410c;       /* semantic data colors, recalibrated for light */
     --intermediate: #7c3aed;
     --input: #15803d;
-    --formula-bg: #1d1d1f;    /* the dark tile */
+    --formula-bg: #ffffff;    /* unified white tile (matches --panel) */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -170,8 +170,8 @@
     text-transform: uppercase; margin-top: 28px; margin-bottom: 12px;
   }
   .formula-box {
-    /* Dark tile on the light page — no border, the surface change IS the frame. */
-    background: var(--formula-bg); border: none; color: #f5f5f7;
+    /* White tile with a hairline, matching every other card on the page. */
+    background: var(--formula-bg); border: 1px solid var(--border); color: var(--text);
     border-radius: 18px; padding: 24px 28px; font-size: 19px;
     font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, Menlo, monospace;
     line-height: 2.2; word-spacing: 2px; overflow-x: auto;
@@ -217,7 +217,7 @@
   .bike-svg {
     width: 100%; max-width: 760px; height: auto;
     background: var(--formula-bg);
-    border: none; border-radius: 18px;
+    border: 1px solid var(--border); border-radius: 18px;
     display: block; margin-bottom: 6px;
   }
   .diagram-note { font-size: 12px; color: var(--text-dim); margin-top: 2px; padding-left: 4px; }
@@ -284,8 +284,7 @@
   .formula-card-body  { font-family: "SF Mono", Monaco, monospace; font-size: 13px; line-height: 1.7; color: var(--text); word-break: break-word; }
   .formula-line { display: block; margin: 2px 0; }
   .formula-line.formula-line-aux { color: var(--text-dim); font-size: 0.92em; padding-left: 12px; border-left: 2px solid var(--border); margin-top: 6px; }
-  /* On-dark variants inside the formula tile */
-  .formula-box .formula-line-aux { color: #a1a1a6; border-left-color: #3a3a3c; }
+  .formula-box .formula-line-aux { color: var(--text-dim); border-left-color: var(--border); }
 
   .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
   .preset-btn {
@@ -348,7 +347,7 @@
 .chassis-page { max-width: none; }
 .chassis-desc { color: var(--text-dim, #94a3b8); font-size: 13px; margin: 6px 0 14px; }
 .chassis-readout-strip { margin-bottom: 14px; }
-.chassis-diagram-wrap { background: var(--formula-bg); border: none; border-radius: 18px; padding: 8px; margin-bottom: 14px; }
+.chassis-diagram-wrap { background: var(--formula-bg); border: 1px solid var(--border); border-radius: 18px; padding: 8px; margin-bottom: 14px; }
 .chassis-diagram { width: 100%; height: auto; display: block; }
 .chassis-actions { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
 .chassis-library { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 9999px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
@@ -610,18 +609,18 @@ table.cat-table tr.cat-add-row { background: rgba(0,102,204,0.04); }
 .linkage-readout-val { color: var(--text); font-size: 20px; font-weight: 600; margin-top: 2px; }
 .linkage-svg {
   width: 100%; max-width: none; height: auto;
-  background: var(--formula-bg); border: none;
+  background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 18px; display: block;
 }
 .linkage-chart-wrap { margin: 8px 0 14px 0; }
 .linkage-chart {
   width: 100%; max-width: none; height: auto;
-  background: var(--formula-bg); border: none;
+  background: var(--formula-bg); border: 1px solid var(--border);
   border-radius: 18px; display: block;
 }
 .linkage-chart-empty {
-  background: var(--formula-bg); border: none;
-  border-radius: 18px; padding: 18px; color: #a1a1a6;
+  background: var(--formula-bg); border: 1px solid var(--border);
+  border-radius: 18px; padding: 18px; color: var(--text-dim);
   font-size: 13px; text-align: center;
 }
 .linkage-points-grid {
@@ -944,7 +943,7 @@ applySidebarState();
 // 几何图示：将参数标注在简化的车架线条图上
 // ============================================================
 // Diagram palette — drawn on the dark tile, so these stay the bright on-dark hues.
-const SC = { base:'#5a6878', ground:'#3a4555', hi:'#2997ff', hi2:'#ff8c5a', hi3:'#c084fc', hi4:'#4ade80' };
+const SC = { base:'#44515f', ground:'#c7cbd1', hi:'#0066cc', hi2:'#c2410c', hi3:'#7c3aed', hi4:'#15803d' };
 const BIKE = {
   W: 760, H: 380, groundY: 340,
   rearAxle:  { x: 195, y: 280 },
@@ -966,7 +965,7 @@ function cgMarker(x, y, color) {
   const c = color || SC.hi2;
   const r = 8;
   return `<g transform="translate(${x},${y})">
-    <circle r="${r}" fill="#0c1116" stroke="${c}" stroke-width="1.5"/>
+    <circle r="${r}" fill="#ffffff" stroke="${c}" stroke-width="1.5"/>
     <path d="M 0,-${r} A ${r} ${r} 0 0 1 ${r},0 L 0,0 Z" fill="${c}"/>
     <path d="M 0,${r} A ${r} ${r} 0 0 1 -${r},0 L 0,0 Z" fill="${c}"/>
   </g>`;
@@ -1323,8 +1322,8 @@ DIAGRAMS.Anti_Squat = () => {
     <text x="${(rc.x+cg.x)/2-15}" y="${(rc.y+cg.y)/2+18}" fill="${SC.hi2}" font-size="13" font-style="italic" font-family="serif">θ_CG</text>
     <text x="${rc.x+95}" y="${rc.y-32}" fill="${SC.hi3}" font-size="13" font-style="italic" font-family="serif">θ_Thrust</text>
     <circle cx="${rc.x}" cy="${rc.y}" r="3.5" fill="${SC.hi2}"/>
-    <text x="${rc.x-65}" y="${rc.y+18}" fill="#bbb" font-size="10" opacity="0.7">Rear contact</text>
-    <text x="${rc.x+10}" y="${rc.y+34}" fill="#aaa" font-size="11" opacity="0.85">AS = tan(θ_Thrust) / tan(θ_CG) × 100%</text>`;
+    <text x="${rc.x-65}" y="${rc.y+18}" fill="#6e6e73" font-size="10" opacity="0.7">Rear contact</text>
+    <text x="${rc.x+10}" y="${rc.y+34}" fill="#6e6e73" font-size="11" opacity="0.85">AS = tan(θ_Thrust) / tan(θ_CG) × 100%</text>`;
 };
 
 // ============================================================

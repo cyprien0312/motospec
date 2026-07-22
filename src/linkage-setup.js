@@ -440,15 +440,15 @@ function renderMotionRatioChart(values, lang) {
     const frac = (mrV - mrYMin) / (mrYMax - mrYMin);
     const y = sy(frac);
     const wrV = wrYMin + frac * (wrYMax - wrYMin);
-    grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#2a3340" stroke-width="1"/>`;
-    grid += `<text x="${padL - 6}" y="${y + 4}" fill="#5a6878" font-size="16" text-anchor="end">${mrV.toFixed(1)}</text>`;
-    grid += `<text x="${W - padR + 6}" y="${y + 4}" fill="#5a6878" font-size="16" text-anchor="start">${wrV.toFixed(1)}</text>`;
+    grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eceef1" stroke-width="1"/>`;
+    grid += `<text x="${padL - 6}" y="${y + 4}" fill="#44515f" font-size="16" text-anchor="end">${mrV.toFixed(1)}</text>`;
+    grid += `<text x="${W - padR + 6}" y="${y + 4}" fill="#44515f" font-size="16" text-anchor="start">${wrV.toFixed(1)}</text>`;
   }
   const xTickStart = Math.ceil(xMin / X_STEP_MM) * X_STEP_MM;
   for (let v = xTickStart; v <= xMax + 1e-9; v += X_STEP_MM) {
     const x = sx(v);
-    grid += `<line x1="${x}" y1="${H - padB}" x2="${x}" y2="${H - padB + 3}" stroke="#5a6878" stroke-width="1"/>`;
-    grid += `<text x="${x}" y="${H - padB + 20}" fill="#5a6878" font-size="16" text-anchor="middle">${v.toFixed(0)}</text>`;
+    grid += `<line x1="${x}" y1="${H - padB}" x2="${x}" y2="${H - padB + 3}" stroke="#44515f" stroke-width="1"/>`;
+    grid += `<text x="${x}" y="${H - padB + 20}" fill="#44515f" font-size="16" text-anchor="middle">${v.toFixed(0)}</text>`;
   }
 
   // Axis titles
@@ -456,10 +456,10 @@ function renderMotionRatioChart(values, lang) {
   const yTitleL = lang === 'en' ? 'Motion Ratio (wheel/shock)' : '运动比 (轮/避震)';
   const yTitleR = lang === 'en' ? 'Wheel Rate (N/mm)' : '后轮综合刚度 (N/mm)';
   const axisTitles = `
-    <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#94a3b8" font-size="16" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
-    <text x="14" y="${(H + padT - padB) / 2}" fill="#2997ff" font-size="16" text-anchor="middle" font-weight="600"
+    <text x="${(W - padR + padL) / 2}" y="${H - 4}" fill="#6e6e73" font-size="16" text-anchor="middle" font-weight="600">${escapeHtml(xTitle)}</text>
+    <text x="14" y="${(H + padT - padB) / 2}" fill="#0066cc" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(-90, 14, ${(H + padT - padB) / 2})">${escapeHtml(yTitleL)}</text>
-    <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#f472b6" font-size="16" text-anchor="middle" font-weight="600"
+    <text x="${W - 14}" y="${(H + padT - padB) / 2}" fill="#db2777" font-size="16" text-anchor="middle" font-weight="600"
           transform="rotate(90, ${W - 14}, ${(H + padT - padB) / 2})">${escapeHtml(yTitleR)}</text>
   `;
 
@@ -491,10 +491,10 @@ function renderMotionRatioChart(values, lang) {
   // Legend
   const legend = `
     <g font-size="16" font-weight="600">
-      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 32}" y2="${padT + 8}" stroke="#2997ff" stroke-width="2.6"/>
-      <text x="${padL + 38}" y="${padT + 13}" fill="#2997ff">MR</text>
-      <line x1="${padL + 80}" y1="${padT + 8}" x2="${padL + 106}" y2="${padT + 8}" stroke="#f472b6" stroke-width="2.6" stroke-dasharray="5 3"/>
-      <text x="${padL + 112}" y="${padT + 13}" fill="#f472b6">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
+      <line x1="${padL + 6}" y1="${padT + 8}" x2="${padL + 32}" y2="${padT + 8}" stroke="#0066cc" stroke-width="2.6"/>
+      <text x="${padL + 38}" y="${padT + 13}" fill="#0066cc">MR</text>
+      <line x1="${padL + 80}" y1="${padT + 8}" x2="${padL + 106}" y2="${padT + 8}" stroke="#db2777" stroke-width="2.6" stroke-dasharray="5 3"/>
+      <text x="${padL + 112}" y="${padT + 13}" fill="#db2777">${lang === 'en' ? 'Wheel Rate' : '轮刚度'}</text>
     </g>
   `;
 
@@ -507,18 +507,18 @@ function renderMotionRatioChart(values, lang) {
          data-wr-y-min="${wrYMin.toFixed(3)}" data-wr-y-max="${wrYMax.toFixed(3)}"
          data-samples='${blob}'
          style="touch-action: none;">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #1d1d1f)"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="var(--formula-bg, #ffffff)"/>
       ${grid}
       <path d="${mrArea}" fill="rgba(78,161,255,0.14)" stroke="none"/>
-      <polyline points="${mrPts}" fill="none" stroke="#2997ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-      <polyline points="${wrPts}" fill="none" stroke="#f472b6" stroke-width="2.2" stroke-dasharray="5 3" stroke-linejoin="round" stroke-linecap="round"/>
-      <line id="linkage-readout-vline" x1="${x0.toFixed(1)}" y1="${padT}" x2="${x0.toFixed(1)}" y2="${H - padB}" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
-      <circle id="linkage-readout-dot-mr" cx="${x0.toFixed(1)}" cy="${y0mr.toFixed(1)}" r="6" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1.8" style="cursor: ew-resize;"/>
-      <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#fbbf24" stroke="#1d1d1f" stroke-width="1.8" style="cursor: ew-resize;"/>
+      <polyline points="${mrPts}" fill="none" stroke="#0066cc" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${wrPts}" fill="none" stroke="#db2777" stroke-width="2.2" stroke-dasharray="5 3" stroke-linejoin="round" stroke-linecap="round"/>
+      <line id="linkage-readout-vline" x1="${x0.toFixed(1)}" y1="${padT}" x2="${x0.toFixed(1)}" y2="${H - padB}" stroke="#b45309" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+      <circle id="linkage-readout-dot-mr" cx="${x0.toFixed(1)}" cy="${y0mr.toFixed(1)}" r="6" fill="#b45309" stroke="#ffffff" stroke-width="1.8" style="cursor: ew-resize;"/>
+      <circle id="linkage-readout-dot-wr" cx="${x0.toFixed(1)}" cy="${y0wr.toFixed(1)}" r="5" fill="#b45309" stroke="#ffffff" stroke-width="1.8" style="cursor: ew-resize;"/>
       ${axisTitles}
       ${legend}
-      <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#fbbf24" font-size="16" font-weight="700">${escapeHtml(readoutText)}</text>
-      <text x="${W - padR - 4}" y="${padT - 12}" fill="#cbd5e1" font-size="16" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
+      <text id="linkage-readout-text" x="${padL + 4}" y="${H - padB - 6}" fill="#b45309" font-size="16" font-weight="700">${escapeHtml(readoutText)}</text>
+      <text x="${W - padR - 4}" y="${padT - 12}" fill="#44515f" font-size="16" text-anchor="end" font-weight="600">${escapeHtml(progText)}</text>
       <rect x="${padL}" y="${padT}" width="${(W - padL - padR).toFixed(0)}" height="${(H - padT - padB).toFixed(0)}"
             fill="transparent" style="cursor: ew-resize;"
             onpointerdown="linkageReadoutDown(event)"
@@ -593,7 +593,7 @@ function renderTopologySVG(values, mode = 'linked') {
   // Coordinate axes anchored at swingarm pivot (origin).
   const axisLenPx = 60;
   const axesGroup = `
-    <g class="lk-axes" stroke="#5a6878" fill="#5a6878" font-size="11">
+    <g class="lk-axes" stroke="#44515f" fill="#44515f" font-size="11">
       <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.pivot.x - axisLenPx}" y2="${P.pivot.y}" marker-end="url(#lk-arrow)"/>
       <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.pivot.x}" y2="${P.pivot.y - axisLenPx}" marker-end="url(#lk-arrow)"/>
       <text x="${P.pivot.x - axisLenPx - 4}" y="${P.pivot.y + 4}" text-anchor="end">+X (fwd)</text>
@@ -604,20 +604,20 @@ function renderTopologySVG(values, mode = 'linked') {
   const backdrop = `
     <defs>
       <marker id="lk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-        <path d="M0,0 L10,5 L0,10 Z" fill="#5a6878"/>
+        <path d="M0,0 L10,5 L0,10 Z" fill="#44515f"/>
       </marker>
       <pattern id="lk-frame-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="1.4"/>
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#6e6e73" stroke-width="1.4"/>
       </pattern>
       <pattern id="lk-swg-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6" stroke="#4ade80" stroke-width="1.4"/>
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#15803d" stroke-width="1.4"/>
       </pattern>
     </defs>
-    <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#3a4555" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <text x="${W-30}" y="${groundY-6}" fill="#5a6878" font-size="11" text-anchor="end">ground (reference)</text>
+    <line x1="20" y1="${groundY}" x2="${W-20}" y2="${groundY}" stroke="#c7cbd1" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="${W-30}" y="${groundY-6}" fill="#44515f" font-size="11" text-anchor="end">ground (reference)</text>
   `;
 
-  const cSwg = '#5a6878', cSwgLink = '#4ade80', cDrag = '#c084fc', cRock = '#2997ff', cShock = '#ff8c5a';
+  const cSwg = '#44515f', cSwgLink = '#15803d', cDrag = '#7c3aed', cRock = '#0066cc', cShock = '#c2410c';
   // Mode-aware colors for the two points whose host body changes.
   // Linked: rocker pivot is FRAME-fixed (cRock), drag-to-swingarm is on the SWINGARM (cSwgLink).
   // Pro-link: rocker pivot is on the SWINGARM (cSwgLink), drag-to-frame is FRAME-fixed (cRock).
@@ -640,14 +640,14 @@ function renderTopologySVG(values, mode = 'linked') {
   // this bolt does NOT move with the swingarm.
   const groundHatch = (p, r = 14) => `
     <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#lk-frame-hatch)" opacity="0.45"/>
-    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#6e6e73" stroke-width="1" stroke-dasharray="3,2"/>
   `;
   // Same idea but tinted swingarm-green: marks a fixed bolt on the swingarm
   // body (its XY relative to the swingarm pivot is user-input and constant,
   // even though the world position rotates with the swingarm).
   const swingarmHatch = (p, r = 14) => `
     <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="url(#lk-swg-hatch)" opacity="0.45"/>
-    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#15803d" stroke-width="1" stroke-dasharray="3,2"/>
   `;
 
   const lines = `
@@ -664,7 +664,7 @@ function renderTopologySVG(values, mode = 'linked') {
     <!-- shock body -->
     <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="${cShock}" stroke-width="5" stroke-linecap="round"/>
     <!-- shock spring coil hint -->
-    <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#fff5" stroke-width="1" stroke-dasharray="2,4"/>
+    <line x1="${P.rShock.x}" y1="${P.rShock.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#c7cbd1" stroke-width="1" stroke-dasharray="2,4"/>
   `;
 
   // Anchor hatches (drawn under the dots) — gray for frame-fixed, green
@@ -676,14 +676,14 @@ function renderTopologySVG(values, mode = 'linked') {
   `;
 
   const dot = (p, color, r = 5) =>
-    `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#1d1d1f" stroke-width="1.5"/>`;
+    `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>`;
 
   // Tiny numeric tag next to each dot — keyed to the legend in the top-right.
   const tag = (p, n, color, dx = 7, dy = -7) =>
-    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#1d1d1f;stroke-width:3px;">${n}</text>`;
+    `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#ffffff;stroke-width:3px;">${n}</text>`;
 
   const points = `
-    ${dot(P.pivot, '#e6edf3', 6)}      ${tag(P.pivot,    '①', '#e6edf3')}
+    ${dot(P.pivot, '#1d1d1f', 6)}      ${tag(P.pivot,    '①', '#1d1d1f')}
     ${dot(P.rearAxle, cSwg, 6)}        ${tag(P.rearAxle, '②', cSwg)}
     ${dot(P.fRocker, cRockerPivot)}    ${tag(P.fRocker,  '③', cRockerPivot)}
     ${dot(P.rShock, cRock)}            ${tag(P.rShock,   '④', cRock)}
@@ -694,7 +694,7 @@ function renderTopologySVG(values, mode = 'linked') {
 
   // Legend in the top-right corner — color swatches keyed to the numbered tags.
   const legendItems = [
-    { n: '①', color: '#e6edf3', text: 'swingarm pivot (origin)' },
+    { n: '①', color: '#1d1d1f', text: 'swingarm pivot (origin)' },
     { n: '②', color: cSwg,      text: 'rear axle' },
     { n: '③', color: cRockerPivot, text: proLink ? 'rocker pivot (on swingarm)' : 'frame rocker pivot' },
     { n: '④', color: cRock,     text: 'rocker → shock' },
@@ -707,13 +707,13 @@ function renderTopologySVG(values, mode = 'linked') {
   const legend = `
     <g class="lk-legend">
       <rect x="${legX}" y="${legY}" width="${legW}" height="${legH}" rx="6" ry="6"
-            fill="rgba(12,17,22,0.78)" stroke="#3a4555" stroke-width="1"/>
+            fill="rgba(255,255,255,0.92)" stroke="#c7cbd1" stroke-width="1"/>
       ${legendItems.map((it, i) => {
         const cy = legY + 18 + i * 18;
         return `
-          <circle cx="${legX + 14}" cy="${cy - 4}" r="4.5" fill="${it.color}" stroke="#1d1d1f" stroke-width="1"/>
+          <circle cx="${legX + 14}" cy="${cy - 4}" r="4.5" fill="${it.color}" stroke="#ffffff" stroke-width="1"/>
           <text x="${legX + 26}" y="${cy}" fill="${it.color}" font-size="11" font-weight="700">${it.n}</text>
-          <text x="${legX + 44}" y="${cy}" fill="#cbd5e1" font-size="11">${escapeHtml(it.text)}</text>
+          <text x="${legX + 44}" y="${cy}" fill="#44515f" font-size="11">${escapeHtml(it.text)}</text>
         `;
       }).join('')}
     </g>
@@ -721,10 +721,10 @@ function renderTopologySVG(values, mode = 'linked') {
 
   // Mode-name caption inside the SVG so the diagram is self-describing.
   const modeCaption = `
-    <text x="20" y="${H - 14}" fill="#94a3b8" font-size="12" font-weight="700">
+    <text x="20" y="${H - 14}" fill="#6e6e73" font-size="12" font-weight="700">
       ${escapeHtml(proLink ? 'Mode: Pro-Link (rocker on swingarm)' : 'Mode: Linked (rocker on frame)')}
     </text>
-    <text x="20" y="${H - 30}" fill="#5a6878" font-size="10">
+    <text x="20" y="${H - 30}" fill="#44515f" font-size="10">
       ${escapeHtml('hatched points = frame-fixed; green dashed line = swingarm body')}
     </text>
   `;
