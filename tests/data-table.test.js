@@ -164,10 +164,10 @@ test('NaN computed cells render as em-dash', () => {
   assert.match(html, /—/);
 });
 
-test('every ROW_GROUPS row has at least one of input/computed/component/literal/derivedFrom', () => {
+test('every ROW_GROUPS row has at least one of input/computed/component/literal/derivedFrom/enum', () => {
   for (const g of ROW_GROUPS) for (const r of g.rows) {
     const has = r.input != null || r.computed != null || r.component != null
-             || r.literal != null || r.derivedFrom != null;
+             || r.literal != null || r.derivedFrom != null || r.enum != null;
     assert.ok(has, `row "${r.spec}" has no value source`);
   }
 });

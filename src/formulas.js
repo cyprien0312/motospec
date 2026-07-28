@@ -5,6 +5,7 @@
 import {
   motionRatio, progression,
   rearVerticalTravel,
+  shockLength,
   swingarmDeltaForShockTravel,
 } from './linkage.js';
 
@@ -244,6 +245,8 @@ export const P = {
     desc:'当前后胎相对基线胎的受载滚动半径差（正 = 更高 = 车尾抬高 → Rake 减小）。0 = 同款胎。只进入姿态俯仰链（后轴垂直位置），不改变摇臂-连杆几何。', source:'两胎受载轴心离地高实测差值', typical:'−10 – +10 mm' },
   Shock_Stroke:         { name:'Shock_Stroke',         label:'后避震行程', unit:'mm', type:'input',
     desc:'后避震杆的最大压缩行程（全伸展到打底）。定义 Progression 的"全避震行程"扫描范围——与真实 MotoSPEC 的 Full Shock Travel 一致。', source:'避震规格表', typical:'55 – 65 mm' },
+  Fork_Stroke:          { name:'Fork_Stroke',          label:'前叉行程', unit:'mm', type:'input',
+    desc:'前叉的最大压缩行程（全伸展到金属对金属打底），沿叉轴量。口径与真实 MotoSPEC 的 Fork Stroke 一致：bump rubber 高度包含在行程内，不另外扣除。用于把前 sag 换算成行程百分比。', source:'前叉规格表或实测', typical:'110 – 130 mm（运动车）' },
   Swingarm_Length_ref:  { name:'Swingarm_Length_ref',  label:'参考摇臂长度', unit:'mm', type:'input',
     desc:'测量 WB / Rake_Static 时的摇臂枢轴→后轮轴距离。链条张紧器调轴后只改 Swingarm_Length，轴距与姿态变化由差量自动算出——WB 不再手改。', source:'测量 WB 时记录', typical:'520 – 600 mm' },
   Yoke_Offset_ref:      { name:'Yoke_Offset_ref',      label:'参考三星台偏移', unit:'mm', type:'input',
@@ -417,13 +420,13 @@ export const P = {
   },
   Rear_Ride_Height: {
     name:'Rear_Ride_Height', label:'后部车高参考', unit:'mm', type:'intermediate',
-    desc:'当前载荷状态下后轮轴心相对摇臂枢轴的有符号垂直坐标（轮在枢轴下方为负）。shock 差量把摇臂顶离水平、后 sag 把摇臂转回水平，两者都进入求值角。',
+    desc:'从穿过摇臂枢轴的水平线量到后轮轴心的垂直距离（轮在枢轴下方为负）——即真实 MotoSPEC 的 Vertical Pivot-Axle。"水平"是对地的，所以这里用的是**对地**摇臂角（含底盘俯仰），与 Swingarm_Angle 同一个角。',
     formula: [
-      ['− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ' + ', {ref:'swingarm_delta_solve'}, ' + ', {ref:'delta_beta_sag'}, ' × (180/π))'],
-      ['静态简化 (Sag_Rear=0, RHA=0, ΔShock=0):  − ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ')'],
+      ['− ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'Swingarm_Angle'}, ')'],
+      ['静态简化 (Sag=0, RHA=0, ΔShock=0):  − ', {ref:'Swingarm_Length'}, ' × sin(', {ref:'beta_static'}, ')'],
     ],
-    deps: ['Swingarm_Length', 'beta_static', 'swingarm_delta_solve', 'delta_beta_sag'],
-    note: 'shock 加长（RHA / ΔShock > 0）→ 摇臂转得更远离水平 → 该值更负，实际车尾抬高；后 sag 压缩反向。点开 swingarm_delta_solve 看 Δβ 的完整反解算法。'
+    deps: ['Swingarm_Length', 'Swingarm_Angle'],
+    note: 'shock 加长（RHA / ΔShock > 0）→ 摇臂转得更远离水平 → 该值更负，实际车尾抬高；后 sag 压缩反向。**必须用对地角**：漏掉底盘俯仰项在 120 mm 前叉行程处会差 44 mm（由真实 MotoSPEC 输出比对发现，见 tests/motospec-oracle.test.js）。'
   },
   Rear_Wheel_Vertical_Travel: {
     name:'Rear_Wheel_Vertical_Travel', label:'后轮垂直行程', unit:'mm', type:'intermediate',
@@ -481,6 +484,112 @@ export const P = {
     ],
     note: '平衡点超出 Shock_Stroke（打底）→ NaN。与 LOAD CASE 实测值对比即弹簧刚度诊断。'
   },
+  // ===== Anti-Squat 的四种表达（同一个物理量，四种读法）=====
+  Load_Transfer_Angle: {
+    name:'Load_Transfer_Angle', label:'载荷转移角', unit:'deg', type:'channel',
+    desc:'后轮接地点看向重心的仰角，即 Anti_Squat 的分母角。它就是"100% / 中性"那条线：驱动推力角正好等于它时，几何抗蹲与载荷转移互相抵消。随重心与姿态变化，不是常数。',
+    formula: [{ref:'theta_cg'}, ' × (180/π)'],
+    deps: ['theta_cg'],
+    note: '⚠ 定义待核对：真实 MotoSPEC 的帮助手册把这条线描述为由"重心高度与轴距"构成，而我们用的是重心到后轴的水平距离 L_CG。两种定义在文献里都存在，且我们的 Anti_Squat 百分比一直用的是后者——把它显式列出来，正是为了拿到带重心的 oracle 截图后能逐项对齐。见 docs/research/motospec-v5-teardown.md §2.3。'
+  },
+  AntiSquat_Angle: {
+    name:'AntiSquat_Angle', label:'抗蹲角', unit:'deg', type:'channel',
+    desc:'驱动推力线相对水平面的角度（链条拉力与摇臂线的合成方向）。与载荷转移角相等时抗蹲恰好 100%。',
+    formula: [{ref:'theta_thrust'}, ' × (180/π)'],
+    deps: ['theta_thrust'],
+  },
+  AntiSquat_Angle_Delta: {
+    name:'AntiSquat_Angle_Delta', label:'抗蹲角差', unit:'deg', type:'channel',
+    desc:'抗蹲角 − 载荷转移角。0 = 中性；正 = 抗蹲；负 = 促蹲。用一个数代替两个角的对比。',
+    formula: [{ref:'AntiSquat_Angle'}, ' − ', {ref:'Load_Transfer_Angle'}],
+    deps: ['AntiSquat_Angle', 'Load_Transfer_Angle'],
+  },
+  Anti_Squat_Delta: {
+    name:'Anti_Squat_Delta', label:'抗蹲偏差', unit:'%', type:'channel',
+    desc:'抗蹲百分比 − 100。中性基准变成 0，正 = 抗蹲、负 = 促蹲。数据采集软件的横线默认画在 0，所以零基准表达更好读。',
+    formula: [{ref:'Anti_Squat'}, ' − 100'],
+    deps: ['Anti_Squat'],
+    note: '97.3% 抗蹲 = −2.7% 抗蹲偏差。'
+  },
+  Motion_Ratio_Shock_Wheel: {
+    name:'Motion_Ratio_Shock_Wheel', label:'运动比 (避震/轮)', unit:'—', type:'channel',
+    desc:'Motion_Ratio 的倒数——每单位后轮垂直行程对应的避震行程（典型 0.4–0.5）。与 Wheel/Shock 是同一个几何量的两种读法，比对别人的数字前先对齐口径。',
+    formula: ['1 / ', {ref:'Motion_Ratio'}],
+    deps: ['Motion_Ratio'],
+  },
+  Progression_Wheel100: {
+    name:'Progression_Wheel100', label:'渐进性 (% 100mm 轮行程)', unit:'%', type:'channel',
+    desc:'与 Progression 同一算法，但扫描范围改为后轮垂直行程 100 mm（真实 MotoSPEC 的第二种参考端点，公路赛常用的实际行程估计）。不依赖 Shock_Stroke，所以避震行程未知时它仍能算。',
+    formula: [
+      ['(MR_max − MR_min) / MR_min × 100，δ ∈ [0°, δ_100]'],
+      ['δ_100 = arcsin( sin(', {ref:'beta_static'}, ') − 100 / ', {ref:'Swingarm_Length'}, ' ) − ', {ref:'beta_static'}],
+    ],
+    deps: [
+      'Swingarm_Length', 'beta_static',
+      'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+      'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+      'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+      'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+      'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+    ],
+    note: '同一台车换个参考端点数字就不一样——这不是算错。对比前务必先对齐口径（真实 MotoSPEC 有 Full Shock Travel / 100mm / 250mm 三种）。'
+  },
+  Spring_Center: {
+    name:'Spring_Center', label:'弹簧中心', unit:'—', type:'channel',
+    desc:'后轮综合刚度占前后之和的比例，用一个数量化前后悬挂的相对软硬。0.50 = 前后等硬，给定轮端力下压缩相同。',
+    formula: [
+      {ref:'Rear_Wheel_Rate'}, ' / ( ', {ref:'Front_Wheel_Rate'}, ' + ', {ref:'Rear_Wheel_Rate'}, ' )'
+    ],
+    deps: ['Front_Wheel_Rate', 'Rear_Wheel_Rate'],
+    note: '> 0.50 = 后端偏硬；< 0.50 = 前端偏硬。因为回顶簧、气簧、连杆渐进性的存在，它并非常数——这里给出的只是当前前后压缩组合下的瞬时值。'
+  },
+  Wheelie_Limit: {
+    name:'Wheelie_Limit', label:'抬头加速度极限', unit:'g', type:'channel',
+    desc:'前轮离地所需的向前纵向加速度。前轮静载占比 = L_CG / WB，载荷转移占比 = a × H_CG / WB，两者相等时前轮卸载归零——WB 在等式两边约掉。',
+    formula: [
+      {ref:'L_CG'}, ' / ', {ref:'H_CG'}
+    ],
+    deps: ['L_CG', 'H_CG'],
+    note: '在测量重心时的姿态下计算——重心随悬挂压缩的移动未建模（我们存的是对地坐标，不是车架坐标）。假定该极限低于轮胎摩擦极限；气动阻力会进一步压低它。'
+  },
+  Braking_Limit: {
+    name:'Braking_Limit', label:'制动加速度极限', unit:'g', type:'channel',
+    desc:'后轮离地所需的减速度（取正值）。后轮静载占比 = (WB − L_CG) / WB，与载荷转移相等时后轮卸载归零。',
+    formula: [
+      '( ', {ref:'WB'}, ' − ', {ref:'L_CG'}, ' ) / ', {ref:'H_CG'}
+    ],
+    deps: ['WB', 'L_CG', 'H_CG'],
+    note: '同 Wheelie_Limit：重心固定在测量姿态。应在有代表性的姿态下看这个数——刹车初期车头还高、轴距还长时的极限，与刹车末段并不相同。'
+  },
+  Front_Stroke_Pct: {
+    name:'Front_Stroke_Pct', label:'前行程占用率', unit:'%', type:'channel',
+    desc:'当前前部下沉量占前叉总行程的百分比。剩下的就是留给刹车压缩和坑洼的余量。',
+    formula: [
+      {ref:'Sag_Front'}, ' / ', {ref:'Fork_Stroke'}, ' × 100'
+    ],
+    deps: ['Sag_Front', 'Fork_Stroke'],
+    note: '前 sag 沿叉轴测量，与 Fork_Stroke 同口径，所以是直接相除。130 mm 行程上的 35 mm sag = 27%：约 3/4 行程留给压缩，1/4 留给抬头与负地形。bump rubber 高度包含在行程内，不扣除。'
+  },
+  Shock_Travel_Live: {
+    name:'Shock_Travel_Live', label:'当前避震行程', unit:'mm', type:'intermediate',
+    desc:'当前载荷状态下避震相对（RHA / 避震长度差调整后的）静态参考位的压缩量。由 4-bar 闭合在两个摇臂角下各解一次避震长度相减得到，不是 轮行程 ÷ 运动比 的线性近似。',
+    formula: [
+      ['shock(δ_static) − shock(δ_live)'],
+      ['δ_static = ', {ref:'swingarm_delta_solve'}],
+      ['δ_live = δ_static + ', {ref:'delta_beta_sag'}, ' × (180/π)'],
+    ],
+    deps: ['swingarm_delta_solve', 'delta_beta_sag'],
+    note: '正值 = 压缩。Sag_Rear = 0 时恒为 0。闭合失败（几何不可达）→ NaN。'
+  },
+  Rear_Stroke_Pct: {
+    name:'Rear_Stroke_Pct', label:'后行程占用率', unit:'%', type:'channel',
+    desc:'当前避震行程占避震总行程的百分比。与前端同口径（都是部件级行程），所以两个百分比可以直接对比——而前后 sag 的毫米数不能直接比（一个沿叉轴、一个在轮端垂直）。',
+    formula: [
+      {ref:'Shock_Travel_Live'}, ' / ', {ref:'Shock_Stroke'}, ' × 100'
+    ],
+    deps: ['Shock_Travel_Live', 'Shock_Stroke'],
+    note: '行程从全伸展（金属对金属）算起，含 bump rubber 高度——与真实 MotoSPEC 的 Stroke 定义一致。'
+  },
   Wheelbase_Live: {
     name:'Wheelbase_Live', label:'轴距（当前载荷）', unit:'mm', type:'channel',
     desc:'当前载荷/设定状态下的前后轴水平距离。WB 是一次性的参考测量，之后不手改：前 sag / 前叉差量沿转向轴拉前轴；后 sag / shock 差量 / 链条张紧器调轴改变后轴水平投影；换三星台偏移水平移动前轴。全为差量，参考态时精确等于 WB。',
@@ -519,9 +628,13 @@ export const INPUT_META = {
   rear_weight_dist:  { def: 0.48,  min: 0.30,  max: 0.70,  step: 0.005 },
 
   // ===== Phase A new inputs =====
-  Yoke_Offset:          { def: 32,    min: 20,    max: 45,    step: 0.5 },
+  // `step` on the LIVE setup keys below is the real-world ADJUSTMENT
+  // increment (what one click of the spinner should do), taken from real
+  // MotoSPEC's PageUp/PageDown table. The `*_ref` baselines keep their
+  // finer measurement precision — a ref is measured, not dialled.
+  Yoke_Offset:          { def: 32,    min: 20,    max: 45,    step: 1   },
   Fork_Length:          { def: 770,   min: 600,   max: 850,   step: 1   },
-  Fork_Position:        { def: 5,     min: 0,     max: 20,    step: 0.5 },
+  Fork_Position:        { def: 5,     min: 0,     max: 20,    step: 1   },
   // Reference-setup values: what was fitted when Rake_Static was measured.
   // Defaults MUST equal their live counterparts' defaults so every delta
   // is exactly 0 until the user states otherwise (no-fake-data invariant).
@@ -533,19 +646,20 @@ export const INPUT_META = {
   Shock_Length_ref:     { def: 310,   min: 280,   max: 340,   step: 0.1 },
   Swingarm_Length_ref:  { def: 580,   min: 480,   max: 650,   step: 0.1 },
   Yoke_Offset_ref:      { def: 32,    min: 20,    max: 45,    step: 0.5 },
-  Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.1 },
+  Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.5 },
   Front_Spring_Preload: { def: 10.0,  min: 0,     max: 25,    step: 0.5 },
-  Front_Oil_Level:      { def: 170,   min: 80,    max: 220,   step: 1 },
-  Front_Topout_Rate:    { def: 4.0,   min: 0,     max: 10,    step: 0.1 },
-  Front_Topout_Length:  { def: 40,    min: 0,     max: 80,    step: 1 },
-  Swingarm_Length:      { def: 580,   min: 480,   max: 650,   step: 0.1 },
+  Front_Oil_Level:      { def: 170,   min: 80,    max: 220,   step: 5 },
+  Front_Topout_Rate:    { def: 4.0,   min: 0,     max: 10,    step: 0.5 },
+  Front_Topout_Length:  { def: 40,    min: 0,     max: 80,    step: 5 },
+  Swingarm_Length:      { def: 580,   min: 480,   max: 650,   step: 1 },
   Shock_Clevis_RHA:     { def: 0,     min: -10,   max: 10,    step: 0.5 },
-  Shock_Length:         { def: 310,   min: 280,   max: 340,   step: 0.1 },
+  Shock_Length:         { def: 310,   min: 280,   max: 340,   step: 0.5 },
   Shock_Stroke:         { def: 60,    min: 30,    max: 90,    step: 0.5 },
-  Rear_Spring_Rate:     { def: 110,   min: 70,    max: 220,   step: 1 },
+  Fork_Stroke:          { def: 120,   min: 60,    max: 330,   step: 5 },
+  Rear_Spring_Rate:     { def: 110,   min: 70,    max: 220,   step: 2.5 },
   Rear_Spring_Preload:  { def: 14,    min: 0,     max: 30,    step: 0.5 },
-  Rear_Topout_Rate:     { def: 188,   min: 0,     max: 300,   step: 1 },
-  Rear_Topout_Length:   { def: 8,     min: 0,     max: 30,    step: 0.5 },
+  Rear_Topout_Rate:     { def: 188,   min: 0,     max: 300,   step: 10 },
+  Rear_Topout_Length:   { def: 8,     min: 0,     max: 30,    step: 1 },
   Front_Sprocket:       { def: 16,    min: 12,    max: 20,    step: 1 },
   Rear_Sprocket:        { def: 42,    min: 35,    max: 55,    step: 1 },
   Front_Sprocket_X:     { def: 50,    min: -50,   max: 200,   step: 1 },
@@ -564,7 +678,7 @@ export const INPUT_META = {
   Drag_To_Swingarm_Y:   { def: -70,  min: -500,  max: 500,   step: 1 },
   Frame_Shock_Top_X:    { def: -160, min: -400,  max: 400,   step: 1 },
   Frame_Shock_Top_Y:    { def: 215,  min: -500,  max: 500,   step: 1 },
-  Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 0.5 },
+  Lean_Angle:           { def: 0,     min: 0,     max: 65,    step: 5 },
   // Sag load case — 0 means "no load applied", a real value, not a placeholder.
   Sag_Front:            { def: 0,     min: 0,     max: 150,   step: 1 },
   Sag_Rear:             { def: 0,     min: 0,     max: 150,   step: 1 },
@@ -648,6 +762,13 @@ export const CALC = {
   theta_thrust:  v => Math.atan(Math.tan(v.theta_chain_dynamic * D2R) + Math.tan(v.Swingarm_Angle * D2R)),
   theta_cg:      v => Math.atan(v.H_CG / v.L_CG),
   Anti_Squat: v => Math.tan(v.theta_thrust) / Math.tan(v.theta_cg) * 100,
+  // Same physics, four readings. MotoSPEC lets you pick which one the
+  // RESULTS row shows; the zero-based ones read better against a data
+  // system's horizontal zero line.
+  Load_Transfer_Angle:   v => v.theta_cg * R2D,
+  AntiSquat_Angle:       v => v.theta_thrust * R2D,
+  AntiSquat_Angle_Delta: v => v.AntiSquat_Angle - v.Load_Transfer_Angle,
+  Anti_Squat_Delta:      v => v.Anti_Squat - 100,
   delta_W:       v => v.Mass * v.a_x * 9.81 * (v.H_CG / v.WB),
   F_Aero:        v => 0.5 * v.rho * v.V ** 2 * v.Cd * v.A,
   W_F_Static:    v => v.Mass * 9.81 * v.front_weight_dist,
@@ -667,7 +788,31 @@ export const CALC = {
     if (!Number.isFinite(dFull)) return NaN;
     return progression(v, v.Swingarm_Length, v.beta_static, -dFull);
   },
-  Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin((v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R),
+  Motion_Ratio_Shock_Wheel: v => {
+    const mr = v.Motion_Ratio;
+    if (!Number.isFinite(mr) || mr === 0) return NaN;
+    return 1 / mr;
+  },
+  // Progression over a fixed 100 mm of REAR WHEEL travel instead of the
+  // shock's full stroke — MotoSPEC's second reference end point, and the
+  // one that still works when the shock stroke is unknown. Closed form:
+  // the wheel rises 100 mm when sin(β+δ) = sin(β) − 100/L.
+  Progression_Wheel100: v => {
+    const L = v.Swingarm_Length;
+    if (!(L > 0)) return NaN;
+    const s = Math.sin(v.beta_static * D2R) - 100 / L;
+    if (!(s >= -1 && s <= 1)) return NaN; // 100 mm is beyond this swingarm's reach
+    const dDeg = Math.asin(s) * R2D - v.beta_static;
+    if (!Number.isFinite(dDeg) || dDeg >= 0) return NaN;
+    return progression(v, L, v.beta_static, -dDeg);
+  },
+  // Vertical drop from a HORIZONTAL line through the pivot down to the
+  // rear axle — "horizontal" meaning the ground, so the swingarm angle
+  // used here has to be the GROUND-referenced one (chassis pitch
+  // included), exactly like the Swingarm_Angle row. Pinned against real
+  // MotoSPEC output in tests/motospec-oracle.test.js: dropping the pitch
+  // term was worth 44 mm at 120 mm of fork travel.
+  Rear_Ride_Height:          v => -v.Swingarm_Length * Math.sin(v.Swingarm_Angle * D2R),
   Wheelbase_Live: v => {
     const bLive = (v.beta_static + v.swingarm_delta_solve + v.delta_beta_sag * R2D) * D2R;
     return v.WB
@@ -694,6 +839,51 @@ export const CALC = {
   Front_Wheel_Rate: v => {
     const MR_front = 1 / Math.cos(v.Rake_Static * D2R);
     return 2 * v.Front_Spring_Rate * (MR_front * MR_front);
+  },
+  // Relative front/rear stiffness in one number (real MotoSPEC's "Spring
+  // Center"). Both rates are instantaneous, so this is too.
+  Spring_Center: v => {
+    const f = v.Front_Wheel_Rate, r = v.Rear_Wheel_Rate;
+    if (!Number.isFinite(f) || !Number.isFinite(r)) return NaN;
+    const sum = f + r;
+    if (sum === 0) return NaN;
+    return r / sum;
+  },
+  // Acceleration limits: the fore/aft acceleration that unloads one end
+  // completely. Front lifts when the static front share (L_CG/WB) equals
+  // the transferred share (a·H_CG/WB) — WB cancels. Rear lifts at the
+  // mirror condition using the CG→front-axle distance (WB − L_CG).
+  // The CG stays where it was measured: we hold it in GROUND coordinates,
+  // so its movement with suspension compression is deliberately not
+  // modelled (that would need frame-relative CG coords we don't have).
+  Wheelie_Limit: v => {
+    if (!(v.H_CG > 0) || !Number.isFinite(v.L_CG)) return NaN;
+    return v.L_CG / v.H_CG;
+  },
+  Braking_Limit: v => {
+    if (!(v.H_CG > 0) || !Number.isFinite(v.L_CG) || !Number.isFinite(v.WB)) return NaN;
+    return (v.WB - v.L_CG) / v.H_CG;
+  },
+  // Stroke percentages — both component-level, so front and rear ARE
+  // directly comparable (the raw sag millimetres are not: front sag is
+  // along the fork axis, rear sag is vertical at the wheel).
+  Front_Stroke_Pct: v => {
+    if (!(v.Fork_Stroke > 0) || !Number.isFinite(v.Sag_Front)) return NaN;
+    return v.Sag_Front / v.Fork_Stroke * 100;
+  },
+  Shock_Travel_Live: v => {
+    const dStatic = v.swingarm_delta_solve;
+    if (!Number.isFinite(dStatic)) return NaN;
+    const dLive = dStatic + v.delta_beta_sag * R2D;
+    if (dLive === dStatic) return 0; // unloaded: exact zero, not 1e-13
+    const s0 = shockLength(v, dStatic);
+    const s1 = shockLength(v, dLive);
+    if (!Number.isFinite(s0) || !Number.isFinite(s1)) return NaN;
+    return s0 - s1; // positive = compression
+  },
+  Rear_Stroke_Pct: v => {
+    if (!(v.Shock_Stroke > 0) || !Number.isFinite(v.Shock_Travel_Live)) return NaN;
+    return v.Shock_Travel_Live / v.Shock_Stroke * 100;
   },
   // Coil-spring static equilibrium with a topout spring: in the topout
   // region both springs act (topout assists compression); past it only
@@ -755,12 +945,19 @@ export const TOPO_ORDER = [
   'delta_fork', 'swingarm_delta_solve', 'delta_beta_sag', 'Pitch_Sag',
   'MotoSPEC_Rake', 'MotoSPEC_Trail', 'Normal_Trail',
   'Swingarm_Angle', 'theta_chain_dynamic', 'theta_thrust', 'theta_cg', 'Anti_Squat',
+  'Load_Transfer_Angle', 'AntiSquat_Angle', 'AntiSquat_Angle_Delta', 'Anti_Squat_Delta',
   'delta_W', 'F_Aero', 'W_F_Static', 'W_R_Static',
   'MotoSPEC_FrontForce', 'MotoSPEC_RearForce',
   // Phase A additions
   'Final_Ratio',
-  'Motion_Ratio', 'Progression', 'Rear_Ride_Height',
+  'Motion_Ratio', 'Motion_Ratio_Shock_Wheel',
+  'Progression', 'Progression_Wheel100',
+  // after Swingarm_Angle: the ride-height reference is ground-referenced
+  'Rear_Ride_Height',
   'Rear_Wheel_Vertical_Travel', 'Rear_Wheel_Rate', 'Front_Wheel_Rate',
+  'Spring_Center',
+  'Wheelie_Limit', 'Braking_Limit',
+  'Front_Stroke_Pct', 'Shock_Travel_Live', 'Rear_Stroke_Pct',
   'Wheelbase_Live',
   // Phase 2: predicted sag from spring data (needs W_*_Static above)
   'Sag_Front_Predicted', 'Sag_Rear_Predicted',

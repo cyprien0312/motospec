@@ -512,6 +512,64 @@ table.dt input.dt-input-override {
   border-color: rgba(180, 83, 9, 0.5);
   color: #b45309;
 }
+/* HIGHLITE: settings differing from the chosen reference column. */
+.dt-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 2px 8px;
+  flex-wrap: wrap;
+}
+.dt-tool-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--accent); text-transform: uppercase; cursor: help;
+}
+.dt-tool-select {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 2px 6px; font: inherit; font-size: 12px;
+}
+.dt-tool-select:focus { outline: none; border-color: var(--accent); }
+.dt-tool-hint { color: var(--text-dim); font-size: 11px; }
+@media (max-width: 640px) { .dt-tool-hint { display: none; } }
+table.dt .dt-copy {
+  display: block; width: 100%; margin-top: 3px;
+  background: var(--panel); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 1px 4px; font: inherit; font-size: 11px; font-weight: 400;
+}
+table.dt .dt-copy:focus { outline: none; border-color: var(--accent); }
+table.dt th.dt-bike-head-ref { box-shadow: inset 0 -2px 0 var(--accent); }
+table.dt td.dt-diff,
+table.dt tbody tr:nth-child(even) td.dt-diff {
+  background: rgba(217, 164, 6, 0.16);
+}
+table.dt td.dt-diff input.dt-input,
+table.dt td.dt-diff select.dt-input { background: transparent; }
+/* Per-row display-mode selector (anti-squat / progression / motion ratio). */
+table.dt select.dt-mode {
+  display: block; margin-top: 2px; max-width: 220px;
+  background: var(--panel); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0 4px; font: inherit; font-size: 10px; font-weight: 400;
+}
+table.dt select.dt-mode:focus { outline: none; border-color: var(--accent); }
+/* CofG calculator */
+.cg-group { margin-top: 28px; border-top: 1px solid var(--divider); padding-top: 16px; }
+.cg-table .cg-input { min-width: 90px; }
+.cg-table td.cg-derived { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
+.cg-ok { color: #15803d; font-variant-numeric: tabular-nums; }
+.cg-reason { color: #b45309; }
+.cg-dash { color: var(--text-dim); }
+.cg-btn-sm { padding: 0 8px; line-height: 20px; }
+.cg-note { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+.cg-warnings { margin: 8px 0 0; padding-left: 18px; color: #b45309; font-size: 12px; }
+.cg-warnings:empty { display: none; }
+.cg-warnings li { margin: 2px 0; }
+.cg-readout-strip { margin-top: 12px; }
+/* Convention recorded but not the one the geometry chain implements. */
+.chassis-enum-warn {
+  margin-top: 2px; font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+  color: #b45309; cursor: help;
+}
 
 /* ==== Help FAB + User Guide ==== */
 .help-fab {
@@ -741,12 +799,13 @@ table.cat-table tr.cat-add-row { background: rgba(0,102,204,0.04); }
 
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
-import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG } from './src/data-table.js';
+import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG, applyCopyScope, COPY_SCOPES, RESULT_MODES } from './src/data-table.js';
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay, clearLocalOverlayEntry, applyRemoteCatalogs, hasRemoteCatalogs, setRemoteEntry, removeRemoteEntry, getRemoteCatalogs } from './src/catalog.js';
 import { fetchSharedCatalogs, upsertSharedEntry, softDeleteSharedEntry, bulkUpsertShared } from './src/supabase.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
-import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
-import { renderChassisSetup, CHASSIS_SPEC_FIELDS, OPTIONAL_CHASSIS_FIELDS, SETUP_MIRROR, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
+import { renderLinkageSetup, LINKAGE_PLACEHOLDER, placeholderForMode, matchesPlaceholder, LINKAGE_MODES, LINKAGE_POINTS, currentLengths, rebuildLinkageGeometry, slugifyLinkageName, buildLinkagePresetEntry, LINKAGE_SPEC_FIELDS, LINKAGE_COORD_FIELDS } from './src/linkage-setup.js';
+import { renderChassisSetup, CHASSIS_SPEC_FIELDS, CHASSIS_ENUM_FIELDS, CHASSIS_ENUM_KEYS, OPTIONAL_CHASSIS_FIELDS, SETUP_MIRROR, slugifyChassisName, buildChassisPresetEntry } from './src/chassis-setup.js';
+import { solveCG, defaultCgRows, blankCgRow, MAX_CG_ROWS, CG_ENDS } from './src/cg-calculator.js';
 import { renderUserGuide, GUIDE_ANCHORS } from './src/user-guide.js';
 
 
@@ -1378,8 +1437,17 @@ function loadState() {
       if (s.userCatalogs) applyUserOverlay(s.userCatalogs);
       const catalogTab = (typeof s.catalogTab === 'string' && CATALOG_KEYS.includes(s.catalogTab)) ? s.catalogTab : CATALOG_KEYS[0];
       const linkageDraft = (s.linkageDraft && typeof s.linkageDraft === 'object') ? s.linkageDraft : null;
+      // Measurement conventions are strings and live outside INPUT_META,
+      // so the `k in merged` guard above drops them — restore explicitly.
+      for (const f of CHASSIS_ENUM_KEYS) {
+        const val = s.values[f];
+        if (typeof val === 'string' && val) merged[f] = val;
+      }
       const dtCollapsed = (s.dtCollapsed && typeof s.dtCollapsed === 'object') ? s.dtCollapsed : {};
-      return { values: merged, bikes, catalogTab, linkageDraft, dtCollapsed, __optionalCleaned: true };
+      const dtHighlite = Number.isInteger(s.dtHighlite) ? s.dtHighlite : null;
+      const dtModes = (s.dtModes && typeof s.dtModes === 'object') ? s.dtModes : {};
+      const cgRows = Array.isArray(s.cgRows) && s.cgRows.length ? s.cgRows.slice(0, MAX_CG_ROWS) : defaultCgRows();
+      return { values: merged, bikes, catalogTab, linkageDraft, dtCollapsed, dtHighlite, dtModes, cgRows, __optionalCleaned: true };
     }
   } catch (e) {}
   return null;
@@ -1396,7 +1464,7 @@ function freshValues() {
   for (const f of OPTIONAL_CHASSIS_FIELDS) delete v[f];
   return v;
 }
-const state = loadState() || { values: freshValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0], dtCollapsed: {}, __optionalCleaned: true };
+const state = loadState() || { values: freshValues(), bikes: defaultBikes(), catalogTab: CATALOG_KEYS[0], dtCollapsed: {}, dtHighlite: null, dtModes: {}, cgRows: defaultCgRows(), __optionalCleaned: true };
 if (!Array.isArray(state.bikes) || state.bikes.length > MAX_BIKES) state.bikes = defaultBikes();
 if (!state.catalogTab) state.catalogTab = CATALOG_KEYS[0];
 // Per-mode coord drafts: each mode keeps its own snapshot of the 10
@@ -1407,16 +1475,21 @@ function snapshotLinkageCoords(values) {
   for (const k of LINKAGE_COORD_FIELDS) out[k] = values[k];
   return out;
 }
-function _normalizeMode(m) { return m === 'pro-link' ? 'pro-link' : 'linked'; }
-function _draftKey(mode) { return _normalizeMode(mode) === 'pro-link' ? 'prolink' : 'linked'; }
+function _normalizeMode(m) { return LINKAGE_MODES.includes(m) ? m : 'linked'; }
+const _DRAFT_KEYS = { 'linked': 'linked', 'pro-link': 'prolink', 'linkless': 'linkless' };
+function _draftKey(mode) { return _DRAFT_KEYS[_normalizeMode(mode)]; }
 if (!state.linkageDraft || typeof state.linkageDraft !== 'object') state.linkageDraft = {};
 {
   const cur = _draftKey(state.values.Linkage_Mode);
-  const other = cur === 'linked' ? 'prolink' : 'linked';
+  const others = Object.values(_DRAFT_KEYS).filter(k => k !== cur);
   // Active mode's draft = source of truth (values), always refresh.
   state.linkageDraft[cur] = snapshotLinkageCoords(state.values);
-  // Inactive mode: preserve last snapshot if it exists, else seed from placeholder.
-  if (!state.linkageDraft[other]) state.linkageDraft[other] = { ...placeholderForMode(other === 'prolink' ? 'pro-link' : 'linked') };
+  // Inactive modes: preserve each last snapshot if it exists, else seed
+  // from that mode's placeholder.
+  const _MODE_OF_DRAFT = Object.fromEntries(Object.entries(_DRAFT_KEYS).map(([m, k]) => [k, m]));
+  for (const other of others) {
+    if (!state.linkageDraft[other]) state.linkageDraft[other] = { ...placeholderForMode(_MODE_OF_DRAFT[other]) };
+  }
 }
 let _all = computeAll(state.values);
 function gv(id) { return _all[id]; }
@@ -1565,7 +1638,7 @@ function clampMeta(id, n) {
   return Math.max(m.min, Math.min(m.max, n));
 }
 function setLinkageMode(mode) {
-  if (mode !== 'linked' && mode !== 'pro-link') return;
+  if (!LINKAGE_MODES.includes(mode)) return;
   const prev = _normalizeMode(state.values.Linkage_Mode);
   if (mode === prev) return;
   // Snapshot outgoing mode's coords, then restore the incoming mode's
@@ -1584,7 +1657,7 @@ function loadLinkageFromLibrary(id) {
   const entry = (CATALOGS.linkages || {})[id];
   if (!entry || !entry.specs) return;
   const specs = entry.specs;
-  const targetMode = specs.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
+  const targetMode = _normalizeMode(specs.Linkage_Mode);
   const prev = _normalizeMode(state.values.Linkage_Mode);
   // Save the current mode's coords before stomping anything.
   state.linkageDraft[_draftKey(prev)] = snapshotLinkageCoords(state.values);
@@ -1641,7 +1714,7 @@ function patchChassisView() {
   const content = document.getElementById('content');
   if (!content) return;
   const tmp = document.createElement('div');
-  tmp.innerHTML = renderChassisSetup({ values: state.values, lang });
+  tmp.innerHTML = renderChassisSetup({ values: state.values, lang, cgRows: state.cgRows });
   const swap = (sel) => {
     const next = tmp.querySelector(sel);
     const cur  = content.querySelector(sel);
@@ -1649,6 +1722,87 @@ function patchChassisView() {
   };
   swap('.chassis-readout-strip');
   swap('.chassis-diagram-wrap');
+  // The CofG calculator's derived output must follow while the user types
+  // into the scale cells, so swap only the read-only parts of it — never
+  // the row that owns the focused <input>.
+  swap('.cg-readout-strip');
+  swap('.cg-warnings');
+  const liveDerived = content.querySelectorAll('td.cg-derived');
+  const nextDerived = tmp.querySelectorAll('td.cg-derived');
+  if (liveDerived.length === nextDerived.length) {
+    liveDerived.forEach((td, i) => { td.innerHTML = nextDerived[i].innerHTML; });
+  }
+}
+// ---- CofG calculator (Chassis Setup page) ----
+// The scale readings live in state, NOT on the chassis profile: they are
+// a measurement session, and what the profile carries is the result. The
+// user has to press Apply for anything to reach H_CG / L_CG — a
+// calculator that silently rewrites your chassis is worse than useless.
+function _cgRows() {
+  if (!Array.isArray(state.cgRows) || !state.cgRows.length) state.cgRows = defaultCgRows();
+  return state.cgRows;
+}
+function setCgRow(idx, field, raw) {
+  const rows = _cgRows();
+  const row = rows[idx];
+  if (!row) return;
+  if (field === 'end') {
+    if (!CG_ENDS.includes(raw)) return;
+    row.end = raw;
+    if (raw === 'level') row.height = 0;
+    saveState();
+    renderContent(); // the height cell appears/disappears
+    return;
+  }
+  const n = parseFloat(raw);
+  // Clearing a cell returns it to "not measured" rather than to zero —
+  // a blank scale is not a scale that read nothing.
+  row[field] = Number.isFinite(n) ? n : null;
+  saveState();
+  patchChassisView();
+}
+function addCgRow() {
+  const rows = _cgRows();
+  if (rows.length >= MAX_CG_ROWS) return;
+  // Default the new row to whatever is under-represented so far.
+  const hasRaised = rows.some(r => r.end !== 'level');
+  rows.push(blankCgRow(hasRaised ? 'level' : 'rear'));
+  saveState();
+  renderContent();
+}
+function removeCgRow(idx) {
+  const rows = _cgRows();
+  if (rows.length <= 1 || idx < 0 || idx >= rows.length) return;
+  rows.splice(idx, 1);
+  saveState();
+  renderContent();
+}
+function applyCgResult() {
+  const res = solveCG(_cgRows(), { wheelbase: state.values.WB, axleHeight: state.values.Rf });
+  if (res.L_CG == null || res.H_CG == null) return;
+  state.values.H_CG = +res.H_CG.toFixed(1);
+  state.values.L_CG = +res.L_CG.toFixed(1);
+  state.values.Mass = +res.Mass.toFixed(1);
+  state.values.front_weight_dist = +res.frontShare.toFixed(3);
+  state.values.rear_weight_dist  = +(1 - res.frontShare).toFixed(3);
+  saveState();
+  clearCache();
+  renderContent();
+  toast(lang === 'en'
+    ? 'Wrote Mass / H_CG / L_CG / front weight share'
+    : '已写入 Mass / H_CG / L_CG / 前轮重量分配');
+}
+// Measurement conventions are recorded facts, not computed inputs — set
+// them and re-render the page (the "not modelled" badge may appear or go).
+function setChassisEnum(key, raw) {
+  const def = CHASSIS_ENUM_FIELDS[key];
+  if (!def) return;
+  const v = String(raw ?? '');
+  if (!def.options.some(o => o.value === v)) return;
+  if (v) state.values[key] = v;
+  else delete state.values[key]; // "not recorded" is the absence of a claim
+  saveState();
+  if (stack[stack.length - 1] === '__chassis') renderContent();
 }
 function setChassisInput(key, raw) {
   const n = parseFloat(raw);
@@ -1707,9 +1861,48 @@ function loadChassisFromLibrary(id) {
       state.values[f] = entry.specs[f];
     }
   }
+  // Measurement conventions come along; a profile that records none
+  // clears whatever the page was showing rather than keeping a stale one.
+  for (const f of CHASSIS_ENUM_KEYS) {
+    if (typeof entry.specs[f] === 'string' && entry.specs[f]) state.values[f] = entry.specs[f];
+    else delete state.values[f];
+  }
   saveState();
   clearCache();
   if (stack[stack.length - 1] === '__chassis') renderContent();
+}
+// Pick the HIGHLITE reference column (or '' to turn it off). Structural
+// class change across every settings cell — full re-render, not a patch.
+function setDtHighlite(raw) {
+  const n = parseInt(raw, 10);
+  state.dtHighlite = Number.isInteger(n) && n >= 0 && n < (state.bikes || []).length ? n : null;
+  saveState();
+  renderContent();
+}
+// Copy Front / Rear / All settings from another column, mirroring real
+// MotoSPEC's right-click context menu. `raw` is "<srcIndex>:<scope>".
+function copyBikeFrom(destIdx, raw) {
+  if (!raw) return;
+  const [srcRaw, scope] = String(raw).split(':');
+  const srcIdx = parseInt(srcRaw, 10);
+  if (!COPY_SCOPES[scope]) return;
+  const dest = state.bikes?.[destIdx];
+  const src  = state.bikes?.[srcIdx];
+  if (!dest || !src || dest === src) return;
+  applyCopyScope(dest, src, scope);
+  saveState();
+  renderContent();
+}
+// Switch a RESULTS row's display mode (anti-squat / progression /
+// motion ratio). Presentation only — the physics is unchanged; the row
+// just reads a different already-computed channel.
+function setResultMode(modeKey, value) {
+  if (!RESULT_MODES[modeKey]) return;
+  if (!RESULT_MODES[modeKey].options.some(o => o.value === value)) return;
+  if (!state.dtModes || typeof state.dtModes !== 'object') state.dtModes = {};
+  state.dtModes[modeKey] = value;
+  saveState();
+  renderContent(); // the row label and its unit change too — full re-render
 }
 function toggleDtGroup(header) {
   if (!state.dtCollapsed || typeof state.dtCollapsed !== 'object') state.dtCollapsed = {};
@@ -1760,7 +1953,7 @@ function patchDataTableView() {
   // `lang` lives outside `state` — pass it explicitly or the patch render
   // silently falls back to zh and rewrites read-only cells in the wrong
   // language while typing in EN mode.
-  tmp.innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, lang });
+  tmp.innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, dtHighlite: state.dtHighlite, dtModes: state.dtModes, lang });
   const fresh = tmp.querySelector('table');
   const liveCells = live.querySelectorAll('td.dt-readonly');
   const freshCells = fresh ? fresh.querySelectorAll('td.dt-readonly') : [];
@@ -1772,6 +1965,16 @@ function patchDataTableView() {
       td.title = next.getAttribute('title') || '';
       td.innerHTML = next.innerHTML;
     }
+  });
+  // Cells holding an <input> are never replaced (that would kill focus),
+  // but their td class still has to follow: HIGHLITE's dt-diff flips as
+  // soon as the typed value matches or leaves the reference column.
+  const liveTds = live.querySelectorAll('td');
+  const freshTds = fresh.querySelectorAll('td');
+  if (liveTds.length !== freshTds.length) return;
+  liveTds.forEach((td, i) => {
+    const nextCls = freshTds[i].className;
+    if (td.className !== nextCls) td.className = nextCls;
   });
 }
 function setCatalogTab(catalogKey) {
@@ -2159,11 +2362,11 @@ function renderContent() {
   const id = stack[stack.length - 1];
   if (id === '__dashboard') return renderDashboard();
   if (id === '__datatable') {
-    document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, lang });
+    document.getElementById('content').innerHTML = renderDataTable({ values: state.values, bikes: state.bikes, dtCollapsed: state.dtCollapsed, dtHighlite: state.dtHighlite, dtModes: state.dtModes, lang });
     return;
   }
   if (id === '__chassis') {
-    document.getElementById('content').innerHTML = renderChassisSetup({ values: state.values, lang });
+    document.getElementById('content').innerHTML = renderChassisSetup({ values: state.values, lang, cgRows: state.cgRows });
     return;
   }
   if (id === '__linkage') {
@@ -2346,7 +2549,7 @@ function linkageReadoutUp(evt) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, publishLocalToShared, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, saveChassisAsPreset, loadChassisFromLibrary, openGuide, openGuideForCurrentPage });
+Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setDtHighlite, copyBikeFrom, setResultMode, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, publishLocalToShared, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, setChassisEnum, saveChassisAsPreset, loadChassisFromLibrary, setCgRow, addCgRow, removeCgRow, applyCgResult, openGuide, openGuideForCurrentPage });
 
 render();
 initSharedCatalogs();

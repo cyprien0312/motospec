@@ -89,7 +89,32 @@ export function rockerShockEnd(cfg, swingarmDeltaDeg) {
   return { x: Px + Sx0 * c - Sy0 * s, y: Py + Sx0 * s + Sy0 * c };
 }
 
+// Shock's lower attachment after a swingarm rotation of `swingarmDeltaDeg`.
+// With a rocker this is the rocker's shock tip (a 4-bar closure); in
+// 'linkless' mode the shock bolts straight to the swingarm, so the point
+// simply rotates with it about the pivot — no closure to solve, no
+// closure to fail. Returned in whatever frame shockLength compares in.
+export function shockLowerEnd(cfg, swingarmDeltaDeg) {
+  if ((cfg.Linkage_Mode || 'linked') === 'linkless') {
+    const b = swingarmDeltaDeg * D2R;
+    const c = Math.cos(b), s = Math.sin(b);
+    // Reuses Drag_To_Swingarm_* as the swingarm-side shock mount: in a
+    // linkless rear end that IS the only swingarm-side link point. The
+    // rocker fields are unused (see LINKAGE_POINTS / the page's mode
+    // filter) rather than duplicated under a second name.
+    const x0 = cfg.Drag_To_Swingarm_X, y0 = cfg.Drag_To_Swingarm_Y;
+    return { x: x0 * c - y0 * s, y: x0 * s + y0 * c };
+  }
+  return rockerShockEnd(cfg, swingarmDeltaDeg);
+}
+
 export function shockLength(cfg, swingarmDeltaDeg) {
+  if ((cfg.Linkage_Mode || 'linked') === 'linkless') {
+    const e = shockLowerEnd(cfg, swingarmDeltaDeg);
+    // Both points are already in the frame: the lower one was rotated
+    // onto the swingarm, the upper one is frame-fixed.
+    return Math.hypot(e.x - cfg.Frame_Shock_Top_X, e.y - cfg.Frame_Shock_Top_Y);
+  }
   const e = rockerShockEnd(cfg, swingarmDeltaDeg);
   // In pro-link mode rockerShockEnd lives in the swingarm's rotating frame,
   // so transform the frame-fixed shock-top into that same frame to compare.

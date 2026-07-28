@@ -61,9 +61,21 @@ test('taller rear tire: rear rises, rake closes, trail shrinks', () => {
   const expectedRake = base.MotoSPEC_Rake - Math.atan(5 / 1414.3) / D2R;
   assert.ok(Math.abs(out.MotoSPEC_Rake - expectedRake) < 1e-9);
   assert.ok(out.MotoSPEC_Trail < base.MotoSPEC_Trail, 'taller rear tire must cut trail');
-  // The rear mechanism is untouched — a tire is not a linkage change.
-  assert.equal(out.Rear_Ride_Height, base.Rear_Ride_Height);
+  // The rear MECHANISM is untouched — a tire is not a linkage change.
   assert.equal(out.Motion_Ratio, base.Motion_Ratio);
+  assert.equal(out.swingarm_delta_solve, base.swingarm_delta_solve);
+  // …but the rear ride height DOES move, and must. It is the vertical
+  // drop from a horizontal (i.e. GROUND-referenced) line through the
+  // pivot, so pitching the chassis nose-down on a taller rear tire
+  // shortens it even though nothing in the linkage moved. This test
+  // previously asserted the opposite; real MotoSPEC output settled it
+  // (see tests/motospec-oracle.test.js).
+  assert.ok(out.Rear_Ride_Height > base.Rear_Ride_Height,
+    'nose-down pitch must reduce how far the axle sits below the pivot horizontal');
+  const pitch = Math.atan(5 / 1414.3);
+  const expectedRH = -inputs().Swingarm_Length *
+    Math.sin(base.Swingarm_Angle * D2R - pitch);
+  assert.ok(Math.abs(out.Rear_Ride_Height - expectedRH) < 1e-9);
 });
 
 test('equal front and rear deltas cancel the pitch but keep the trail radius term', () => {

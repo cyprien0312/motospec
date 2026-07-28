@@ -151,6 +151,10 @@ export const LINKAGE_POINTS = [
     desc_en: 'From swingarm pivot to the bolt where the drag link meets the swingarm (this point lives on the swingarm)',
     desc_pro_zh: '从摇臂枢轴量到拉杆固定在车架上的那一端（绊马索的"固定钩"，不随平叉运动）。',
     desc_pro_en: 'From swingarm pivot to the FRAME-fixed end of the tie rod (the "trip-wire" anchor that does NOT move with the swingarm).',
+    label_link_zh: '避震下端（在平叉上）',
+    label_link_en: 'Shock ↔ Swingarm',
+    desc_link_zh: '从摇臂枢轴量到避震下端固定在平叉上的螺栓中心。无摇臂三角块时，这是平叉上唯一的连接点。',
+    desc_link_en: 'From swingarm pivot to the lower shock bolt on the swingarm. With no rocker, this is the only swingarm-side link point.',
   },
   {
     key: 'frame_shock_top',
@@ -161,6 +165,8 @@ export const LINKAGE_POINTS = [
     xKey: 'Frame_Shock_Top_X', yKey: 'Frame_Shock_Top_Y',
     desc_zh: '从摇臂枢轴量到车架上避震顶端的固定螺栓中心',
     desc_en: 'From swingarm pivot to the upper shock mount bolt on the frame',
+    label_link_zh: '避震上端（在车架上）',
+    label_link_en: 'Shock ↔ Frame',
   },
 ];
 
@@ -210,12 +216,36 @@ export const LINKAGE_PLACEHOLDER_PROLINK = {
   Frame_Shock_Top_X:    -160, Frame_Shock_Top_Y:     215,
 };
 
+// Direct / linkless (Yamaha R3, KTM 890/990 Duke): no rocker at all — the
+// shock bolts straight from the swingarm to the frame. Only two points
+// are used, the swingarm-side mount (Drag_To_Swingarm_*) and the frame
+// mount (Frame_Shock_Top_*); the rocker fields are carried unchanged
+// from the linked placeholder so mode-switching stays lossless, and are
+// simply never read. Motion ratio comes out near-constant (a linkless
+// rear end is only progressive through the swingarm's own arc), which is
+// the honest answer, not a modelling gap.
+export const LINKAGE_PLACEHOLDER_LINKLESS = {
+  Frame_Rocker_Pivot_X:  -60, Frame_Rocker_Pivot_Y: -140,
+  Rocker_To_Shock_X:    -185, Rocker_To_Shock_Y:    -100,
+  Rocker_To_Drag_X:     -170, Rocker_To_Drag_Y:     -165,
+  Drag_To_Swingarm_X:   -340, Drag_To_Swingarm_Y:     60,
+  Frame_Shock_Top_X:    -200, Frame_Shock_Top_Y:     340,
+};
+
+// Coordinate fields a given mode actually reads. Linkless ignores the
+// rocker triangle and the drag link entirely.
+export const LINKLESS_USED_POINT_KEYS = ['drag_to_swingarm', 'frame_shock_top'];
+
 // Backward-compat alias: code that imports LINKAGE_PLACEHOLDER still gets
 // the linked-mode default.
 export const LINKAGE_PLACEHOLDER = LINKAGE_PLACEHOLDER_LINKED;
 
+export const LINKAGE_MODES = ['linked', 'pro-link', 'linkless'];
+
 export function placeholderForMode(mode) {
-  return mode === 'pro-link' ? LINKAGE_PLACEHOLDER_PROLINK : LINKAGE_PLACEHOLDER_LINKED;
+  if (mode === 'pro-link') return LINKAGE_PLACEHOLDER_PROLINK;
+  if (mode === 'linkless') return LINKAGE_PLACEHOLDER_LINKLESS;
+  return LINKAGE_PLACEHOLDER_LINKED;
 }
 
 // 12 spec fields that fully describe a linkage entry in CATALOGS.linkages.
@@ -251,7 +281,7 @@ export function slugifyLinkageName(name, existingIds = []) {
 export function buildLinkagePresetEntry(name, values) {
   const specs = {};
   for (const k of LINKAGE_SPEC_FIELDS) specs[k] = values[k];
-  if (specs.Linkage_Mode !== 'pro-link' && specs.Linkage_Mode !== 'linked') {
+  if (!LINKAGE_MODES.includes(specs.Linkage_Mode)) {
     specs.Linkage_Mode = 'pro-link';
   }
   return {
@@ -297,8 +327,11 @@ const UI = {
     mode_title: '连杆型式',
     mode_linked: 'Linked',
     mode_pro:    'Pro-Link',
+    mode_linkless: 'Direct / Linkless',
     mode_desc_linked: '摇臂三角块固定在车架上，平叉通过一根活动拉杆去拨动它。',
     mode_desc_pro:    '摇臂骑在平叉上、随平叉一起运动；车架底部伸出一根固定拉杆，平叉抬起时把它绊住、迫使其旋转。',
+    mode_desc_linkless: '没有摇臂三角块——避震直接从平叉连到车架（Yamaha R3、KTM 890/990 Duke）。只用两个点，其余连杆坐标不参与计算。运动比几乎恒定（唯一的渐进性来自平叉自身的圆弧），这是真实结果，不是缺功能。',
+    linkless_unused: '以下坐标在 Direct / Linkless 模式下不参与计算（切回其它模式时原样保留）。',
     style_title:     '输入方式',
     style_xy:        'X / Y 坐标',
     style_polar:     '只填长度',
@@ -334,8 +367,11 @@ const UI = {
     mode_title: 'Linkage Type',
     mode_linked: 'Linked',
     mode_pro:    'Pro-Link',
+    mode_linkless: 'Direct / Linkless',
     mode_desc_linked: 'Rocker triangle is fixed to the frame; the swingarm drives it through a moving drag/pull link.',
     mode_desc_pro:    'Rocker rides on the swingarm and moves with it; a frame-anchored tie rod "trips" the rocker as the swingarm rises, forcing it to rotate.',
+    mode_desc_linkless: 'No rocker at all — the shock bolts straight from the swingarm to the frame (Yamaha R3, KTM 890/990 Duke). Only two points are used; the other linkage coordinates take no part in the calculation. Motion ratio comes out near-constant (the only progression is the swingarm\'s own arc) — that is the real answer, not a missing feature.',
+    linkless_unused: 'These coordinates take no part in the calculation in Direct / Linkless mode (they are kept untouched for the other modes).',
     style_title:     'Input Style',
     style_xy:        'X / Y coordinates',
     style_polar:     'Lengths only',
@@ -546,6 +582,7 @@ function fmtReadout(out, key, unit) {
 // always render at a sensible scale.
 function renderTopologySVG(values, mode = 'linked') {
   const proLink = mode === 'pro-link';
+  const linkless = mode === 'linkless';
   const W = 1000, H = 467;
 
   const swingarmLength = values.Swingarm_Length || 580;
@@ -565,8 +602,13 @@ function renderTopologySVG(values, mode = 'linked') {
   };
 
   // Auto-fit bounding box (with padding) → pick uniform scale and centre.
-  const xs = Object.values(ptsMM).map(p => p.x);
-  const ys = Object.values(ptsMM).map(p => p.y);
+  // Linkless draws no rocker, so its stale rocker coords must not drag the
+  // viewport out to a region with nothing in it.
+  const fitKeys = linkless
+    ? ['pivot', 'rearAxle', 'dSwg', 'fShock']
+    : Object.keys(ptsMM);
+  const xs = fitKeys.map(k => ptsMM[k].x);
+  const ys = fitKeys.map(k => ptsMM[k].y);
   const padMM = 80;
   const minX = Math.min(...xs) - padMM, maxX = Math.max(...xs) + padMM;
   const minY = Math.min(...ys) - padMM * 1.2, maxY = Math.max(...ys) + padMM;
@@ -650,7 +692,16 @@ function renderTopologySVG(values, mode = 'linked') {
     <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="#15803d" stroke-width="1" stroke-dasharray="3,2"/>
   `;
 
-  const lines = `
+  const lines = linkless ? `
+    <!-- swingarm: pivot → rear axle -->
+    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.rearAxle.x}" y2="${P.rearAxle.y}" stroke="${cSwg}" stroke-width="7" stroke-linecap="round"/>
+    <!-- swingarm extension out to the shock mount (rotates with the swingarm) -->
+    <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.dSwg.x}" y2="${P.dSwg.y}"
+          stroke="${cSwgLink}" stroke-width="2" stroke-dasharray="4,3"/>
+    <!-- shock body: straight from swingarm to frame, no rocker -->
+    <line x1="${P.dSwg.x}" y1="${P.dSwg.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="${cShock}" stroke-width="5" stroke-linecap="round"/>
+    <line x1="${P.dSwg.x}" y1="${P.dSwg.y}" x2="${P.fShock.x}" y2="${P.fShock.y}" stroke="#c7cbd1" stroke-width="1" stroke-dasharray="2,4"/>
+  ` : `
     <!-- swingarm: pivot → rear axle -->
     <line x1="${P.pivot.x}" y1="${P.pivot.y}" x2="${P.rearAxle.x}" y2="${P.rearAxle.y}" stroke="${cSwg}" stroke-width="7" stroke-linecap="round"/>
     <!-- swingarm extension: pivot → whichever linkage point sits on the swingarm body -->
@@ -669,7 +720,10 @@ function renderTopologySVG(values, mode = 'linked') {
 
   // Anchor hatches (drawn under the dots) — gray for frame-fixed, green
   // for swingarm-fixed. Both kinds are user-input anchor points.
-  const frameAnchors = `
+  const frameAnchors = linkless ? `
+    ${groundHatch(P.fShock)}
+    ${swingarmHatch(P.dSwg)}
+  ` : `
     ${groundHatch(frameAnchor)}
     ${groundHatch(P.fShock)}
     ${swingarmHatch(swingarmAnchor)}
@@ -682,7 +736,12 @@ function renderTopologySVG(values, mode = 'linked') {
   const tag = (p, n, color, dx = 7, dy = -7) =>
     `<text x="${p.x + dx}" y="${p.y + dy}" fill="${color}" font-size="11" font-weight="700" style="paint-order:stroke;stroke:#ffffff;stroke-width:3px;">${n}</text>`;
 
-  const points = `
+  const points = linkless ? `
+    ${dot(P.pivot, '#1d1d1f', 6)}      ${tag(P.pivot,    '①', '#1d1d1f')}
+    ${dot(P.rearAxle, cSwg, 6)}        ${tag(P.rearAxle, '②', cSwg)}
+    ${dot(P.dSwg, cSwgLink)}           ${tag(P.dSwg,     '⑥', cSwgLink)}
+    ${dot(P.fShock, cShock)}           ${tag(P.fShock,   '⑦', cShock)}
+  ` : `
     ${dot(P.pivot, '#1d1d1f', 6)}      ${tag(P.pivot,    '①', '#1d1d1f')}
     ${dot(P.rearAxle, cSwg, 6)}        ${tag(P.rearAxle, '②', cSwg)}
     ${dot(P.fRocker, cRockerPivot)}    ${tag(P.fRocker,  '③', cRockerPivot)}
@@ -693,7 +752,12 @@ function renderTopologySVG(values, mode = 'linked') {
   `;
 
   // Legend in the top-right corner — color swatches keyed to the numbered tags.
-  const legendItems = [
+  const legendItems = linkless ? [
+    { n: '①', color: '#1d1d1f', text: 'swingarm pivot (origin)' },
+    { n: '②', color: cSwg,      text: 'rear axle' },
+    { n: '⑥', color: cSwgLink,  text: 'shock ↔ swingarm' },
+    { n: '⑦', color: cShock,    text: 'shock ↔ frame' },
+  ] : [
     { n: '①', color: '#1d1d1f', text: 'swingarm pivot (origin)' },
     { n: '②', color: cSwg,      text: 'rear axle' },
     { n: '③', color: cRockerPivot, text: proLink ? 'rocker pivot (on swingarm)' : 'frame rocker pivot' },
@@ -722,7 +786,7 @@ function renderTopologySVG(values, mode = 'linked') {
   // Mode-name caption inside the SVG so the diagram is self-describing.
   const modeCaption = `
     <text x="20" y="${H - 14}" fill="#6e6e73" font-size="12" font-weight="700">
-      ${escapeHtml(proLink ? 'Mode: Pro-Link (rocker on swingarm)' : 'Mode: Linked (rocker on frame)')}
+      ${escapeHtml(linkless ? 'Mode: Direct / Linkless (no rocker)' : proLink ? 'Mode: Pro-Link (rocker on swingarm)' : 'Mode: Linked (rocker on frame)')}
     </text>
     <text x="20" y="${H - 30}" fill="#44515f" font-size="10">
       ${escapeHtml('hatched points = frame-fixed; green dashed line = swingarm body')}
@@ -744,12 +808,18 @@ function renderTopologySVG(values, mode = 'linked') {
 
 function renderInputPair(p, values, lang, str, mode) {
   const pro = mode === 'pro-link';
-  const label = pro
-    ? (lang === 'en' ? (p.label_pro_en || p.label_en) : (p.label_pro_zh || p.label_zh))
-    : (lang === 'en' ? p.label_en : p.label_zh);
-  const desc  = pro
-    ? (lang === 'en' ? (p.desc_pro_en  || p.desc_en)  : (p.desc_pro_zh  || p.desc_zh))
-    : (lang === 'en' ? p.desc_en  : p.desc_zh);
+  const link = mode === 'linkless';
+  // Same coordinate, different physical part depending on the mode — the
+  // label has to follow, or the user measures the wrong bolt.
+  const pick = (suffix) => {
+    const k = lang === 'en' ? 'en' : 'zh';
+    if (link  && p[`label_link_${k}`] !== undefined && suffix === 'label') return p[`label_link_${k}`];
+    if (link  && p[`desc_link_${k}`]  !== undefined && suffix === 'desc')  return p[`desc_link_${k}`];
+    if (pro   && p[`${suffix}_pro_${k}`]) return p[`${suffix}_pro_${k}`];
+    return p[`${suffix}_${k}`];
+  };
+  const label = pick('label');
+  const desc  = pick('desc');
 
   const xMeta = INPUT_META[p.xKey] || { min: -400, max: 400, step: 1 };
   const yMeta = INPUT_META[p.yKey] || { min: -400, max: 400, step: 1 };
@@ -831,12 +901,24 @@ export function renderLinkageSetup(state) {
     </div>
   `).join('');
 
-  const mode  = values.Linkage_Mode === 'pro-link' ? 'pro-link' : 'linked';
+  const mode  = LINKAGE_MODES.includes(values.Linkage_Mode) ? values.Linkage_Mode : 'linked';
+  const linkless = mode === 'linkless';
   const style = (values.Linkage_Input_Style === 'polar' || values.Linkage_Input_Style === 'length')
     ? 'length' : 'cartesian';
 
   let inputsSection = '';
-  if (style === 'length') {
+  if (linkless) {
+    // Only two coordinates take part. The rocker fields still exist (so
+    // switching back to a rocker mode is lossless) but showing them here
+    // would invite the user to measure four points that change nothing.
+    const used = LINKAGE_POINTS.filter(p => LINKLESS_USED_POINT_KEYS.includes(p.key));
+    const usedHTML = used.map(p => renderInputPair(p, values, lang, str, mode)).join('');
+    inputsSection = `
+      <div class="section-title">${escapeHtml(str.points_title)}</div>
+      <div class="linkage-points-grid">${usedHTML}</div>
+      <div class="linkage-points-desc">${escapeHtml(str.linkless_unused)}</div>
+    `;
+  } else if (style === 'length') {
     const fixedPoints = LINKAGE_POINTS.filter(p => FIXED_POINT_KEYS.includes(p.key));
     const fixedHTML = fixedPoints.map(p => renderInputPair(p, values, lang, str, mode)).join('');
     const lengths = currentLengths(values);
@@ -866,12 +948,17 @@ export function renderLinkageSetup(state) {
                 onclick="setLinkageMode('linked')">${escapeHtml(str.mode_linked)}</button>
         <button class="linkage-mode-btn ${mode === 'pro-link' ? 'active' : ''}"
                 onclick="setLinkageMode('pro-link')">${escapeHtml(str.mode_pro)}</button>
+        <button class="linkage-mode-btn ${mode === 'linkless' ? 'active' : ''}"
+                onclick="setLinkageMode('linkless')">${escapeHtml(str.mode_linkless)}</button>
       </div>
-      <div class="linkage-mode-desc">${escapeHtml(mode === 'pro-link' ? str.mode_desc_pro : str.mode_desc_linked)}</div>
+      <div class="linkage-mode-desc">${escapeHtml(
+        mode === 'linkless' ? str.mode_desc_linkless
+        : mode === 'pro-link' ? str.mode_desc_pro
+        : str.mode_desc_linked)}</div>
     </div>
   `;
 
-  const styleToggle = `
+  const styleToggle = linkless ? '' : `
     <div class="linkage-mode-card">
       <div class="linkage-mode-title">${escapeHtml(str.style_title)}</div>
       <div class="linkage-mode-row">

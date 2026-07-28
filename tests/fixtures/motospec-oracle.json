@@ -1,0 +1,336 @@
+{
+  "_what": "Real MotoSPEC v5 output, used as an oracle for the geometry chain.",
+  "_provenance": {
+    "origin": "Vendor's own CHM help-manual screenshots, shipped inside the freely downloadable MotoSpec v5 installer. NOT the paid per-model chassis files.",
+    "attribution": "MotoSpec is a product of Moto Race Services (motospec.ca). These figures are reproduced here for interoperability testing, with attribution. They are also independently measurable: every quantity is a physical property of a real motorcycle that anyone with the bike and a tape measure can obtain.",
+    "why_public": "This repository is open source so that chassis-setup information is easier to get hold of, not harder. The source screenshots ship inside the freely downloadable v5 installer and are already findable online.",
+    "extracted_by": "A separate read-only research workspace (~/motospec_v5_unpacked/motospec_chassis_data), which transcribed the panel values BY EYE from the screenshots.",
+    "accuracy_warning": "Every number here was read off a screenshot by a human. Source values are 1-2 decimal places, so ~0.05 of rounding is baked in. On a mismatch, re-read the screenshot before suspecting the solver."
+  },
+  "_method": {
+    "static_inputs": "Column 1 of each file is TOPPED OUT, so its outputs ARE the static state: rake -> Rake_Static, wheelbase -> WB, swingarm angle -> beta_static.",
+    "Rf": "Derived from the column-1 ground-trail identity, Rf = (trail*cos(rake) + yoke) / sin(rake). The tire library from the same screenshot set is recorded as an independent cross-check only.",
+    "load_case": "MotoSPEC front potentiometer = fork compression along the fork axis = our Sag_Front. Our Sag_Rear is VERTICAL wheel travel, so it takes MotoSPEC's rear_wheel_travel OUTPUT, not its rear pot reading.",
+    "not_checked": "Wheel rates/forces are absent: MotoSPEC includes the fork air spring and cartridge, which this tool does not model (see the \"what this tool does not compute\" guide section). Anti-squat is absent: none of these screenshots show the CofG."
+  },
+  "_tiers": {
+    "static": {
+      "note": "Column 1, topped out. Must reproduce essentially exactly.",
+      "angle_deg": 0.02,
+      "length_mm": 0.15
+    },
+    "working": {
+      "note": "Fork travel <= 40 mm, i.e. the sag/ride range this tool is built for.",
+      "angle_deg": 0.06,
+      "length_mm": 0.6
+    },
+    "deep": {
+      "note": "Fork travel > 40 mm. Our flat-plate pitch model under-predicts chassis pitch here and the error grows; these bounds PIN THE KNOWN DIVERGENCE so it cannot silently get worse. They are not a pass.",
+      "envelope": {
+        "MotoSPEC_Rake": 1.8,
+        "MotoSPEC_Trail": 23,
+        "Normal_Trail": 19,
+        "Swingarm_Angle": 1.6,
+        "Rear_Ride_Height": 17,
+        "Wheelbase_Live": 2.6
+      }
+    }
+  },
+  "bikes": [
+    {
+      "id": "yamaha-r6-2017-fim",
+      "name": "Yamaha R6 2017 FIM",
+      "source_file": "D:\\AAA_MotoSPEC\\v5_files\\Yamaha\\R6\\2017 R6\\Yamaha_R6_2017_FIM.MS3",
+      "screenshot": "screens/5-13-4-1__drex_index_custom_2.png",
+      "display_modes": {
+        "progression": "100mm Wheel Travel (%)",
+        "motion_ratio": "Shock/Wheel",
+        "antisquat": "Percent",
+        "note": "These are UI dropdowns that change what the number MEANS. This bike's Motion Ratio is Shock/Wheel (0.457); the ZX-10R case uses Wheel/Shock (2.219). 1/0.457 = 2.188. Likewise Progression here is per-100mm-wheel-travel, not full-shock-travel. Match the mode before comparing."
+      },
+      "static": {
+        "Rake_Static": 24.03,
+        "WB": 1400.3,
+        "beta_static": 13.5,
+        "Swingarm_Length": 580,
+        "Yoke_Offset": 30,
+        "Rf": 304.46
+      },
+      "Rf_note": {
+        "derived_from": "column 1 (topped out) ground-trail identity: Rf = (trail·cos rake + yoke) / sin rake",
+        "nearest_library_entry": {
+          "tire": "X 125 Slick",
+          "centre_radius": 305.0,
+          "delta": -0.54
+        }
+      },
+      "columns": [
+        {
+          "column": 1,
+          "label": "Topped Out",
+          "front_pot": 0,
+          "rear_wheel_travel": 0,
+          "tier": "static",
+          "expect": {
+            "MotoSPEC_Rake": 24.03,
+            "MotoSPEC_Trail": 102.9,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 13.5,
+            "Rear_Ride_Height": -135.4,
+            "Wheelbase_Live": 1400.3
+          }
+        },
+        {
+          "column": 2,
+          "label": "Sag",
+          "front_pot": 30,
+          "rear_wheel_travel": 21.8,
+          "tier": "working",
+          "expect": {
+            "MotoSPEC_Rake": 23.79,
+            "MotoSPEC_Trail": 101.4,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 11.07,
+            "Rear_Ride_Height": -111.4,
+            "Wheelbase_Live": 1392.7
+          }
+        },
+        {
+          "column": 3,
+          "label": "Braking",
+          "front_pot": 120,
+          "rear_wheel_travel": 4.4,
+          "tier": "deep",
+          "expect": {
+            "MotoSPEC_Rake": 19.58,
+            "MotoSPEC_Trail": 76.4,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 8.6,
+            "Rear_Ride_Height": -86.8,
+            "Wheelbase_Live": 1354.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "kawasaki-zx10r-2016",
+      "name": "Kawasaki ZX-10R 2016",
+      "source_file": "D:\\AAA_MotoSPEC\\v5_files\\Kawasaki\\ZX10R_2016\\Kawasaki_ZX10R_2016.MS3",
+      "screenshot": "screens/5-10-0-4__drex_motospec_interface_screen.png",
+      "display_modes": {
+        "progression": "Full Shock Travel (%)",
+        "motion_ratio": "Wheel/Shock",
+        "antisquat": "Percent",
+        "rear_ride_height_reference": "Vertical Wheel Position"
+      },
+      "static": {
+        "Rake_Static": 24.62,
+        "WB": 1456.3,
+        "beta_static": 11.6,
+        "Swingarm_Length": 603,
+        "Yoke_Offset": 26,
+        "Rf": 302.01
+      },
+      "Rf_note": {
+        "derived_from": "column 1 (topped out) ground-trail identity: Rf = (trail·cos rake + yoke) / sin rake",
+        "nearest_library_entry": {
+          "tire": "KR448F 120/70",
+          "centre_radius": 302.5,
+          "delta": -0.49
+        }
+      },
+      "columns": [
+        {
+          "column": 1,
+          "label": "Topped Out",
+          "front_pot": 0,
+          "rear_wheel_travel": 0,
+          "tier": "static",
+          "expect": {
+            "MotoSPEC_Rake": 24.62,
+            "MotoSPEC_Trail": 109.8,
+            "Normal_Trail": 99.8,
+            "Swingarm_Angle": 11.6,
+            "Rear_Ride_Height": -121.2,
+            "Wheelbase_Live": 1456.3
+          }
+        },
+        {
+          "column": 2,
+          "label": "Sag",
+          "front_pot": 30,
+          "rear_wheel_travel": 19.4,
+          "tier": "working",
+          "expect": {
+            "MotoSPEC_Rake": 24.31,
+            "MotoSPEC_Trail": 107.9,
+            "Normal_Trail": 98.3,
+            "Swingarm_Angle": 9.41,
+            "Rear_Ride_Height": -98.6,
+            "Wheelbase_Live": 1447.3
+          }
+        },
+        {
+          "column": 3,
+          "label": "Mid-Corner",
+          "front_pot": 80,
+          "rear_wheel_travel": 38.7,
+          "tier": "deep",
+          "expect": {
+            "MotoSPEC_Rake": 21.95,
+            "MotoSPEC_Trail": 83.2,
+            "Normal_Trail": 77.2,
+            "Swingarm_Angle": 5.7,
+            "Rear_Ride_Height": -54.7,
+            "Wheelbase_Live": 1428.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "kawasaki-zx10r-2021",
+      "name": "Kawasaki ZX-10R 2021",
+      "source_file": "D:\\AAA_MotoSPEC\\v5_files\\Kawasaki\\ZX-10R_2021\\Kawasaki_ZX10R_2021.MS3",
+      "screenshot": "screens/5-16-1-2__drex_motospec_interface_screen.png",
+      "display_modes": null,
+      "static": {
+        "Rake_Static": 24.75,
+        "WB": 1470,
+        "beta_static": 11.43,
+        "Swingarm_Length": 613,
+        "Yoke_Offset": 28,
+        "Rf": 304.4
+      },
+      "Rf_note": {
+        "derived_from": "column 1 (topped out) ground-trail identity: Rf = (trail·cos rake + yoke) / sin rake",
+        "nearest_library_entry": {
+          "tire": "X 125 Slick",
+          "centre_radius": 305.0,
+          "delta": -0.6
+        }
+      },
+      "columns": [
+        {
+          "column": 1,
+          "label": "Topped Out",
+          "front_pot": 0,
+          "rear_wheel_travel": 0,
+          "tier": "static",
+          "expect": {
+            "MotoSPEC_Rake": 24.75,
+            "MotoSPEC_Trail": 109.5,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 11.43,
+            "Rear_Ride_Height": -121.4,
+            "Wheelbase_Live": 1470
+          }
+        },
+        {
+          "column": 2,
+          "label": "Mid-Corner",
+          "front_pot": 80,
+          "rear_wheel_travel": 43.5,
+          "tier": "deep",
+          "expect": {
+            "MotoSPEC_Rake": 22.11,
+            "MotoSPEC_Trail": 82.5,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 5.31,
+            "Rear_Ride_Height": -56.8,
+            "Wheelbase_Live": 1441.5
+          }
+        },
+        {
+          "column": 3,
+          "label": "Braking",
+          "front_pot": 120,
+          "rear_wheel_travel": 4.2,
+          "tier": "deep",
+          "expect": {
+            "MotoSPEC_Rake": 20.61,
+            "MotoSPEC_Trail": 84.6,
+            "Normal_Trail": null,
+            "Swingarm_Angle": 6.69,
+            "Rear_Ride_Height": -71.4,
+            "Wheelbase_Live": 1422.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "bmw-s1000rr-m-2019",
+      "name": "BMW S1000RR M 2019",
+      "source_file": "D:\\AAA_MotoSPEC\\v5_files\\BMW\\S1000RR_M_Package_2019\\BMW_S1000RR_M_Package_2019.MS1",
+      "screenshot": "screens/5-10-0-4__drex_index_custom_2.png",
+      "display_modes": {
+        "progression": "Full Shock Travel (%)",
+        "motion_ratio": "Wheel/Shock",
+        "antisquat": "Percent",
+        "rear_ride_height_reference": "Vertical Wheel Position"
+      },
+      "static": {
+        "Rake_Static": 23.54,
+        "WB": 1448.4,
+        "beta_static": 12.41,
+        "Swingarm_Length": 605,
+        "Yoke_Offset": 29.5,
+        "Rf": 304.33
+      },
+      "Rf_note": {
+        "derived_from": "column 1 (topped out) ground-trail identity: Rf = (trail·cos rake + yoke) / sin rake",
+        "nearest_library_entry": {
+          "tire": "X 125 Slick",
+          "centre_radius": 305.0,
+          "delta": -0.67
+        }
+      },
+      "columns": [
+        {
+          "column": 1,
+          "label": "Topped Out",
+          "front_pot": 0,
+          "rear_wheel_travel": 0,
+          "tier": "static",
+          "expect": {
+            "MotoSPEC_Rake": 23.54,
+            "MotoSPEC_Trail": 100.4,
+            "Normal_Trail": 92.1,
+            "Swingarm_Angle": 12.41,
+            "Rear_Ride_Height": -130.1,
+            "Wheelbase_Live": 1448.4
+          }
+        },
+        {
+          "column": 2,
+          "label": "Sag",
+          "front_pot": 30,
+          "rear_wheel_travel": 16.6,
+          "tier": "working",
+          "expect": {
+            "MotoSPEC_Rake": 23.1,
+            "MotoSPEC_Trail": 97.8,
+            "Normal_Trail": 89.9,
+            "Swingarm_Angle": 10.38,
+            "Rear_Ride_Height": -109,
+            "Wheelbase_Live": 1439.7
+          }
+        },
+        {
+          "column": 3,
+          "label": "Mid-Corner",
+          "front_pot": 80,
+          "rear_wheel_travel": 33,
+          "tier": "deep",
+          "expect": {
+            "MotoSPEC_Rake": 20.69,
+            "MotoSPEC_Trail": 73.2,
+            "Normal_Trail": 68.5,
+            "Swingarm_Angle": 6.39,
+            "Rear_Ride_Height": -67.3,
+            "Wheelbase_Live": 1421.5
+          }
+        }
+      ]
+    }
+  ]
+}

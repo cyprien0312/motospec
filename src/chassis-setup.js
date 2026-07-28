@@ -7,6 +7,7 @@
 
 import { computeAll, INPUT_META } from './formulas.js';
 import { CATALOGS } from './catalog.js';
+import { renderCgCalculator } from './cg-calculator.js';
 
 const D2R = Math.PI / 180;
 
@@ -53,6 +54,15 @@ export const CHASSIS_GROUPS = [
     label_en: 'Chain Geometry',
     fields: ['Front_Sprocket_X', 'Front_Sprocket_Y', 'Chain_Pitch'],
   },
+  // How the setup numbers above were measured. Records convention only —
+  // no formula reads these. See CHASSIS_ENUM_FIELDS.
+  {
+    key: 'conventions',
+    kind: 'enum',
+    label_zh: '测量口径（记录量法，不参与计算）',
+    label_en: 'Measurement Conventions (recorded, not computed)',
+    fields: ['Fork_Position_Ref_Type', 'Swingarm_Length_Ref_Type', 'Rear_RH_Ref_Type'],
+  },
 ];
 
 // All chassis fields a profile carries. Linked-pair siblings (rear_weight_dist,
@@ -66,6 +76,95 @@ export const CHASSIS_SPEC_FIELDS = [
   'Rf',
   'Front_Sprocket_X', 'Front_Sprocket_Y', 'Chain_Pitch',
 ];
+
+// ============================================================
+// Measurement conventions (string enums, not numbers)
+// ============================================================
+//
+// A setup number is only comparable to another setup number if both were
+// taken the same way. Real MotoSPEC makes this explicit with a Reference
+// selector per quantity; a shared component library needs it even more,
+// because the person reading the profile is not the person who measured
+// it. These fields record HOW, never WHAT — no formula consumes them.
+//
+// The default is deliberately '' ("not specified"): stamping a convention
+// on someone's number that they never stated would be exactly the kind of
+// fabrication the numeric side of this app refuses to do. An unrecorded
+// convention renders as a blank with a "not recorded" tooltip.
+//
+// Only ONE algorithm is implemented per quantity today (marked below);
+// selecting another option records the convention and warns that the
+// math still assumes the implemented one. That is strictly better than
+// silently treating four different measurements as the same number.
+export const CHASSIS_ENUM_FIELDS = {
+  Fork_Position_Ref_Type: {
+    def: '',
+    label: { en: 'Fork Position Reference', zh: '前叉伸出量口径' },
+    help: {
+      en: 'Where the fork position is measured from and to. MotoSPEC names these "Upper reference to Lower reference".',
+      zh: '前叉伸出量从哪量到哪。MotoSPEC 的命名规则是「上参考 → 下参考」。',
+    },
+    // The delta chain treats Fork_Position as a distance along the fork
+    // axis, which matches the tube-vs-yoke family directly.
+    implemented: 'upper_tube_to_upper_yoke',
+    options: [
+      { value: '',                          en: '— not recorded —',                 zh: '— 未记录 —' },
+      { value: 'upper_tube_to_upper_yoke',  en: 'Upper Fork Tube → Upper Yoke',     zh: '上叉管顶 → 上三星台' },
+      { value: 'fork_cap_to_upper_yoke',    en: 'Fork Cap Top → Upper Yoke',        zh: '叉盖顶 → 上三星台' },
+      { value: 'lower_yoke_to_upper_tube',  en: 'Lower Yoke → Upper Fork Tube',     zh: '下三星台 → 上叉管顶' },
+      { value: 'lower_headstock_to_axle',   en: 'Lower Headstock → Front Axle',     zh: '下头管 → 前轮轴心' },
+    ],
+  },
+  Swingarm_Length_Ref_Type: {
+    def: '',
+    label: { en: 'Swingarm Length Reference', zh: '摇臂长度口径' },
+    help: {
+      en: 'Forward reference for the swingarm length. "Frame Center" applies to adjustable-pivot bikes (Panigale V2/V4) where the pivot axis is not reachable.',
+      zh: '摇臂长度的前端参考点。可调枢轴车型（Panigale V2/V4，枢轴轴线量不到）用「车架中心」。',
+    },
+    implemented: 'swingarm_pivot',
+    options: [
+      { value: '',               en: '— not recorded —',      zh: '— 未记录 —' },
+      { value: 'swingarm_pivot', en: 'Swingarm Pivot → Rear Axle', zh: '摇臂枢轴 → 后轮轴心' },
+      { value: 'frame_center',   en: 'Frame Center → Rear Axle',   zh: '车架中心 → 后轮轴心' },
+    ],
+  },
+  Rear_RH_Ref_Type: {
+    def: '',
+    label: { en: 'Rear Ride Height Reference', zh: '后车高参考口径' },
+    help: {
+      en: 'Which rear ride-height construction the RESULTS row reports. Only Vertical Pivot-Axle is computed today.',
+      zh: 'RESULTS 里那一行后车高用的是哪种构造。目前只实现了「枢轴-轴心垂直距离」。',
+    },
+    implemented: 'vertical_pivot_axle',
+    options: [
+      { value: '',                    en: '— not recorded —',                  zh: '— 未记录 —' },
+      { value: 'vertical_pivot_axle', en: 'Vertical Pivot → Axle',             zh: '枢轴水平线 → 后轴（垂直）' },
+      { value: 'subframe_point',      en: 'Subframe Point → Axle',             zh: '尾架参考点 → 后轴' },
+      { value: 'gauge',               en: 'Ride Height Gauge',                 zh: '车高尺读数' },
+    ],
+  },
+};
+
+export const CHASSIS_ENUM_KEYS = Object.keys(CHASSIS_ENUM_FIELDS);
+
+// Human label for a stored enum value, or null when unrecorded/unknown.
+export function chassisEnumLabel(field, value, lang = 'zh') {
+  const def = CHASSIS_ENUM_FIELDS[field];
+  if (!def || !value) return null;
+  const opt = def.options.find(o => o.value === value);
+  if (!opt) return null;
+  return lang === 'en' ? opt.en : opt.zh;
+}
+
+// True when the recorded convention is NOT the one the math implements —
+// the value still travels with the profile, but the reader must know the
+// computation assumes something else.
+export function chassisEnumIsUnmodelled(field, value) {
+  const def = CHASSIS_ENUM_FIELDS[field];
+  if (!def || !value) return false;
+  return value !== def.implemented;
+}
 
 // ref field → live setup key it mirrors into. The Chassis Setup UI edits
 // only the refs; the live keys follow (on edit via setChassisInput, on
@@ -187,6 +286,13 @@ export function buildChassisPresetEntry(name, values) {
   // (stale live values from old page state can never leak into a save).
   for (const [ref, live] of Object.entries(SETUP_MIRROR)) {
     if (Number.isFinite(specs[ref])) specs[live] = specs[ref];
+  }
+  // Measurement conventions travel with the profile, but only when the
+  // user actually stated one — an unrecorded convention stays absent
+  // rather than being defaulted into a claim nobody made.
+  for (const f of CHASSIS_ENUM_KEYS) {
+    const v = values?.[f];
+    if (typeof v === 'string' && v) specs[f] = v;
   }
   return { name: String(name || '').trim() || 'Chassis Profile', specs };
 }
@@ -537,9 +643,37 @@ function fieldInputCell(field, values, lang) {
     ` oninput="setChassisInput('${field}', this.value)"/></td>`;
 }
 
+function enumHeaderCell(field, lang) {
+  const def = CHASSIS_ENUM_FIELDS[field];
+  const label = def.label[lang === 'en' ? 'en' : 'zh'];
+  const help  = def.help[lang === 'en' ? 'en' : 'zh'];
+  return `<th class="chassis-th" title="${escapeHtml(help)}">${escapeHtml(label)}</th>`;
+}
+
+function enumSelectCell(field, values, lang) {
+  const def = CHASSIS_ENUM_FIELDS[field];
+  const cur = typeof values[field] === 'string' ? values[field] : def.def;
+  const opts = def.options.map(o => {
+    const text = lang === 'en' ? o.en : o.zh;
+    const sel = o.value === cur ? ' selected' : '';
+    return `<option value="${escapeHtml(o.value)}"${sel}>${escapeHtml(text)}</option>`;
+  }).join('');
+  // The math only implements one convention per quantity. Recording a
+  // different one is allowed (the fact is worth keeping) but must say so.
+  const warn = chassisEnumIsUnmodelled(field, cur)
+    ? `<div class="chassis-enum-warn" title="${escapeHtml(lang === 'en'
+        ? 'Recorded, but the geometry chain still computes as if measured the implemented way.'
+        : '已记录，但几何链仍按已实现的那种口径计算。')}">${escapeHtml(lang === 'en' ? 'not modelled' : '未建模')}</div>`
+    : '';
+  return `<td class="chassis-td">` +
+    `<select class="chassis-input chassis-enum" onchange="setChassisEnum('${field}', this.value)">${opts}</select>` +
+    warn + `</td>`;
+}
+
 function groupTable(g, values, lang) {
-  const headers = g.fields.map(f => fieldHeaderCell(f, lang)).join('');
-  const inputs  = g.fields.map(f => fieldInputCell(f, values, lang)).join('');
+  const isEnum = g.kind === 'enum';
+  const headers = g.fields.map(f => isEnum ? enumHeaderCell(f, lang) : fieldHeaderCell(f, lang)).join('');
+  const inputs  = g.fields.map(f => isEnum ? enumSelectCell(f, values, lang) : fieldInputCell(f, values, lang)).join('');
   return `
     <div class="chassis-table-wrap">
       <table class="chassis-table">
@@ -578,7 +712,7 @@ function libraryDropdown(currentId, str) {
   `;
 }
 
-export function renderChassisSetup({ values, lang } = {}) {
+export function renderChassisSetup({ values, lang, cgRows } = {}) {
   const v = values || {};
   const out = computeAll({ ...v });
   const L = lang === 'en' ? 'en' : 'zh';
@@ -613,6 +747,8 @@ export function renderChassisSetup({ values, lang } = {}) {
       </div>
 
       ${groupsHtml}
+
+      ${renderCgCalculator({ rows: cgRows, values: v, lang: L })}
     </div>
   `;
 }

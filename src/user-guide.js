@@ -9,11 +9,11 @@
 //
 // Section anchors (kept in sync with PAGE_TO_ANCHOR in index.html):
 //   getting-started · dashboard · chassis · linkage ·
-//   datatable · catalogs · concepts · faq
+//   datatable · catalogs · concepts · limits · faq
 
 export const GUIDE_ANCHORS = [
   'getting-started', 'dashboard', 'chassis', 'linkage',
-  'datatable', 'catalogs', 'concepts', 'faq',
+  'datatable', 'catalogs', 'concepts', 'limits', 'faq',
 ];
 
 const STR = {
@@ -29,6 +29,7 @@ const STR = {
       'datatable':       '数据表（Data Table）',
       'catalogs':        '部件库（Component Library）',
       'concepts':        '概念与约定',
+      'limits':          '本工具不计算什么',
       'faq':             '已知限制 / FAQ',
     },
     sections: {
@@ -69,6 +70,7 @@ const STR = {
             <li>轮胎与传动：Rf（前轮半径）、Front_Sprocket_X / Y、Chain_Pitch</li>
           </ul>
           <p>右上侧视图随 WB 和 Rf 自动等比缩放。点击「保存为底盘配置」会把 <code>CHASSIS_SPEC_FIELDS</code> 列出的全部字段一起存入 chassis catalog（缺失字段会回填默认值）。已保存的配置可从下拉中重新加载。</p>
+          <p><strong>测量口径</strong>（页面最后一组）：一个设定数值，只有在<strong>量法相同</strong>时才和另一个数值可比。这里记录前叉伸出量、摇臂长度、后车高参考各自是怎么量的——只记录量法，不参与任何计算。默认是「未记录」：给别人的数字扣上一个他们从没声明过的口径，和编造数值是同一类错误。目前每个量只实现了一种算法；选了别的仍会如实记录并标「未建模」，提醒读的人几何链假设的是哪一种。共享库里的配置尤其需要这个——读的人不是量的人。</p>
           <p><strong>每个设定量只有一个输入框</strong>：填的是测量基线时的值（内部同时写入 live 与 <code>*_ref</code> 两个键，保证加载后所有差量为零）。「车现在装的是 27.5 offset」这类当前状态不存在配置里——去数据表对应列直接改（琥珀色 = 与配置分歧，清空恢复）。Yoke_Offset / Fork_Position 属于底盘配置而非前叉规格 — 同一支前叉可在不同车上有不同的伸出量。</p>
         `,
       },
@@ -97,11 +99,20 @@ const STR = {
             <li><strong>下拉行</strong>（Chassis、Fork、Shock、Linkage）：从对应 catalog 选择条目，对应 specs 自动并入该列的 values</li>
             <li><strong>输入行</strong>：直接键入数值；空白时显示工具提示告诉你「该字段通常来自 X 配置 / 也可手填」</li>
             <li><strong>设定覆盖行</strong>（Yoke Offset / Fork Position / Swingarm Length）：选定 chassis 配置后变为可编辑，键入即在该列覆盖配置值（琥珀色边框提示分歧，清空恢复配置值）；未选配置时不可编辑——差量链需要配置里的基线</li>
+            <li><strong>测量口径行</strong>（前叉伸出量口径 / 摇臂长度口径 / 后车高参考口径）：只读，回显所选 chassis 配置记录的量法。显示「—」= 该配置没记录口径，那这个数与别的列<strong>可能不可比</strong>；标「（未建模）」= 口径已记录，但几何链仍按已实现的那一种计算</li>
             <li><strong>RESULTS 行</strong>：只读，根据公式从 values 计算</li>
           </ul>
+          <h4>差异高亮（HIGHLITE）与列间复制</h4>
+          <p>表格上方的 <strong>差异高亮</strong> 下拉选一列作参考，其余列中<strong>与它不同的设置</strong>会被染黄——只标设置，不标 RESULTS（结果是后果，设置才是你改的东西）。每个车名下方的「⧉ 从…复制」可把另一列的<strong>前部 / 后部 / 全部设置</strong>搬过来；「全部」连 chassis 配置、载荷状态和链轮一起带走。复制会<strong>清掉源列没设过的项</strong>——否则残留的旧值会伪装成刚复制过来的。</p>
           <h4>载荷状态（LOAD CASE）/ Sag</h4>
           <p>在 LOAD CASE 组输入实测的前后 sag（前沿前叉轴线量——扎带法；后在后轮轴处垂直量），整个 RESULTS 块就变成<strong>该悬挂位置下的实时值</strong>：Rake / Trail / 摇臂角 / 抗蹲 / 运动比 / 轴距全部随之变化——和真实 MotoSPEC 的单一 RESULTS 块一致。默认 0 = 未加载参考态（一个真实的物理状态，不是占位符）；sag 全为 0 时每个结果都精确等于静态值。填好弹簧数据（刚度/预载/回顶）和称重数据后，「预测下沉量」行会给出纯弹簧模型的理论 sag——与实测值的差就是气簧/摩擦/刚度偏差的诊断信号。</p>
           <p>参考态约定：Chassis 配置里的 Rake / 摇臂角 / 轴距描述的是你测量它们时的姿态，sag 是<strong>相对那个姿态的额外压缩</strong>。Fork Position、Shock Length 相对各自基线值（Chassis 配置的基线设定组）的差量，以及直接输入的前叉长度差（FRONT SETTINGS →「前叉长度差」，两叉并排实测）和前后胎半径差（「胎半径差 vs 基线胎」，0 = 同款胎）也进入同一条姿态链——管上提 / 换短叉 = 车头下降，换长避震 / 换高后胎 = 车尾抬高，都会实时反映到 Rake 上；前胎半径差还同时进入 Trail 公式的有效半径（Rf + Δ）。</p>
+          <p><strong>行程占用率</strong>（LOAD CASE 里的两行）把 sag 换算成占总行程的百分比：前 = 前 sag ÷ 前叉行程；后 = 避震压缩量（由 4-bar 解出，不是 轮行程 ÷ 运动比）÷ 避震行程。两者都是<strong>部件级</strong>口径，所以前后可以直接比——而前后 sag 的毫米数不能（一个沿叉轴、一个在轮端垂直）。也因此，两支行程不同的叉可以在同一压缩率下比较。</p>
+          <h4>RESULTS 里的三个整车指标</h4>
+          <ul>
+            <li><strong>弹簧中心</strong>：后轮刚度 ÷（前 + 后）。0.50 = 前后等硬；> 0.50 = 后端更硬。因为回顶簧、连杆渐进性的存在它并非常数，给出的是当前压缩组合下的瞬时值</li>
+            <li><strong>抬头 / 制动加速度极限</strong>：把一端完全卸载所需的纵向加速度（g）。只依赖重心与轴距——所以<strong>没实测过重心，这两个数就只有比较价值、没有绝对价值</strong>。按测量重心时的姿态计算（重心随悬挂压缩的移动未建模），假定该极限低于轮胎摩擦极限，气动阻力会进一步压低抬头极限</li>
+          </ul>
           <h4>「Need: …」提示</h4>
           <p>RESULTS 单元格只有当其依赖的所有叶子输入都被「真实绑定」（来自 chassis 配置 / 选中的部件 / 用户手填）时才显示数值；否则留空，并提示缺什么。例如选了 chassis 没选 fork，「Front Wheel Rate」会显示「Need: Fork specs」。Sag 输入默认即真实（0 = 未加载），从不出现在缺失提示里。</p>
           <h4>状态徽章</h4>
@@ -141,6 +152,35 @@ const STR = {
           <p>4-bar 反解出的 Δβ 基于你输入的避震行程独立计算并叠加到 <code>beta_static</code> 上 — 你给的 <code>beta_static</code> 是哪个状态的，叠加结果就还是那个状态系下的。换句话说，整个工具本质上是个"静态快照"计算器，"_static" 命名是历史遗留，并不暗示一定是 sag 或一定是空载。</p>
         `,
       },
+      'limits': {
+        h: '本工具不计算什么',
+        body: `
+          <p>把模型边界写在脸上，比让人自己撞上去强。以下这些<strong>确实会影响真车</strong>，但本工具<strong>不计算</strong>——看到的数字里没有它们的贡献。</p>
+          <h4>轮荷 / 刚度里不含</h4>
+          <ul>
+            <li><strong>过弯离心载荷</strong>与<strong>倾角</strong>：几何全部按车辆直立计算。<code>Lean_Angle</code> 这个输入目前存在但<strong>没有任何公式消费它</strong>（轮胎断面 + 径向刚度模型未实现）。</li>
+            <li><strong>路面坡度</strong>：一律按水平地面。</li>
+            <li><strong>阻尼力</strong>：全部结果都是准静态的。压缩/回弹点击数不进任何计算。</li>
+            <li><strong>前叉 / 避震 / 连杆的摩擦（stiction）</strong>：这正是「预测下沉量」与实测差异的主要来源之一。</li>
+            <li><strong>前叉气簧</strong>（油位 / 气隙）：<code>Front_Oil_Level</code> 带 PENDING 徽章就是这个意思。行程越深它占比越大——在接近打底处，实际轮端刚度会明显高于这里给出的纯螺旋弹簧值。</li>
+            <li><strong>避震气室</strong>作用在杆截面上的伸展力，以及杆体积排入气室导致的压力上升。</li>
+            <li><strong>Bump rubber（缓冲胶）</strong>：完全未建模。行程末端的实际刚度比这里高。</li>
+            <li><strong>链条拉力对悬挂的作用</strong>：抗蹲角算了，但链条力不进轮荷。</li>
+          </ul>
+          <h4>气动</h4>
+          <p>轮荷里<strong>含</strong>一个粗略的气动下压力项（<code>F_Aero</code> + 前/后分配比例）——这一点比真实 MotoSPEC 多，它干脆不做。但那是个简化模型：只有一个 Cd·A 与固定的前后分配，没有升力/俯仰随姿态的变化，也没有翼片随倾角失效。<strong>别把它当风洞数据用。</strong></p>
+          <h4>几何</h4>
+          <ul>
+            <li><strong>轮胎断面与受载变形</strong>：轮胎按一个固定半径处理，换胎走 <code>Tire_R*_Delta</code> 差量。断面椭圆、径向刚度、胎压补偿都没有。</li>
+            <li><strong>重心随悬挂压缩的移动</strong>：重心存的是对地坐标，不是车架坐标，所以它固定在你测量时的姿态。抗蹲和抬头/制动极限都因此只在<strong>接近测量姿态</strong>时最准。</li>
+            <li><strong>偏心后轴 / 偏心枢轴</strong>（Ducati、部分 MV / BMW）：未实现。</li>
+            <li><strong>头管插件（rake 可调件）</strong>：未实现，<code>Rake_Static</code> 就是最终值。</li>
+            <li><strong>13 种连杆构型里我们只覆盖 4 种</strong>：Frame-mounted 与 Horizontal Backlink（= linked）、Swingarm-mounted 与 Unit Pro-Link（= pro-link），加上 Direct / Linkless。Full Floater 家族、Panigale、XR69、Scissor 都不能算。</li>
+          </ul>
+          <h4>还有一件事</h4>
+          <p>算不出来的东西，这里<strong>留空</strong>（「—」或「Need: …」），不给一个看起来合理的数。看到空格不是 bug，是工具在说"我不知道"。</p>
+        `,
+      },
       'faq': {
         h: '已知限制 / FAQ',
         body: `
@@ -167,6 +207,7 @@ const STR = {
       'datatable':       'Data Table',
       'catalogs':        'Component Library',
       'concepts':        'Concepts & Conventions',
+      'limits':          'What This Tool Does Not Compute',
       'faq':             'Known Limits / FAQ',
     },
     sections: {
@@ -207,6 +248,7 @@ const STR = {
             <li>Tire &amp; drivetrain: Rf, Front_Sprocket_X / Y, Chain_Pitch</li>
           </ul>
           <p>The side-view diagram auto-fits to your WB and Rf. "Save chassis profile" stores every field in <code>CHASSIS_SPEC_FIELDS</code> (missing fields are backfilled with defaults). Saved profiles can be reloaded from the dropdown.</p>
+          <p><strong>Measurement conventions</strong> (last group on the page): a setup number is only comparable to another setup number if both were <strong>taken the same way</strong>. This group records how fork position, swingarm length and the rear ride-height reference were measured — convention only; no formula reads it. The default is "not recorded", deliberately: stamping a convention on someone's number that they never stated is the same class of error as inventing the number. Only one algorithm per quantity is implemented today; picking a different convention still records the fact and flags it "not modelled" so the reader knows what the geometry chain assumes. Profiles in the shared library need this most — the person reading it is not the person who measured it.</p>
           <p><strong>One input per setup quantity</strong>: what you type is the measurement-baseline value (both the live key and its <code>*_ref</code> are written together, so a loaded profile always starts at zero delta). "The bike currently runs 27.5 offset" does not live in the profile — dial it per-column in the Data Table (amber = diverging from the profile; clear to restore). Yoke_Offset / Fork_Position belong to the chassis profile, not the fork spec — the same fork can have different stick-out across bikes.</p>
         `,
       },
@@ -235,11 +277,20 @@ const STR = {
             <li><strong>Dropdown rows</strong> (Chassis, Fork, Shock, Linkage): pick a catalog entry; its specs merge into that column's values automatically</li>
             <li><strong>Input rows</strong>: type a number directly; empty cells show a tooltip pointing to the usual provider</li>
             <li><strong>Setup override rows</strong> (Yoke Offset / Fork Position / Swingarm Length): editable once a chassis profile is selected — typing overrides the profile for that column only (amber border = diverging; clear to restore). Not editable without a profile: the delta chain needs the profile's baseline</li>
+            <li><strong>Measurement-convention rows</strong> (Fork Position / Swingarm Length / Rear Ride Height Reference): read-only echoes of how the selected chassis profile says its numbers were taken. A dash means the profile records no convention — that number <strong>may not be comparable</strong> to another column. "(not modelled)" means the convention is recorded but the geometry chain still computes as if measured the implemented way</li>
             <li><strong>RESULTS rows</strong>: read-only, computed from values</li>
           </ul>
+          <h4>HIGHLITE and copying between columns</h4>
+          <p>The <strong>HIGHLITE</strong> selector above the table picks a reference column; <strong>settings that differ from it</strong> are highlighted in the other columns — settings only, never RESULTS (the results are the consequence, the settings are what you changed). Under each bike name, "⧉ copy from…" pulls <strong>Front / Rear / All settings</strong> from another column; "All" also brings the chassis profile, load case and sprockets. Copying <strong>clears anything the source never set</strong> — otherwise stale values would masquerade as the ones you just copied in.</p>
           <h4>Load case / Sag</h4>
           <p>Type your measured sag into the LOAD CASE group (front along the fork axis — zip-tie method; rear vertically at the axle) and the whole RESULTS block becomes <strong>live at that suspension position</strong>: rake, trail, swingarm angle, anti-squat, motion ratio and wheelbase all respond — one RESULTS block, exactly like the real MotoSPEC. The default 0 means "no load applied" (a physically true state, not a placeholder); at zero sag every result equals its static value exactly. With spring data (rate/preload/topout) and wheel weights entered, the Predicted Sag rows give the coil-spring-model sag — the gap to your measured value is a diagnostic for air-spring/friction/rate deviations.</p>
           <p>Reference-state contract: the chassis profile's rake / swingarm angle / wheelbase describe the bike at whatever attitude you measured them; sag is <strong>additional compression relative to that same attitude</strong>. Fork position and shock length deltas against their baseline values (the chassis profile's Baseline Setup group), plus the typed fork-length difference (FRONT SETTINGS → "Fork Length Δ") and the tire radius deltas ("Tire Radius Δ vs Baseline", 0 = same tire), feed the same attitude chain — tubes up / a shorter fork drops the front, a longer shock or a taller rear tire lifts the rear, and rake tracks all of it live; the front tire delta also enters the trail formula's effective radius (Rf + Δ).</p>
+          <p><strong>Stroke Used %</strong> (two LOAD CASE rows) expresses sag as a share of full travel: front = front sag ÷ fork stroke; rear = shock compression (solved through the 4-bar, not wheel travel ÷ motion ratio) ÷ shock stroke. Both are <strong>component-level</strong>, so front and rear ARE directly comparable — the raw sag millimetres are not (one is along the fork axis, the other vertical at the wheel). It also lets two forks with different strokes be compared at the same compression percentage.</p>
+          <h4>Three whole-bike numbers in RESULTS</h4>
+          <ul>
+            <li><strong>Spring Center</strong>: rear rate ÷ (front + rear). 0.50 = both ends equally stiff; > 0.50 = rear stiffer. Topout springs and linkage progression keep it from being constant — this is the instantaneous value at the current compression</li>
+            <li><strong>Wheelie / Braking Accel Limit</strong>: the longitudinal acceleration (g) that fully unloads one end. They depend only on the CG and the wheelbase — so <strong>without a measured CG these have comparative value only, not absolute value</strong>. Computed at the attitude where the CG was measured (CG movement with suspension compression is not modelled), assuming the limit is below the tire friction limit; aero drag lowers the wheelie limit further</li>
+          </ul>
           <h4>"Need: …" hints</h4>
           <p>A RESULTS cell only renders a number when every leaf input it depends on is genuinely bound (chassis profile / selected component / typed override). Otherwise it stays blank with a hint naming the missing provider — e.g. "Need: Fork specs" if you've picked a chassis but no fork. Sag inputs are real by default (0 = unloaded) and never appear in a missing hint.</p>
           <h4>Status badges</h4>
@@ -277,6 +328,35 @@ const STR = {
             <li>Want the <strong>brake-dive limit</strong>? Enter the dove-in geometry.</li>
           </ul>
           <p>The 4-bar Δβ from shock travel is computed independently and added to <code>beta_static</code> — so whatever state you fed into <code>beta_static</code>, the stacked result is still in that frame. The whole tool is essentially a "static snapshot" calculator; the <code>_static</code> naming is historical and does <em>not</em> imply sag or unloaded.</p>
+        `,
+      },
+      'limits': {
+        h: 'What This Tool Does Not Compute',
+        body: `
+          <p>Model boundaries stated up front beat model boundaries discovered the hard way. All of the following <strong>do</strong> affect a real bike and are <strong>not</strong> in any number this tool shows.</p>
+          <h4>Not in the wheel forces or rates</h4>
+          <ul>
+            <li><strong>Cornering loads and lean angle</strong>: all geometry is computed upright. The <code>Lean_Angle</code> input exists but <strong>no formula consumes it</strong> (the tire profile + radial stiffness model is not implemented).</li>
+            <li><strong>Road gradient</strong>: everything assumes level ground.</li>
+            <li><strong>Damping</strong>: every result is quasi-static. Compression/rebound clicks feed nothing.</li>
+            <li><strong>Fork / shock / linkage friction (stiction)</strong>: one of the main reasons predicted sag and measured sag differ.</li>
+            <li><strong>Fork air spring</strong> (oil level / air gap) — that is what the PENDING badge on <code>Front_Oil_Level</code> means. Its share grows deep in the stroke, so near bottoming the real wheel rate is well above the coil-only figure here.</li>
+            <li><strong>Shock reservoir</strong> extension force on the shaft area, and the pressure rise as shaft volume displaces into the reservoir.</li>
+            <li><strong>Bump rubbers</strong>: not modelled at all. End-of-stroke stiffness is higher than shown.</li>
+            <li><strong>Chain force on the suspension</strong>: the anti-squat angle is computed, but chain tension does not enter the wheel loads.</li>
+          </ul>
+          <h4>Aerodynamics</h4>
+          <p>The wheel loads <strong>do</strong> include a coarse aero downforce term (<code>F_Aero</code> plus a front/rear share) — more than the real MotoSPEC, which omits it entirely. But it is a simplification: one Cd·A, a fixed front/rear split, no attitude-dependent lift or pitch, no wings losing effect with lean. <strong>Do not read it as wind-tunnel data.</strong></p>
+          <h4>Geometry</h4>
+          <ul>
+            <li><strong>Tire profile and load deflection</strong>: a tire is one fixed radius here; swaps go through <code>Tire_R*_Delta</code>. No elliptical profile, no radial stiffness, no pressure compensation.</li>
+            <li><strong>CG movement with suspension compression</strong>: the CG is stored in ground coordinates, not frame coordinates, so it stays where you measured it. Anti-squat and the acceleration limits are therefore most accurate <strong>near the attitude you measured</strong>.</li>
+            <li><strong>Eccentric rear axle / eccentric pivot</strong> (Ducati, some MV and BMW): not implemented.</li>
+            <li><strong>Headstock inserts (rake adjusters)</strong>: not implemented — <code>Rake_Static</code> is the final value.</li>
+            <li><strong>Four of the thirteen linkage types</strong> are covered: frame-mounted and horizontal backlink (= linked), swingarm-mounted and Unit Pro-Link (= pro-link), plus Direct / Linkless. The Full Floater family, Panigale, XR69 and Scissor cannot be computed.</li>
+          </ul>
+          <h4>And one more thing</h4>
+          <p>Anything that cannot be computed is left <strong>blank</strong> ("—" or "Need: …") rather than filled with a plausible-looking number. An empty cell is not a bug; it is the tool saying it does not know.</p>
         `,
       },
       'faq': {

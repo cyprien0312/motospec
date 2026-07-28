@@ -7,8 +7,13 @@ test('chassis-setup: renders every grouped field as an input', () => {
   const html = renderChassisSetup({ values: defaultValues(), lang: 'en' });
   for (const g of CHASSIS_GROUPS) {
     for (const f of g.fields) {
-      assert.match(html, new RegExp(`oninput="setChassisInput\\('${f}'`),
-        `missing input wired to setChassisInput for ${f}`);
+      if (g.kind === 'enum') {
+        assert.match(html, new RegExp(`onchange="setChassisEnum\\('${f}'`),
+          `missing select wired to setChassisEnum for ${f}`);
+      } else {
+        assert.match(html, new RegExp(`oninput="setChassisInput\\('${f}'`),
+          `missing input wired to setChassisInput for ${f}`);
+      }
     }
   }
 });

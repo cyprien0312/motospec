@@ -8,7 +8,7 @@
 | 文件 | 内容 |
 |---|---|
 | [`measurement-guide-765-zh.md`](measurement-guide-765-zh.md) | **主入口**：改装 765 的完整中文测量指南——五张截图遗产盘点、参考状态要求、Session A–D 步骤与空白记录表、数据→app 字段映射、常见错误 |
-| [`measurement-points.md`](measurement-points.md) | 测量点定义表：车架级坐标点（RA/FA/SP/CS/SA-U/SA-L/GND，原点=后轴）、称重项与 CG 公式、连杆布置点 ③⑥⑦ 七段距离三角定位协议（含 A↔B 耦合条款） |
+| [`measurement-points.md`](measurement-points.md) | 测量点定义表：车架级坐标点（RA/FA/SP/CS/SA-U/SA-L/GND，原点=后轴）、**称重规程**（两工况称重法、抬起角/锁悬挂/胎压要求、0.5 kg ≈ 5 mm 的量级感）与 CG 公式、连杆布置点 ③⑥⑦ 七段距离三角定位协议（含 A↔B 耦合条款） |
 | [`measurement-points.svg`](measurement-points.svg) | 车架级测量点标注侧视图 |
 | [`scan-points-zh.svg`](scan-points-zh.svg) | **3D 扫描替代路线**取点图（车头朝左侧视投影，连杆放大图）——一次扫描替代 Session A+B+C 全部几何测量，称重除外 |
 
@@ -18,6 +18,7 @@
 |---|---|
 | [`research/triumph-765-motospec.md`](research/triumph-765-motospec.md) | **核心 oracle**：真实 MotoSPEC PRO 截图数据（Street Triple RS 765）——LINK DIMENSIONS、三列 offset 对照、公式验证、坐标拟合（等价类）、**等价类极限结论**（摇臂/狗骨更换不可算，直到测得 ③⑥⑦）、赛事支援规格表 |
 | [`research/r7-gsx8r-rs660-motospec.md`](research/r7-gsx8r-rs660-motospec.md) | 第二批 MotoSPEC 截图提取（R7 / GSX-8R / RS 660） |
+| [`research/motospec-v5-teardown.md`](research/motospec-v5-teardown.md) | **商业版 MotoSpec v5.17.1.0 拆解对照**：反编译数据模型 vs 我们的字段差距、值得抄的功能（测量口径枚举、Spring Center、HIGHLITE、CofG 计算器、轮胎倾角模型、气簧、Gearing Table）、他们的结构性缺点与我们的护城河、分优先级落地顺序 |
 | [`research/linkage-coords.md`](research/linkage-coords.md) | 连杆坐标溯源记录：公开渠道找不到任何车型的真实连杆坐标（结论：必须实测）；默认占位坐标的校准推导 |
 | [`research/chassis-coords.md`](research/chassis-coords.md) | 参考车车架规格的来源追踪 |
 
@@ -32,6 +33,15 @@
 
 历史实现计划与设计规格，按日期命名（`plans/` 5 份、`specs/` 1 份）。
 只读参考，不再更新——当前行为以代码与测试为准。
+
+---
+
+## 测试用 oracle / Test fixtures
+
+| 文件 | 内容 |
+|---|---|
+| `../tests/fixtures/motospec-oracle.json` | **真实 MotoSPEC v5 输出**（4 台车 × 3 列，来自厂商帮助手册截图）——几何链的对表基准。含完整出处与署名、口径对齐说明、按行程深度分档的误差包络 |
+| `../tests/fixtures/reference-bikes.json` | 公开规格表数值（R6 / CBR1000RR / Panigale V4）的 Trail / Wheel Rate 校验 |
 
 ---
 
