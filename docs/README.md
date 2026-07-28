@@ -11,6 +11,7 @@
 | [`measurement-points.md`](measurement-points.md) | 测量点定义表：车架级坐标点（RA/FA/SP/CS/SA-U/SA-L/GND，原点=后轴）、**称重规程**（两工况称重法、抬起角/锁悬挂/胎压要求、0.5 kg ≈ 5 mm 的量级感）与 CG 公式、连杆布置点 ③⑥⑦ 七段距离三角定位协议（含 A↔B 耦合条款） |
 | [`measurement-points.svg`](measurement-points.svg) | 车架级测量点标注侧视图 |
 | [`scan-points-zh.svg`](scan-points-zh.svg) | **3D 扫描替代路线**取点图（车头朝左侧视投影，连杆放大图）——一次扫描替代 Session A+B+C 全部几何测量，称重除外 |
+| [`../scan/README.md`](../scan/README.md) | **3D 扫描操作指南**（手把手）：软件与耗材、贴标记点、CloudCompare 切割、要扫哪 12 个件及各自对应 app 的哪个字段、跑脚本、质量红线、导进 app、问题排查表 |
 
 ## 研究 / Research（`research/`）
 

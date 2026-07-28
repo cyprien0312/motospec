@@ -1,0 +1,132 @@
+{
+  "_readme": [
+    "type: cylinder / sphere / plane",
+    "declustter: true 表示先做密度聚类只留最大一簇(甩掉旁边的支架)",
+    "hidden_point: 穿杆法用。rod=外露段的特征名, standoff=端面到孔中心的距离(mm,卡尺量)",
+    "symmetry_pairs 至少 3 对,且不要共线",
+    "tyre 半径必须用实际压载后的滚动半径,不是轮胎标称尺寸"
+  ],
+  "project": "demo",
+  "segments_dir": "demo/segments",
+  "output_dir": "demo/out",
+  "features": {
+    "axle_front_L": {
+      "file": "axle_front_L.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "前轮轴"
+    },
+    "axle_front_R": {
+      "file": "axle_front_R.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "前轮轴"
+    },
+    "axle_rear_L": {
+      "file": "axle_rear_L.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "后轮轴"
+    },
+    "axle_rear_R": {
+      "file": "axle_rear_R.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "后轮轴"
+    },
+    "countershaft": {
+      "file": "countershaft.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "输出轴中心(算 anti-squat 必需)"
+    },
+    "footpeg_L": {
+      "file": "footpeg_L.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "脚踏支架(只用来定对称面)"
+    },
+    "footpeg_R": {
+      "file": "footpeg_R.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "脚踏支架(只用来定对称面)"
+    },
+    "rocker_pivot": {
+      "file": "rocker_pivot.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "摇杆(rocker)支点"
+    },
+    "shock_lower": {
+      "file": "shock_lower.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "避震下锁点"
+    },
+    "shock_upper": {
+      "file": "shock_upper.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "避震上锁点"
+    },
+    "steering_head": {
+      "file": "steering_head.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "转向头轴承孔(上下各扫一段更准)"
+    },
+    "swingarm_pivot_L": {
+      "file": "swingarm_pivot_L.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "摇臂支点"
+    },
+    "swingarm_pivot_R": {
+      "file": "swingarm_pivot_R.xyz",
+      "type": "cylinder",
+      "declustter": true,
+      "note": "摇臂支点"
+    }
+  },
+  "symmetry_pairs": [
+    [
+      "axle_front_L",
+      "axle_front_R"
+    ],
+    [
+      "axle_rear_L",
+      "axle_rear_R"
+    ],
+    [
+      "footpeg_L",
+      "footpeg_R"
+    ],
+    [
+      "swingarm_pivot_L",
+      "swingarm_pivot_R"
+    ]
+  ],
+  "tyres": {
+    "front_radius_mm": 305.0,
+    "rear_radius_mm": 312.0
+  },
+  "sprockets": {
+    "front_teeth": null,
+    "rear_teeth": null,
+    "chain_pitch_mm": 15.875
+  },
+  "datum": "rear_contact_patch",
+  "scale_check": {
+    "feature_a": "axle_front",
+    "feature_b": "axle_rear",
+    "known_distance_mm": 1375.0178180663697
+  },
+  "quality_limits": {
+    "min_arc_deg": 120.0,
+    "max_rms_mm": 0.15,
+    "max_pair_angle_deg": 0.1,
+    "max_pair_offset_mm": 0.2,
+    "max_symmetry_rms_mm": 0.3
+  }
+}

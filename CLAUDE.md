@@ -15,6 +15,8 @@ MotoSPEC Formula Explorer — a static, single-page motorcycle chassis geometry 
 
 There is no lint, no build, no bundler. Don't introduce one without asking.
 
+- **`scan/` — 3D scan → chassis/linkage data pipeline** (Python, entirely separate from the app; the JS side has no build step and gains none from this). Point cloud → `batch_fit.py` (fits cylinders, builds the bike frame, emits hardpoints) → `motospec_export.py` (translates to OUR field names + cross-checks) → catalog entries. `chassis_geom.py` / `batch_fit.py` / `config.example.json` / `SCAN_WORKFLOW.md` came from outside and their numeric path is **unmodified**; `synth_scan.py` (synthetic ground-truth generator) and `motospec_export.py` are ours. Validated end to end against synthetic data: rake 0.002°, wheelbase 0.00 mm, hardpoints < 0.05 mm, and the exported entries reproduce the truth through `computeAll`. `scan/README.md` is the step-by-step operator guide (Chinese). Env: `scan/.venv` (numpy + scipy; gitignored, rebuild with `python3 -m venv .venv` + `~/.local/bin/pip --python .venv/bin/python install numpy scipy`). **This is the only route to the 10 linkage coordinates** — see `docs/research/linkage-coords.md` for why they cannot be sourced any other way.
+
 - **Windows exe**: `MotoSPEC.exe` at the repo root is a self-contained double-click launcher (embedded copies of `index.html` + `src/*.js` + `data/*.json`, minimal loopback HTTP server, opens the default browser). Rebuild it with `powershell -ExecutionPolicy Bypass -File windows-launcher\build.ps1` (uses the csc.exe that ships with Windows — no SDK) **whenever `index.html`, `src/`, or `data/` change**, or the exe serves stale files. Source: `windows-launcher/MotoSpecLauncher.cs`.
 
 ## Branches, deployment, automation

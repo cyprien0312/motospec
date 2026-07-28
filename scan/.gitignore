@@ -1,0 +1,6 @@
+# Python 环境与生成物 —— 都能一条命令重建，不入库
+.venv/
+demo/
+out/
+__pycache__/
+*.pyc
