@@ -16,9 +16,24 @@ import { chassisEnumLabel, chassisEnumIsUnmodelled } from './chassis-setup.js';
 // Used to decide whether a RESULTS cell can be computed for a given bike,
 // or should be left blank because some required input isn't bound to any
 // component / chassis profile / user override.
+// A node may declare `skipDepsWhen`: dependencies that drop out of the
+// calculation entirely under a stated condition (see swingarm_delta_solve
+// — zero shock delta short-circuits before the linkage is touched). The
+// condition is only trusted when the keys it reads are themselves bound;
+// an unbound key still holds its INPUT_META default, which proves nothing.
+function skippedDeps(node, values, ready) {
+  const rule = node.skipDepsWhen;
+  if (!rule || !values || !ready) return null;
+  for (const k of rule.requires) if (!ready.has(k)) return null;
+  return rule.test(values) ? new Set(rule.deps) : null;
+}
+
 const _leafCache = new Map();
-function leafInputsFor(id) {
-  if (_leafCache.has(id)) return _leafCache.get(id);
+function leafInputsFor(id, values = null, ready = null) {
+  // Cache only the unconditional walk; the conditional one is cheap and
+  // depends on per-bike values.
+  const cacheable = !values || !ready;
+  if (cacheable && _leafCache.has(id)) return _leafCache.get(id);
   const out = new Set();
   const seen = new Set();
   const walk = (k) => {
@@ -29,10 +44,11 @@ function leafInputsFor(id) {
     if (p.type === 'input' || !Array.isArray(p.deps) || p.deps.length === 0) {
       out.add(k); return;
     }
-    for (const d of p.deps) walk(d);
+    const skip = skippedDeps(p, values, ready);
+    for (const d of p.deps) if (!skip || !skip.has(d)) walk(d);
   };
   walk(id);
-  _leafCache.set(id, out);
+  if (cacheable) _leafCache.set(id, out);
   return out;
 }
 
@@ -578,11 +594,11 @@ export function renderDataTable(state) {
     }
     return row.computed ? [row.computed] : [];
   };
-  const cellStatus = (row, ready) => {
+  const cellStatus = (row, ready, values) => {
     let leaves;
     if (row.mode || row.computed) {
       leaves = new Set();
-      for (const ch of channelsFor(row)) for (const k of leafInputsFor(ch)) leaves.add(k);
+      for (const ch of channelsFor(row)) for (const k of leafInputsFor(ch, values, ready)) leaves.add(k);
     }
     else if (row.derivedFrom) leaves = new Set(row.requires || []);
     else return { ready: true };
@@ -792,12 +808,12 @@ export function renderDataTable(state) {
             cells += inputCell(i, row.input, v, title, !has, false, diff);
           }
         } else if (row.derivedFrom) {
-          const st = cellStatus(row, readyByBike[i]);
+          const st = cellStatus(row, readyByBike[i], effVals[i]);
           cells += st.ready
             ? readonlyCell(fmtNum(row.derivedFrom(out)), false, row.hint?.[lang] || '')
             : blankCellHTML(st.missing);
         } else if (row.mode || row.computed) {
-          const st = cellStatus(row, readyByBike[i]);
+          const st = cellStatus(row, readyByBike[i], effVals[i]);
           const text = channelsFor(row).map(ch => fmtNum(out[ch])).join(' | ');
           cells += st.ready
             ? readonlyCell(text, false, row.hint?.[lang] || '')

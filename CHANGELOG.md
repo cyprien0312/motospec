@@ -78,6 +78,37 @@ rather than against static spec sheets.
   fork travel. A tire-delta test that asserted the opposite has been
   corrected.
 
+### Real bikes in the catalogs
+
+Five chassis profiles and matched fork/shock setups built from the same
+MotoSPEC screenshots (Yamaha R6 2017 FIM, Kawasaki ZX-10R 2016 and 2021,
+BMW S1000RR M 2019; Panigale V4 RS gets fork/shock only — its screenshot
+has no ground-referenced swingarm angle). Pick a profile plus its shock
+and rake, trail, swingarm angle and wheelbase come out matching MotoSPEC
+exactly. Pushed to the shared Supabase library and mirrored into the
+bundled `data/*.json` for offline/first paint.
+
+Each profile records what is NOT there rather than filling it in: no
+mass/CG, no aero share, no sprocket position, no shock stroke — those
+rows stay blank. Each also names its rear-suspension construction and
+whether this tool can solve it (the BMW is a Full Floater Pro, which it
+cannot).
+
+### Readiness follows the calculation actually taken
+
+A RESULTS cell used to demand every input in the worst-case dependency
+graph. `swingarm_delta_solve` lists all ten linkage coordinates because
+it *might* need them — but at zero shock delta the swingarm does not
+move and the solver short-circuits before reading a single one. So a
+complete chassis profile was showing "Need: Linkage coords" for rake,
+trail and wheelbase that it could compute perfectly well.
+
+Nodes can now declare `skipDepsWhen`. The rule that keeps it honest: the
+condition may only be trusted when the keys it reads are themselves
+bound — an unbound key still holds its default, and a default proves
+nothing. A real shock-length difference brings the linkage requirement
+straight back.
+
 ## v0.1 — Static path complete
 
 First milestone. The static-snapshot calculator is feature-complete: every

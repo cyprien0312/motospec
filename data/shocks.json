@@ -36,11 +36,11 @@
     "name": "Öhlins STX40 (Street Triple)",
     "manufacturer": "Öhlins",
     "specs": {
-      "Shock_Length": 283.0,
-      "Rear_Spring_Rate": 100.0,
-      "Rear_Spring_Preload": 12.0,
-      "Rear_Topout_Rate": 188.0,
-      "Shock_Stroke": 60.0
+      "Shock_Length": 283,
+      "Rear_Spring_Rate": 100,
+      "Rear_Spring_Preload": 12,
+      "Rear_Topout_Rate": 188,
+      "Shock_Stroke": 60
     },
     "note": "Setup as seen in the MotoSPEC oracle screenshots: length 283 (STX40 length adjuster +3 vs nominal 280), 100 N/mm spring fitted."
   },
@@ -49,9 +49,74 @@
     "manufacturer": "Öhlins",
     "note": "OEM standard per race-support spec sheet: nominal length 280, 2.5wt oil, gas 10 bar, sag targets 13 unladen / 40 laden.",
     "specs": {
-      "Shock_Length": 280.0,
-      "Rear_Spring_Rate": 95.0,
-      "Shock_Stroke": 60.0
+      "Shock_Length": 280,
+      "Rear_Spring_Rate": 95,
+      "Shock_Stroke": 60
+    }
+  },
+  "yamaha-r6-2017-fim-shock": {
+    "name": "Yamaha R6 2017 (FIM) — Stock",
+    "manufacturer": "Yamaha",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-13-4-1__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Shock stroke is not in the screenshot, so Progression stays blank until it is filled in.",
+    "specs": {
+      "Shock_Length": 293,
+      "Rear_Spring_Rate": 90,
+      "Rear_Spring_Preload": 14,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
+    }
+  },
+  "kawasaki-zx10r-2016-shock": {
+    "name": "Kawasaki ZX-10R 2016 — shock",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Shock stroke is not in the screenshot, so Progression stays blank until it is filled in.",
+    "specs": {
+      "Shock_Length": 309,
+      "Rear_Spring_Rate": 95,
+      "Rear_Spring_Preload": 13.5,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
+    }
+  },
+  "kawasaki-zx10r-2021-shock": {
+    "name": "Kawasaki ZX-10R 2021 — Stock",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-16-1-2__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Shock stroke is not in the screenshot, so Progression stays blank until it is filled in.",
+    "specs": {
+      "Shock_Length": 309,
+      "Rear_Spring_Rate": 98,
+      "Rear_Spring_Preload": 12,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
+    }
+  },
+  "bmw-s1000rr-m-2019-shock": {
+    "name": "BMW S1000RR M Package 2019 — shock",
+    "manufacturer": "BMW",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Shock stroke is not in the screenshot, so Progression stays blank until it is filled in.",
+    "specs": {
+      "Shock_Length": 369.5,
+      "Rear_Spring_Rate": 60,
+      "Rear_Spring_Preload": 11.5,
+      "Rear_Topout_Rate": 90,
+      "Rear_Topout_Length": 10
+    }
+  },
+  "ducati-panigale-v4rs-2019-shock": {
+    "name": "Ducati Panigale V4 RS 2019 — Ohlins TTX36",
+    "manufacturer": "Ducati",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_ride_height_gauge_results_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Shock stroke is not in the screenshot, so Progression stays blank until it is filled in.",
+    "specs": {
+      "Shock_Length": 311,
+      "Rear_Spring_Rate": 90,
+      "Rear_Spring_Preload": 14,
+      "Rear_Topout_Rate": 188,
+      "Rear_Topout_Length": 8
     }
   }
 }

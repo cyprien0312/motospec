@@ -3,11 +3,11 @@
     "name": "KYB FGK242",
     "manufacturer": "KYB",
     "specs": {
-      "Front_Spring_Rate": 9.0,
-      "Front_Spring_Preload": 10.0,
-      "Front_Oil_Level": 170.0,
-      "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0
+      "Front_Spring_Rate": 9,
+      "Front_Spring_Preload": 10,
+      "Front_Oil_Level": 170,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
     }
   },
   "showa-gsx8r": {
@@ -15,10 +15,10 @@
     "manufacturer": "Showa",
     "specs": {
       "Front_Spring_Rate": 8.5,
-      "Front_Spring_Preload": 10.0,
-      "Front_Oil_Level": 180.0,
-      "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0
+      "Front_Spring_Preload": 10,
+      "Front_Oil_Level": 180,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
     }
   },
   "fl-23030": {
@@ -26,22 +26,22 @@
     "manufacturer": "Andreani",
     "specs": {
       "Front_Spring_Rate": 9.5,
-      "Front_Spring_Preload": 5.0,
-      "Front_Oil_Level": 125.0,
+      "Front_Spring_Preload": 5,
+      "Front_Oil_Level": 125,
       "Front_Topout_Rate": 3.5,
-      "Front_Topout_Length": 40.0
+      "Front_Topout_Length": 40
     }
   },
   "showa-bpf-765": {
     "name": "Showa BPF (Street Triple RS)",
     "manufacturer": "Showa",
     "specs": {
-      "Front_Spring_Rate": 9.0,
-      "Front_Spring_Preload": 8.0,
-      "Front_Topout_Rate": 4.0,
-      "Front_Topout_Length": 40.0,
-      "Fork_Length": 730.0,
-      "Fork_Stroke": 115.0
+      "Front_Spring_Rate": 9,
+      "Front_Spring_Preload": 8,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40,
+      "Fork_Length": 730,
+      "Fork_Stroke": 115
     },
     "note": "Setup as seen in the MotoSPEC oracle screenshots (9.0 N/mm spring fitted)."
   },
@@ -50,10 +50,75 @@
     "manufacturer": "Showa",
     "note": "OEM standard internals per race-support spec sheet: 5wt oil, sag targets 13 unladen / 38 laden. Preload/topout unlisted.",
     "specs": {
-      "Front_Spring_Rate": 8.0,
-      "Front_Oil_Level": 85.0,
-      "Fork_Length": 730.0,
-      "Fork_Stroke": 115.0
+      "Front_Spring_Rate": 8,
+      "Front_Oil_Level": 85,
+      "Fork_Length": 730,
+      "Fork_Stroke": 115
+    }
+  },
+  "yamaha-r6-2017-fim-fork": {
+    "name": "Yamaha R6 2017 (FIM) — Stock",
+    "manufacturer": "Yamaha",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-13-4-1__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Other columns run different spring rates.",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 5,
+      "Front_Oil_Level": 180,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
+    }
+  },
+  "kawasaki-zx10r-2016-fork": {
+    "name": "Kawasaki ZX-10R 2016 — fork",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Other columns run different spring rates.",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 8,
+      "Front_Oil_Level": 195,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
+    }
+  },
+  "kawasaki-zx10r-2021-fork": {
+    "name": "Kawasaki ZX-10R 2021 — Stock",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-16-1-2__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Other columns run different spring rates.",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 8,
+      "Front_Oil_Level": 195,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
+    }
+  },
+  "bmw-s1000rr-m-2019-fork": {
+    "name": "BMW S1000RR M Package 2019 — fork",
+    "manufacturer": "BMW",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Other columns run different spring rates.",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 8,
+      "Front_Oil_Level": 200,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
+    }
+  },
+  "ducati-panigale-v4rs-2019-fork": {
+    "name": "Ducati Panigale V4 RS 2019 — RVP",
+    "manufacturer": "Ducati",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_ride_height_gauge_results_custom_2.png); values transcribed by eye.",
+    "note": "Setup as shown in column 1. Other columns run different spring rates.",
+    "specs": {
+      "Front_Spring_Rate": 9.5,
+      "Front_Spring_Preload": 10,
+      "Front_Oil_Level": 300,
+      "Front_Topout_Rate": 4,
+      "Front_Topout_Length": 40
     }
   }
 }

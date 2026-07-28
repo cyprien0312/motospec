@@ -379,7 +379,25 @@ export const P = {
       'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
       'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
     ],
-    note: 'shock 总差量 > 0（加长）→ 摇臂被顶下 → 静态 δ 为正。RHA 本质就是一个避震长度差，所以 ΔShock 与它线性叠加进同一约束。Dynamic 阶段（含 Travel_Rear）回归时拆出独立的 swingarm_delta_dynamic 即可。'
+    // Zero shock delta means the swingarm does not move, so the linkage
+    // never enters the calculation — CALC short-circuits to 0 before
+    // touching a single coordinate. Readiness has to know that, or a
+    // complete chassis profile reads as "Need: Linkage coords" for rake,
+    // trail and wheelbase when the linkage is genuinely irrelevant.
+    // `requires` are the keys the test itself reads: they must be bound
+    // before their values may be trusted to prove anything.
+    skipDepsWhen: {
+      requires: ['Shock_Clevis_RHA', 'Shock_Length', 'Shock_Length_ref'],
+      test: v => (v.Shock_Clevis_RHA || 0) === 0 && v.Shock_Length === v.Shock_Length_ref,
+      deps: [
+        'Frame_Rocker_Pivot_X', 'Frame_Rocker_Pivot_Y',
+        'Rocker_To_Shock_X',    'Rocker_To_Shock_Y',
+        'Rocker_To_Drag_X',     'Rocker_To_Drag_Y',
+        'Drag_To_Swingarm_X',   'Drag_To_Swingarm_Y',
+        'Frame_Shock_Top_X',    'Frame_Shock_Top_Y',
+      ],
+    },
+    note: 'shock 总差量 > 0（加长）→ 摇臂被顶下 → 静态 δ 为正。RHA 本质就是一个避震长度差，所以 ΔShock 与它线性叠加进同一约束。差量为 0 时短路返回 0，连杆几何完全不参与——readiness 也据此放行（`skipDepsWhen`）。Dynamic 阶段（含 Travel_Rear）回归时拆出独立的 swingarm_delta_dynamic 即可。'
   },
   Motion_Ratio: {
     name:'Motion_Ratio', label:'运动比 (轮/避震)', unit:'—', type:'intermediate',

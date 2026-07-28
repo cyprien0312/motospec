@@ -6,14 +6,102 @@
       "WB": 1414.3,
       "Swingarm_Length": 594.5,
       "beta_static": 12.23,
-      "Yoke_Offset": 26.0,
-      "Fork_Position": 28.0,
-      "Fork_Position_ref": 28.0,
-      "Shock_Length_ref": 283.0,
+      "Yoke_Offset": 26,
+      "Fork_Position": 28,
+      "Fork_Position_ref": 28,
+      "Shock_Length_ref": 283,
       "Rf": 304.6,
       "Chain_Pitch": 15.875,
       "Swingarm_Length_ref": 594.5,
-      "Yoke_Offset_ref": 26.0
+      "Yoke_Offset_ref": 26
+    }
+  },
+  "yamaha-r6-2017-fim": {
+    "name": "Yamaha R6 2017 (FIM)",
+    "manufacturer": "Yamaha",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-13-4-1__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Topped-out column of the MotoSPEC file Yamaha_R6_2017_FIM.MS3 is the measurement baseline. Rf 304.46 derived from that column's ground-trail identity. Mass/CG, aero share and sprocket position are NOT in the screenshot and are deliberately absent. Rear suspension: FRAME-MOUNTED ROCKER — covered by our 'linked' mode once the 10 linkage coordinates are measured.",
+    "specs": {
+      "Rake_Static": 24.03,
+      "WB": 1400.3,
+      "beta_static": 13.5,
+      "Swingarm_Length": 580,
+      "Swingarm_Length_ref": 580,
+      "Yoke_Offset": 30,
+      "Yoke_Offset_ref": 30,
+      "Fork_Position": 4,
+      "Fork_Position_ref": 4,
+      "Shock_Length_ref": 293,
+      "Rf": 304.46,
+      "Rear_RH_Ref_Type": "vertical_pivot_axle",
+      "Swingarm_Length_Ref_Type": "swingarm_pivot",
+      "Chain_Pitch": 15.875
+    }
+  },
+  "kawasaki-zx10r-2016": {
+    "name": "Kawasaki ZX-10R 2016",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Topped-out column of the MotoSPEC file Kawasaki_ZX10R_2016.MS3 is the measurement baseline. Rf 302.01 derived from that column's ground-trail identity. Mass/CG, aero share and sprocket position are NOT in the screenshot and are deliberately absent. Rear suspension: HORIZONTAL BACKLINK — covered by our 'linked' mode once the 10 linkage coordinates are measured.",
+    "specs": {
+      "Rake_Static": 24.62,
+      "WB": 1456.3,
+      "beta_static": 11.6,
+      "Swingarm_Length": 603,
+      "Swingarm_Length_ref": 603,
+      "Yoke_Offset": 26,
+      "Yoke_Offset_ref": 26,
+      "Fork_Position": 7,
+      "Fork_Position_ref": 7,
+      "Shock_Length_ref": 309,
+      "Rf": 302.01,
+      "Rear_RH_Ref_Type": "vertical_pivot_axle",
+      "Swingarm_Length_Ref_Type": "swingarm_pivot",
+      "Chain_Pitch": 15.875
+    }
+  },
+  "kawasaki-zx10r-2021": {
+    "name": "Kawasaki ZX-10R 2021",
+    "manufacturer": "Kawasaki",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-16-1-2__drex_motospec_interface_screen.png); values transcribed by eye.",
+    "note": "Topped-out column of the MotoSPEC file Kawasaki_ZX10R_2021.MS3 is the measurement baseline. Rf 304.4 derived from that column's ground-trail identity. Mass/CG, aero share and sprocket position are NOT in the screenshot and are deliberately absent. Rear suspension: HORIZONTAL BACKLINK — covered by our 'linked' mode once the 10 linkage coordinates are measured.",
+    "specs": {
+      "Rake_Static": 24.75,
+      "WB": 1470,
+      "beta_static": 11.43,
+      "Swingarm_Length": 613,
+      "Swingarm_Length_ref": 613,
+      "Yoke_Offset": 28,
+      "Yoke_Offset_ref": 28,
+      "Fork_Position": 7,
+      "Fork_Position_ref": 7,
+      "Shock_Length_ref": 309,
+      "Rf": 304.4,
+      "Rear_RH_Ref_Type": "vertical_pivot_axle",
+      "Swingarm_Length_Ref_Type": "swingarm_pivot",
+      "Chain_Pitch": 15.875
+    }
+  },
+  "bmw-s1000rr-m-2019": {
+    "name": "BMW S1000RR M Package 2019",
+    "manufacturer": "BMW",
+    "source": "MotoSPEC v5 help-manual screenshot (screens/5-10-0-4__drex_index_custom_2.png); values transcribed by eye.",
+    "note": "Topped-out column of the MotoSPEC file BMW_S1000RR_M_Package_2019.MS1 is the measurement baseline. Rf 304.33 derived from that column's ground-trail identity. Mass/CG, aero share and sprocket position are NOT in the screenshot and are deliberately absent. Rear suspension: FULL FLOATER PRO — NOT supported by this tool — motion ratio, progression and rear wheel rate cannot be computed for it at any setting.",
+    "specs": {
+      "Rake_Static": 23.54,
+      "WB": 1448.4,
+      "beta_static": 12.41,
+      "Swingarm_Length": 605,
+      "Swingarm_Length_ref": 605,
+      "Yoke_Offset": 29.5,
+      "Yoke_Offset_ref": 29.5,
+      "Fork_Position": 6,
+      "Fork_Position_ref": 6,
+      "Shock_Length_ref": 369.5,
+      "Rf": 304.33,
+      "Rear_RH_Ref_Type": "vertical_pivot_axle",
+      "Swingarm_Length_Ref_Type": "swingarm_pivot",
+      "Chain_Pitch": 15.875
     }
   }
 }
