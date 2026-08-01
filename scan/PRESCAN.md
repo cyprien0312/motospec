@@ -62,6 +62,20 @@ scan\.venv\Scripts\python.exe scan\inspect_scan_file.py 你的文件.ply
 
 ## E. 扫完，车还没拆之前，跑一遍验收
 
+> **先说清楚 `pipeline.py` 和 `batch_fit.py` 是什么关系 —— 不要搞反。**
+>
+> | | `batch_fit.py`（主路） | `wholebike/pipeline.py`（验收） |
+> |---|---|---|
+> | 输入 | **你在 CloudCompare 切好的 12 个 segment** | 原始整片点云，不用切 |
+> | 输出 | **全部硬点 + MotoSPEC 字段映射** | 只有前端几何（轮心、轴距、rake） |
+> | 验证状态 | **对合成真值验证过**：rake 0.002°、轴距 0.00mm | 新代码，无真值验证 |
+> | 什么时候跑 | 切完之后，正式提数据 | **导出后 2 分钟，车还在架子上** |
+>
+> **`batch_fit.py` 才是出数据的路。** `pipeline.py` 存在的唯一理由是它**不需要人切**，
+> 所以能在你花一小时做分割**之前**就告诉你这次扫描是不是废了。
+> 别拿它替代分割 —— 它在 2D 投影里找圆，前轮一转就崩；
+> `fit_cylinder` 在 3D 里拟合切好的表面，**完全不在乎转向角**。
+
 ```bash
 cd scan\wholebike
 ..\.venv\Scripts\python.exe pipeline.py 你的文件.ply
@@ -79,6 +93,20 @@ cd scan\wholebike
 | main component >= 95% | 有段没配准上 | 重扫,或丢掉那段 |
 
 **全 PASS 才收工。车一拆就回不去了。**
+
+## E2. 验收过了，再按主路做分割
+
+回到 `README.md` §4 和 §5：在 CloudCompare 里把特征一个个切出来存成单独的 `.ply`
+（文件名必须用约定关键词，脚本靠名字认类型和左右），然后：
+
+```bash
+cd scan
+.venv\Scripts\python.exe batch_fit.py --init segments/ -o config.json
+.venv\Scripts\python.exe batch_fit.py --run config.json
+```
+
+**分割不是可选步骤。** 拆干净之后能切出来的那 12 个特征，是连杆坐标的**唯一来源**
+（见 `docs/research/linkage-coords.md`）。`pipeline.py` 一个都给不了。
 
 ## F. 扫描给不出、必须另外量的
 
