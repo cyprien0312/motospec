@@ -12,6 +12,9 @@
 | [`measurement-points.svg`](measurement-points.svg) | 车架级测量点标注侧视图 |
 | [`scan-points-zh.svg`](scan-points-zh.svg) | **3D 扫描替代路线**取点图（车头朝左侧视投影，连杆放大图）——一次扫描替代 Session A+B+C 全部几何测量，称重除外 |
 | [`../scan/README.md`](../scan/README.md) | **3D 扫描操作指南**（手把手）：软件与耗材、贴标记点、CloudCompare 切割、要扫哪 12 个件及各自对应 app 的哪个字段、跑脚本、质量红线、导进 app、问题排查表 |
+| [`../scan/PRESCAN.md`](../scan/PRESCAN.md) | **开扫前贴墙上的检查单**：车怎么准备（拆干净/车把回正/绑结实）、标记点、导出必须是点云、扫完立刻跑门禁验收、扫描给不出必须卡尺量的几项 |
+| [`../scan/METHODOLOGY.md`](../scan/METHODOLOGY.md) | **方法论**：为什么每个数都要有"不是拟合目标"的独立检验、坐标系怎么建（哪四种方法不能用）、拟合三条硬规矩、遮挡是天花板、输出必须带门禁、换到 765 的差异 |
+| [`../scan/wholebike/README.md`](../scan/wholebike/README.md) | **整车未拆解扫描实测**（Yamaha R3）：能拿到什么（rake 25.49° vs 官方 25.0°）、拿不到什么（转向管/避震/摇臂轴）、几何模式 vs 标志点模式对比、踩过的坑 |
 
 ## 研究 / Research（`research/`）
 

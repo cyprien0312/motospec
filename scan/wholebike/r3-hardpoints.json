@@ -1,0 +1,46 @@
+{
+  "source": "C:/Users/admin0/Documents/geo-R.ply",
+  "frame": "origin = rear tyre contact patch; +X forward, +Y left, +Z up; mm",
+  "confident": {
+    "rear_axle": [
+      0.0,
+      0.0,
+      286.7
+    ],
+    "front_axle": [
+      1411.2,
+      2.4,
+      294.8
+    ],
+    "wheelbase_mm": 1411.2,
+    "published_wheelbase_mm": 1380,
+    "rake_deg": 25.49,
+    "published_rake_deg": 25.0,
+    "fork_tube_radius_mm": [
+      21.16,
+      21.23
+    ],
+    "fork_tube_separation_mm": 211.0,
+    "fork_pair_midpoint_Y_mm": 0.11,
+    "rear_rim_radius_mm": 216,
+    "rear_tread_radius_mm": 314,
+    "rear_sidewall_mm": 98,
+    "rear_tyre_implied": "140/70-17 (140*0.70 = 98)",
+    "front_loaded_radius_mm": 294.8,
+    "rear_loaded_radius_mm": 286.7
+  },
+  "low_confidence": {
+    "swingarm_pivot": [
+      585.4,
+      0.0,
+      397.3
+    ],
+    "note": "single weak cylinder vote, 302 inliers, not verified"
+  },
+  "not_obtainable_from_this_scan": [
+    "yoke/triple-clamp offset -> therefore trail cannot be derived",
+    "steering head bore (hidden under fairing + instruments)",
+    "shock mounts, frame and swingarm ends (hidden behind bodywork/engine)",
+    "swingarm pivot bore (only a weak external candidate)"
+  ]
+}

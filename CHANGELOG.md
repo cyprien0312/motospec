@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased — first real scan, and what it taught us
+
+A fully-assembled, faired Yamaha R3 was scanned (Creality Otter Lite) as a
+practice run before the 765. The numeric path in `chassis_geom.py` is
+untouched; everything here is new tooling and documentation around it.
+
+- **`scan/wholebike/pipeline.py`** — one `.ply` in, front-end geometry out,
+  ending in **6 hard quality gates**. Any failure stamps the result
+  `RESULTS UNRELIABLE` instead of printing plausible numbers. Same rule as
+  the NaN poisoning in `src/linkage.js`: a wrong number that looks right is
+  worse than no number, because it gets filed into a chassis profile and
+  never questioned again.
+- **`scan/PRESCAN.md`** — the checklist to run *before* the scanner comes
+  out, and the acceptance run to do *before the bike is taken off the
+  stand*, while mistakes are still fixable.
+- **`scan/METHODOLOGY.md`** — why every number needs an independent check
+  that is not the fitting objective; the four frame-building methods that
+  do **not** work on a motorcycle point cloud and the ones that do.
+- **`scan/wholebike/README.md`** — the R3 result itself, with provenance.
+
+What the scan established: **rake 25.49°** against Yamaha's published 25.0°,
+from two fork tubes fitted independently and agreeing to 0.02° — a fork tube
+is parallel to the steering axis at *any* steer angle, which makes it the
+single most reliable feature on an assembled bike. Absolute scale checks out
+three independent ways (17″ rim bead seat, tyre sidewall = width × aspect,
+fork tube diameter). The steering-head bore, shock mounts and swingarm pivot
+are **all occluded on an assembled bike** — so trail cannot be derived, and
+`SCAN_WORKFLOW.md`'s "拆掉 — 优先做这个" is a hard requirement rather than a
+suggestion.
+
 ## Unreleased — MotoSPEC v5 parity, first batch
 
 Ported from the commercial MotoSpec v5 teardown

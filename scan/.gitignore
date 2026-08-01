@@ -4,3 +4,4 @@ demo/
 out/
 __pycache__/
 *.pyc
+pipeline_out.json
