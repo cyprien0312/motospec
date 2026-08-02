@@ -661,7 +661,7 @@ export const INPUT_META = {
   // reference — physically true). No fork's absolute length is known, so
   // absolute Fork_Length stays out of the live chain.
   Fork_Length_Delta:    { def: 0,     min: -50,   max: 50,    step: 0.5 },
-  Shock_Length_ref:     { def: 310,   min: 280,   max: 340,   step: 0.1 },
+  Shock_Length_ref:     { def: 310,   min: 250,   max: 400,   step: 0.1 },
   Swingarm_Length_ref:  { def: 580,   min: 480,   max: 650,   step: 0.1 },
   Yoke_Offset_ref:      { def: 32,    min: 20,    max: 45,    step: 0.5 },
   Front_Spring_Rate:    { def: 9.0,   min: 6.0,   max: 14.0,  step: 0.5 },
@@ -671,7 +671,7 @@ export const INPUT_META = {
   Front_Topout_Length:  { def: 40,    min: 0,     max: 80,    step: 5 },
   Swingarm_Length:      { def: 580,   min: 480,   max: 650,   step: 1 },
   Shock_Clevis_RHA:     { def: 0,     min: -10,   max: 10,    step: 0.5 },
-  Shock_Length:         { def: 310,   min: 280,   max: 340,   step: 0.5 },
+  Shock_Length:         { def: 310,   min: 250,   max: 400,   step: 0.5 },
   Shock_Stroke:         { def: 60,    min: 30,    max: 90,    step: 0.5 },
   Fork_Stroke:          { def: 120,   min: 60,    max: 330,   step: 5 },
   Rear_Spring_Rate:     { def: 110,   min: 70,    max: 220,   step: 2.5 },
