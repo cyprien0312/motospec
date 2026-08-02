@@ -1,7 +1,16 @@
 # docs/ 索引 / Documentation Index
 
-仓库全部文档的编目。按用途分四组：**测量**（拿着去车库的）、**研究**
-（逆向与数据来源记录）、**架构**（参数图谱）、**过程档案**（历史计划）。
+仓库全部文档的编目。按用途分五组：**边界**（这工具不算什么）、**测量**（拿着去车库的）、
+**研究**（逆向与数据来源记录）、**架构**（参数图谱）、**过程档案**（历史计划）。
+
+## 边界 / Limitations（先读这个）
+
+| 文件 | 内容 |
+|---|---|
+| [`LIMITATIONS.md`](LIMITATIONS.md) | **局限性审计**：物理模型不建模什么（气簧/摩擦/bump rubber/倾角/轮胎断面/CG 不随压缩移动/13 种连杆只覆盖 5 种…）、数据来源的不确定度（R3 扫描各量的 ±、yoke offset 为什么弱、没称重导致哪些 RESULTS 是 Need）、数采导出/灵敏度地图/扫描管线三个子系统各自的边界、单位与「实测/拟合/标称/占位」精度约定。每条指向具体文件与代码位置，分类标注**刻意 / 待做 / 无法** |
+
+> 面向用户的同类内容在 app 内 user-guide 的「本工具不计算什么」一节
+> （`src/user-guide.js` 的 `limits` 区块，双语）。`LIMITATIONS.md` 是面向工程的版本。
 
 ## 测量 / Measurement（实操文档）
 
@@ -25,6 +34,7 @@
 | [`research/motospec-v5-teardown.md`](research/motospec-v5-teardown.md) | **商业版 MotoSpec v5.17.1.0 拆解对照**：反编译数据模型 vs 我们的字段差距、值得抄的功能（测量口径枚举、Spring Center、HIGHLITE、CofG 计算器、轮胎倾角模型、气簧、Gearing Table）、他们的结构性缺点与我们的护城河、分优先级落地顺序 |
 | [`research/linkage-coords.md`](research/linkage-coords.md) | 连杆坐标溯源记录：公开渠道找不到任何车型的真实连杆坐标（结论：必须实测）；默认占位坐标的校准推导 |
 | [`research/chassis-coords.md`](research/chassis-coords.md) | 参考车车架规格的来源追踪 |
+| [`../dataacq/README.md`](../dataacq/README.md) | **数采格式知识**（MoTeC i2 / AiM RS3）：`.ajmc` 格式从真实样本逆向的 schema 与语法要点、`function` 量纲码表、通道名不能带下划线等真机教训、这台 R3 的 logger 通道清单与电位计标定约定、**Wheel Force 三条路线**（静态 / 标定动态 / 绝对动态）各缺什么。生成器是 `src/logger-export.js`；`samples/` 永久 gitignore（public repo，含 GPS 轨迹） |
 
 ## 架构 / Architecture
 
@@ -49,6 +59,11 @@
 
 ---
 
-**阅读顺序建议**（新读者）：`measurement-guide-765-zh.md` →
-`research/triumph-765-motospec.md`（理解等价类为什么要测 ③⑥⑦）→
-`measurement-points.md`（动手前的点位细节）。
+**阅读顺序建议**（新读者）：`LIMITATIONS.md`（先知道这工具算什么、不算什么）→
+`measurement-guide-765-zh.md` → `research/triumph-765-motospec.md`
+（理解等价类为什么要测 ③⑥⑦）→ `measurement-points.md`（动手前的点位细节）。
+
+**数采链路**：Data Table 的 `⤓ 数采` 按钮（`src/logger-export.js`）导出数学通道 →
+在 AiM RS3 里建通道 → 跑出来的 log 由姊妹项目 `../aim-analyzer`（私有，圈速分析，
+基于 `../xrk-js` 解析 AiM `.xrk`）消费。通道名与电位计约定是**对外接口**，
+改之前先看 `dataacq/README.md`。

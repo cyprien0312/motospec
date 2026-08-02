@@ -175,7 +175,7 @@ const STR = {
             <li><strong>重心随悬挂压缩的移动</strong>：重心存的是对地坐标，不是车架坐标，所以它固定在你测量时的姿态。抗蹲和抬头/制动极限都因此只在<strong>接近测量姿态</strong>时最准。</li>
             <li><strong>偏心后轴 / 偏心枢轴</strong>（Ducati、部分 MV / BMW）：未实现。</li>
             <li><strong>头管插件（rake 可调件）</strong>：未实现，<code>Rake_Static</code> 就是最终值。</li>
-            <li><strong>13 种连杆构型里我们只覆盖 4 种</strong>：Frame-mounted 与 Horizontal Backlink（= linked）、Swingarm-mounted 与 Unit Pro-Link（= pro-link），加上 Direct / Linkless。Full Floater 家族、Panigale、XR69、Scissor 都不能算。</li>
+            <li><strong>13 种连杆构型里我们只覆盖 5 种</strong>：Frame-mounted 与 Horizontal Backlink（= linked）、Swingarm-mounted 与 Unit Pro-Link（= pro-link）、Direct / Linkless（= linkless）。Full Floater 家族、Panigale、XR69、Scissor、Unit Pro-Link Frame-mounted 都不能算。</li>
           </ul>
           <h4>还有一件事</h4>
           <p>算不出来的东西，这里<strong>留空</strong>（「—」或「Need: …」），不给一个看起来合理的数。看到空格不是 bug，是工具在说"我不知道"。</p>
@@ -353,7 +353,7 @@ const STR = {
             <li><strong>CG movement with suspension compression</strong>: the CG is stored in ground coordinates, not frame coordinates, so it stays where you measured it. Anti-squat and the acceleration limits are therefore most accurate <strong>near the attitude you measured</strong>.</li>
             <li><strong>Eccentric rear axle / eccentric pivot</strong> (Ducati, some MV and BMW): not implemented.</li>
             <li><strong>Headstock inserts (rake adjusters)</strong>: not implemented — <code>Rake_Static</code> is the final value.</li>
-            <li><strong>Four of the thirteen linkage types</strong> are covered: frame-mounted and horizontal backlink (= linked), swingarm-mounted and Unit Pro-Link (= pro-link), plus Direct / Linkless. The Full Floater family, Panigale, XR69 and Scissor cannot be computed.</li>
+            <li><strong>Five of the thirteen linkage types</strong> are covered: frame-mounted and horizontal backlink (= linked), swingarm-mounted and Unit Pro-Link (= pro-link), Direct / Linkless (= linkless). The Full Floater family, Panigale, XR69, Scissor and Unit Pro-Link frame-mounted cannot be computed.</li>
           </ul>
           <h4>And one more thing</h4>
           <p>Anything that cannot be computed is left <strong>blank</strong> ("—" or "Need: …") rather than filled with a plausible-looking number. An empty cell is not a bug; it is the tool saying it does not know.</p>
