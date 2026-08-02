@@ -106,12 +106,17 @@ function buildAjmc(channels, pots, bikeName) {
   const unitOf = {};
   for (const c of channels) unitOf[c.name] = c.unit === 'mm' || c.unit === 'deg' ? c.unit : '#';
   const ajmcUnit = (u) => (u === 'mm' || u === 'deg' || u === 'N/mm') ? u : '#';
+  // function = RS3 的量纲 id(unit 字符串只在量纲内选单位,不决定量纲 ——
+  // 真机导入实测:填 11 会全部显示成 Number/#)。样本内证据:
+  //   4 = Angle(deg), 8 = Distance(m/mm), 11 = Number(#)
+  // N/mm 没有对应量纲,诚实地留在 Number;MR/SpringCenter 本来就无量纲。
+  const fnCode = (u) => u === 'deg' ? 4 : u === 'mm' ? 8 : 11;
   return JSON.stringify(channels.map(c => ({
     area: 'MotoSPEC',
     comment: `${bikeName} — ${c.note || ''} (MotoSPEC Formula Explorer, pots: ${pots.front}/${pots.rear}, 0=全伸展)`.trim(),
     formula: toRs3Formula(c.expr, unitOf, pots),
     frequency: 50.0,
-    function: ajmcUnit(c.unit) === 'deg' ? 4 : 11,
+    function: fnCode(ajmcUnit(c.unit)),
     generated_channel_name: disp(c.name),
     group: disp(c.name),
     is_stepped: 0,

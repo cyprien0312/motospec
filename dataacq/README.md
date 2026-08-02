@@ -36,10 +36,13 @@ app 的「⤓ 数采」按钮(Data Table 每列)把本车几何烘焙成 logger 
   内部 id 用 MS_X 形式当 token,输出时统一转空格显示名 "MS X"
 - **xrk 内部名 ≠ RS3 显示名**:xrk 头部存 `Front_Sup`,RS3 公式里引用的
   是显示名 `"Front Sup"`(空格)。导出器默认绑定空格版
-- **`function` 数字码含义未完全逆向**:观察到 deg→4、#→11、m→8、s→18、
-  %→1、g→3。mm / N/mm 的码**样本里没出现** —— 我们的导出对非角度通道
-  统一用 11(#) 并标注实验性;若导入后单位显示异常,在 RS3 里手改该
-  通道的 measure 即可,公式不受影响
+- **`function` = 量纲 id,unit 字符串只在量纲内选单位**(真机导入实测:
+  function 填 11 时不管 unit 写什么都显示 Number/#)。已确认的量纲码:
+  1=Percent, 3=Acceleration(g), 4=Angle(deg), 8=Distance(m/mm),
+  11=Number(#), 16=Speed(m/s), 18=Time(s)。高位似有标志位
+  (Linear Acc 4355 = 3 + 0x1100,含义未逆向,置 0 即可)。
+  N/mm 无对应量纲 → 诚实留 Number;要补全其它码,在 RS3 里手建一个
+  目标量纲的通道导出 .ajmc 读数字即可
 
 ## 这台 R3 的 logger 通道(从 xrk 头部提取)
 

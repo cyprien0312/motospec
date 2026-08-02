@@ -104,8 +104,10 @@ test('.ajmc: 合法 JSON、RS3 语法、默认绑定 Front_Sup/Rear_Sup', () => 
   }
   const rwt = arr.find(e => e.generated_channel_name === 'MS RearWheelTravel');
   assert.match(rwt.formula, /"Rear Sup"\[mm\]/);           // 显示名带空格,非 xrk 内部名
+  assert.equal(rwt.function, 8);           // function=量纲id: 8=Distance(真机实测教训)
+  assert.equal(rwt.unit, 'mm');
   const rake = arr.find(e => e.generated_channel_name === 'MS Rake');
-  assert.equal(rake.function, 4);          // deg → 4(样本内证据)
+  assert.equal(rake.function, 4);          // 4=Angle(样本内证据)
   assert.equal(rake.unit, 'deg');
   const trail = arr.find(e => e.generated_channel_name === 'MS GroundTrail');
   assert.match(trail.formula, /SIN\("MS Rake"\[deg\]/);   // 大写函数 + 引号引用
