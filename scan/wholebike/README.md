@@ -224,6 +224,33 @@ scan\.venv\Scripts\python.exe scan\wholebike\hubfind.py bike.npy
 
 ---
 
+## 端到端验收（2026-08-02，车主实操确认）
+
+R3 全部条目入共享库后,车主在 app 里选好 chassis + linkage + 前后组件,
+把 Shock_Length 拨到实际的 276(ref 280),RESULTS 逐项与独立手算对照:
+
+| RESULTS | app | 独立验算 | 判定 |
+|---|---|---|---|
+| Rake | 26.23 | 25.77 + (−4mm × MR 2.84 → 俯仰 0.46°) = 26.23 | ✅ 精确 |
+| Ground Trail | 105.01 | (297.7·sin26.23 − 37.4)/cos26.23 = 104.99 | ✅ |
+| Normal Trail | 94.19 | 105.01 × cos26.23 = 94.19 | ✅ 精确 |
+| Swingarm Angle | 10.01 | 10.66 − 1.08(连杆) + 0.46(俯仰) = 10.04 | ✅ |
+| Motion Ratio | 2.84 | 原始扫描坐标手算静态 2.76,载荷点略高 | ✅ |
+| Progression | 3.63% | linkless 接近零 = 诚实答案 | ✅ |
+| Front Wheel Rate | 19.73 | 2×8.0/cos²(25.77) = 19.73 | ✅ 精确 |
+| Rear Wheel Rate | 23.55 | 190/2.84² = 23.56 | ✅ 精确 |
+| Spring Center | 0.54 | 23.55/43.28 = 0.544 | ✅ |
+
+**rake 的变化量精确等于 避震差×连杆解×俯仰链** —— 从扫描坐标到 trail
+的整条链端到端闭合。剩余 Need 全部指向刻意留空的量(质量/CG、链轮齿数)。
+
+过程中修掉的两个真 bug:
+1. **linkless 导出缺 rocker 占位键** → Motion Ratio/Progression 空白
+   (readiness 要求全 10 键绑定,计算却不读那 6 个;app 自己保存时会带上,
+   motospec_export 此前没带 —— 已修,自动补占位)
+2. **Shock_Length 护栏 280..340 挡住真车**(Razor-RR 下限 276;BMW ref
+   369.5 超上限)→ 放宽 250..400
+
 ## 六、踩过的坑（都是真的踩过）
 
 - **环带不是圆柱面。** 按半径分带取点再调 `fit_cylinder`，rms 必然 ≈ 带宽/√12

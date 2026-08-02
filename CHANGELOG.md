@@ -30,6 +30,24 @@ are **all occluded on an assembled bike** — so trail cannot be derived, and
 `SCAN_WORKFLOW.md`'s "拆掉 — 优先做这个" is a hard requirement rather than a
 suggestion.
 
+Second campaign (fairing off, CloudCompare segmentation) took the R3 all the
+way into the shared library — chassis + linkless linkage + the owner's fork
+and shock entries — and the owner verified RESULTS end-to-end in the app
+(rake response to a −4 mm shock change closed exactly through the linkage →
+pitch → trail chain; wheel rates exact against spring rates). New tools from
+the lessons: `check_segments.py` (segments must live in the parent cloud's
+frame — a whole batch was silently invalidated by per-piece transforms),
+`hardpoints_from_segments.py` (short cylinders can't support axis directions
+at ~2 mm surface noise; directions come from physical constraints, positions
+from lateral-constrained 2D circle fits, every pair L/R-cross-checked),
+`yoke_offset.py` (offset = steering axis → fork-tube-pair midline, immune to
+steer angle and to the front-axle position error; R3: 37.4 ± 1.5 mm).
+Fixes that fell out: linkless catalog exports now carry the six placeholder
+rocker keys (readiness lists all 10 coords; compute reads 4 — without the
+padding, Motion Ratio/Progression rendered blank), and the `Shock_Length`
+input guardrail widened 280..340 → 250..400 (a Razor-RR adjusts to 276; the
+BMW entry's ref 369.5 already exceeded the old max).
+
 ## Unreleased — MotoSPEC v5 parity, first batch
 
 Ported from the commercial MotoSpec v5 teardown
