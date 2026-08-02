@@ -32,6 +32,10 @@ app 的「⤓ 数采」按钮(Data Table 每列)把本车几何烘焙成 logger 
 - 函数大写:`SQRT ATAN DERIV INTEG FIR ABS`;`^` 为幂;比较用 `GT LT EQ AND`
 - 用户常量 `$NAME$`;`*180/3.14159` 手工转角度
 - 用户自建通道 `version: 0`,AiM 官方示例 `version: 1`
+- **通道名不能带下划线**(2026-08-02 真机导入教训:识别不稳)。导出器
+  内部 id 用 MS_X 形式当 token,输出时统一转空格显示名 "MS X"
+- **xrk 内部名 ≠ RS3 显示名**:xrk 头部存 `Front_Sup`,RS3 公式里引用的
+  是显示名 `"Front Sup"`(空格)。导出器默认绑定空格版
 - **`function` 数字码含义未完全逆向**:观察到 deg→4、#→11、m→8、s→18、
   %→1、g→3。mm / N/mm 的码**样本里没出现** —— 我们的导出对非角度通道
   统一用 11(#) 并标注实验性;若导入后单位显示异常,在 RS3 里手改该
@@ -43,8 +47,8 @@ app 的「⤓ 数采」按钮(Data Table 每列)把本车几何烘焙成 logger 
 
 | 通道名 | 是什么 |
 |---|---|
-| **`Front_Sup`** (Ch02) | 前悬挂电位计 —— 导出器的 $FP 默认绑定它 |
-| **`Rear_Sup`** (Ch01) | 后悬挂电位计 —— $RP 默认绑定它 |
+| **`Front Sup`** (Ch02,xrk 内部名 Front_Sup) | 前悬挂电位计 —— $FP 默认绑定 |
+| **`Rear Sup`** (Ch01,xrk 内部名 Rear_Sup) | 后悬挂电位计 —— $RP 默认绑定 |
 | `Brake_Press` (Ch04) | 刹车压力 |
 | OBDII_RPM/SPD/TPS/PPS/ECT/IAT/MAP/MAF | ECU 通道 |
 | InlineAcc/LateralAcc/VerticalAcc/RollRate/PitchRate/YawRate | IMU |

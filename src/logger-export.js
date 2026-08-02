@@ -82,8 +82,12 @@ const CORE_KEYS = ['Swingarm_Length', 'beta_static', 'Rake_Static', 'WB', 'Rf',
 const LINKAGE_KEYS = ['Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
                       'Frame_Shock_Top_X', 'Frame_Shock_Top_Y'];
 
+// RS3 实测教训(2026-08-02,真机导入):**通道名不能带下划线**,识别不稳。
+// 内部 id 保留 MS_X 形式(表达式里当 token 用),输出时统一转成空格显示名。
+const disp = (name) => name.replace(/_/g, ' ');
+
 // 把内部表达式(裸 MS_ 引用 + $FP/$RP 占位)翻译成 RS3 formula 语法:
-// 引号通道引用 + [unit] 标签 + 大写函数名。
+// 引号通道引用(空格显示名) + [unit] 标签 + 大写函数名。
 function toRs3Formula(expr, unitOf, pots) {
   let f = expr
     .replace(/\$FP/g, `"${pots.front}"[mm]`)
@@ -92,7 +96,7 @@ function toRs3Formula(expr, unitOf, pots) {
   f = f.replace(/\b(MS_\w+)\b/g, (m, name) => {
     const u = unitOf[name];
     const tag = u === 'mm' ? '[mm]' : u === 'deg' ? '[deg]' : '';
-    return `"${name}"${tag}`;
+    return `"${disp(name)}"${tag}`;
   });
   return f;
 }
@@ -108,10 +112,10 @@ function buildAjmc(channels, pots, bikeName) {
     formula: toRs3Formula(c.expr, unitOf, pots),
     frequency: 50.0,
     function: ajmcUnit(c.unit) === 'deg' ? 4 : 11,
-    generated_channel_name: c.name,
-    group: c.name,
+    generated_channel_name: disp(c.name),
+    group: disp(c.name),
     is_stepped: 0,
-    name: `MotoSPEC-${c.name}`,
+    name: `MotoSPEC-${disp(c.name)}`,
     operands: [],
     unit: ajmcUnit(c.unit),
     usage_description: '',
@@ -120,7 +124,7 @@ function buildAjmc(channels, pots, bikeName) {
 }
 
 export function buildLoggerChannels(v, lang = 'zh', bikeName = '',
-                                    pots = { front: 'Front_Sup', rear: 'Rear_Sup' }) {
+                                    pots = { front: 'Front Sup', rear: 'Rear Sup' }) {
   const missing = [];
   for (const k of CORE_KEYS) if (!Number.isFinite(+v[k])) missing.push(k);
   for (const k of LINKAGE_KEYS) if (!Number.isFinite(+v[k])) missing.push(k);
@@ -244,8 +248,10 @@ export function buildLoggerChannels(v, lang = 'zh', bikeName = '',
     ``,
   ].filter(x => x !== null).join('\n');
 
+  // 文本里也用空格显示名 + 引号引用,与 .ajmc 建出来的通道名保持一致
+  const dispExpr = (e) => e.replace(/\b(MS_\w+)\b/g, (m, n) => `"${disp(n)}"`);
   const body = ch.map(c =>
-    `${c.name} [${c.unit}]\n  = ${c.expr}${c.note ? `\n  # ${c.note}` : ''}`).join('\n\n');
+    `${disp(c.name)} [${c.unit}]\n  = ${dispExpr(c.expr)}${c.note ? `\n  # ${c.note}` : ''}`).join('\n\n');
 
   const tail = [
     ``, ``,

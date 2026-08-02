@@ -97,13 +97,18 @@ test('.ajmc: 合法 JSON、RS3 语法、默认绑定 Front_Sup/Rear_Sup', () => 
     assert.equal(e.version, 0);            // 用户自建通道的版本号(样本内证据)
     assert.ok(!/\$FP|\$RP/.test(e.formula), '占位符必须已替换');
   }
-  const rwt = arr.find(e => e.generated_channel_name === 'MS_RearWheelTravel');
-  assert.match(rwt.formula, /"Rear_Sup"\[mm\]/);
-  const rake = arr.find(e => e.generated_channel_name === 'MS_Rake');
+  // RS3 真机教训:通道名与公式里不得出现下划线(识别不稳),全用空格显示名
+  for (const e of arr) {
+    assert.ok(!e.generated_channel_name.includes('_'), `名字含下划线: ${e.generated_channel_name}`);
+    assert.ok(!/_/.test(e.formula), `公式含下划线: ${e.formula}`);
+  }
+  const rwt = arr.find(e => e.generated_channel_name === 'MS RearWheelTravel');
+  assert.match(rwt.formula, /"Rear Sup"\[mm\]/);           // 显示名带空格,非 xrk 内部名
+  const rake = arr.find(e => e.generated_channel_name === 'MS Rake');
   assert.equal(rake.function, 4);          // deg → 4(样本内证据)
   assert.equal(rake.unit, 'deg');
-  const trail = arr.find(e => e.generated_channel_name === 'MS_GroundTrail');
-  assert.match(trail.formula, /SIN\("MS_Rake"\[deg\]/);   // 大写函数 + 引号引用
+  const trail = arr.find(e => e.generated_channel_name === 'MS GroundTrail');
+  assert.match(trail.formula, /SIN\("MS Rake"\[deg\]/);   // 大写函数 + 引号引用
   // 自定义电位计名可覆盖默认
   const out2 = buildLoggerChannels(R3, 'zh', 'R3', { front: 'PotF', rear: 'PotR' });
   assert.match(JSON.parse(out2.ajmc)[0].formula, /"PotR"\[mm\]/);
