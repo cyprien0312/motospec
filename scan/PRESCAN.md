@@ -97,13 +97,29 @@ cd scan\wholebike
 ## E2. 验收过了，再按主路做分割
 
 回到 `README.md` §4 和 §5：在 CloudCompare 里把特征一个个切出来存成单独的 `.ply`
-（文件名必须用约定关键词，脚本靠名字认类型和左右），然后：
+（文件名必须用约定关键词，脚本靠名字认类型和左右）。
+
+**切割纪律（血的教训，2026-08 R3 一次全军覆没）：**
+
+- **一个会话切完全部。** 打开母云 → Segment 剪刀 → 框选 → Segment In →
+  **立刻 Save** 这个 `.segmented` 子云 → 回来切下一个。
+- **任何东西都不要移动/旋转/对齐** —— 不要 Apply Transformation、不要拖动、
+  不要 Align/ICP。想把件拖出来端详一下再存？就是这一下,坐标系没了,
+  而且**事后看不出来**。
+- 那次的 10 个 segment 每个都被分别动过(旋转 9°~93°,平移 97~997mm 不等),
+  batch_fit 左右轴合并自检报 39°~64° 夹角。这种数据没有抢救价值。
+
+切完先验坐标系，再跑拟合：
 
 ```bash
 cd scan
+.venv\Scripts\python.exe check_segments.py model.ply segments/
 .venv\Scripts\python.exe batch_fit.py --init segments/ -o config.json
 .venv\Scripts\python.exe batch_fit.py --run config.json
 ```
+
+`check_segments.py` 验证每个 segment 的点真的存在于母云里(p95 < 1mm)。
+不过就别往下跑 —— batch_fit 会给出一堆能算但全错的数。
 
 **分割不是可选步骤。** 拆干净之后能切出来的那 12 个特征，是连杆坐标的**唯一来源**
 （见 `docs/research/linkage-coords.md`）。`pipeline.py` 一个都给不了。
