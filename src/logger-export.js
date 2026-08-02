@@ -13,13 +13,16 @@
 //    (缺 CG 的 anti-squat 只有比较价值,见 teardown §3.4)。
 //  * 不生成 Wheel Force 通道:需要预载/topout/气簧模型,商业版也明确
 //    "bump rubber 不计入"(teardown §3.2)。缺的就是缺,不给假数。
-//  * 只输出**粘贴用表达式文本 + CSV 查表**,不生成 .ajmc/.xml 专有格式 ——
-//    没拿到真实样本文件对照前,生成的二进制格式都是猜(同 .MS1 导入的
-//    实验性纪律,teardown §4.3)。
+//  * 输出粘贴用表达式文本 + CSV 查表 + **RS3 `.ajmc` 导入文件**。
+//    .ajmc 是 JSON 数组(2026-08-02 从真实样本逆向,schema 见
+//    dataacq/README.md);其中 `function` 数字码未完全逆向 —— 角度用 4、
+//    其余用 11(#),导入后单位显示异常就在 RS3 里手改 measure,公式不受
+//    影响。i2 XML 仍不生成(还没有真实样本可对照)。
 //
 // 电位计约定(写死在文件头,导入的人必须核对):
 //  * $FP = 前叉压缩量 mm,0 = 全伸展(topped out),沿叉管轴向
 //  * $RP = 后避震压缩量 mm,0 = 全伸展
+//  默认绑定这台车 xrk 里的实际通道名 Front_Sup / Rear_Sup(可传参覆盖)。
 //  参考态 = 本 app 的 profile 基线(全伸展),与扫描态一致。
 
 import { rearVerticalTravel, motionRatio, swingarmDeltaForShockTravel } from './linkage.js';
@@ -79,7 +82,45 @@ const CORE_KEYS = ['Swingarm_Length', 'beta_static', 'Rake_Static', 'WB', 'Rf',
 const LINKAGE_KEYS = ['Drag_To_Swingarm_X', 'Drag_To_Swingarm_Y',
                       'Frame_Shock_Top_X', 'Frame_Shock_Top_Y'];
 
-export function buildLoggerChannels(v, lang = 'zh', bikeName = '') {
+// 把内部表达式(裸 MS_ 引用 + $FP/$RP 占位)翻译成 RS3 formula 语法:
+// 引号通道引用 + [unit] 标签 + 大写函数名。
+function toRs3Formula(expr, unitOf, pots) {
+  let f = expr
+    .replace(/\$FP/g, `"${pots.front}"[mm]`)
+    .replace(/\$RP/g, `"${pots.rear}"[mm]`)
+    .replace(/\b(sin|cos|asin|atan)\(/g, (m, fn) => fn.toUpperCase() + '(');
+  f = f.replace(/\b(MS_\w+)\b/g, (m, name) => {
+    const u = unitOf[name];
+    const tag = u === 'mm' ? '[mm]' : u === 'deg' ? '[deg]' : '';
+    return `"${name}"${tag}`;
+  });
+  return f;
+}
+
+// RS3 .ajmc(JSON 数组)。function 码:deg→4(样本内证据),其余 11(#,实验性)。
+function buildAjmc(channels, pots, bikeName) {
+  const unitOf = {};
+  for (const c of channels) unitOf[c.name] = c.unit === 'mm' || c.unit === 'deg' ? c.unit : '#';
+  const ajmcUnit = (u) => (u === 'mm' || u === 'deg' || u === 'N/mm') ? u : '#';
+  return JSON.stringify(channels.map(c => ({
+    area: 'MotoSPEC',
+    comment: `${bikeName} — ${c.note || ''} (MotoSPEC Formula Explorer, pots: ${pots.front}/${pots.rear}, 0=全伸展)`.trim(),
+    formula: toRs3Formula(c.expr, unitOf, pots),
+    frequency: 50.0,
+    function: ajmcUnit(c.unit) === 'deg' ? 4 : 11,
+    generated_channel_name: c.name,
+    group: c.name,
+    is_stepped: 0,
+    name: `MotoSPEC-${c.name}`,
+    operands: [],
+    unit: ajmcUnit(c.unit),
+    usage_description: '',
+    version: 0,
+  })), null, 1);
+}
+
+export function buildLoggerChannels(v, lang = 'zh', bikeName = '',
+                                    pots = { front: 'Front_Sup', rear: 'Rear_Sup' }) {
   const missing = [];
   for (const k of CORE_KEYS) if (!Number.isFinite(+v[k])) missing.push(k);
   for (const k of LINKAGE_KEYS) if (!Number.isFinite(+v[k])) missing.push(k);
@@ -190,7 +231,8 @@ export function buildLoggerChannels(v, lang = 'zh', bikeName = '') {
     `# 电位计约定(导入前必须核对,不符就先做传感器标定换算):`,
     `#   $FP = 前叉压缩量 mm, 0 = 全伸展(topped out), 沿叉管轴向`,
     `#   $RP = 后避震压缩量 mm, 0 = 全伸展`,
-    `#   把 $FP / $RP 全文替换成你 logger 里的实际通道名。`,
+    `#   .ajmc 里已绑定通道 "${pots.front}" / "${pots.rear}";本文本里的`,
+    `#   $FP / $RP 手工粘贴时替换成你 logger 的实际通道名。`,
     `# `,
     `# 参考态 = profile 基线(全伸展) —— 与本 app RESULTS 的静态参考一致。`,
     `# 连杆拟合: ${deg} 阶多项式, 最大残差 ${num(maxRes, 3)}mm, 有效 0..${num(usable, 1)}mm`,
@@ -220,5 +262,6 @@ export function buildLoggerChannels(v, lang = 'zh', bikeName = '') {
 
   return { missing: [], channels: ch, warnings, skipped,
            coeffs: { rwt: coeffs, mr: mrCoeffs, maxResidual: maxRes, usableStroke: usable },
-           text: head + body + tail };
+           text: head + body + tail,
+           ajmc: buildAjmc(ch, pots, bikeName || 'bike') };
 }

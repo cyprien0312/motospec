@@ -18,8 +18,15 @@ lookup table. Deliberately NOT generated: Anti-Squat/CofG (need a
 *measured* CG — materialized values carry INPUT_META defaults and a
 default proves nothing, same rule as readiness) and Wheel Forces (need
 preload/topout/air-spring; the commercial product likewise excludes bump
-rubber). No `.ajmc`/`.xml` proprietary files until we can round-trip a
-real sample — same experimental-format discipline as `.MS1` import.
+rubber). Initially text-only per the experimental-format discipline;
+then a real `.ajmc` sample arrived and settled the format — it is JSON,
+not XML (schema in `dataacq/README.md`) — so the button now also emits a
+directly-importable `.ajmc` with the bike's actual pot channel names
+(`Front_Sup`/`Rear_Sup`, read from a real `.xrk` header) baked in. The
+`function` numeric codes are only partially reversed (deg→4 evidenced;
+others get 11/# and are flagged experimental). MoTeC i2 XML still waits
+for a real sample. Sample files live in `dataacq/samples/` — gitignored:
+the repo is public and race logs carry GPS traces.
 
 ## Unreleased — first real scan, and what it taught us
 

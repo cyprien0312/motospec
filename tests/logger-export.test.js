@@ -82,3 +82,29 @@ test('导出文本含电位计约定与 CSV 查表', () => {
   assert.match(out.text, /shock_pot_mm,rear_wheel_travel_mm,motion_ratio/);
   assert.match(out.text, /全伸展/);
 });
+
+test('.ajmc: 合法 JSON、RS3 语法、默认绑定 Front_Sup/Rear_Sup', () => {
+  const out = buildLoggerChannels(R3, 'zh', 'R3');
+  const arr = JSON.parse(out.ajmc);
+  assert.equal(arr.length, out.channels.length);
+  for (const e of arr) {
+    // 真实样本的 schema 字段一个不少
+    for (const k of ['area', 'comment', 'formula', 'frequency', 'function',
+                     'generated_channel_name', 'group', 'is_stepped', 'name',
+                     'operands', 'unit', 'usage_description', 'version']) {
+      assert.ok(k in e, `缺字段 ${k}`);
+    }
+    assert.equal(e.version, 0);            // 用户自建通道的版本号(样本内证据)
+    assert.ok(!/\$FP|\$RP/.test(e.formula), '占位符必须已替换');
+  }
+  const rwt = arr.find(e => e.generated_channel_name === 'MS_RearWheelTravel');
+  assert.match(rwt.formula, /"Rear_Sup"\[mm\]/);
+  const rake = arr.find(e => e.generated_channel_name === 'MS_Rake');
+  assert.equal(rake.function, 4);          // deg → 4(样本内证据)
+  assert.equal(rake.unit, 'deg');
+  const trail = arr.find(e => e.generated_channel_name === 'MS_GroundTrail');
+  assert.match(trail.formula, /SIN\("MS_Rake"\[deg\]/);   // 大写函数 + 引号引用
+  // 自定义电位计名可覆盖默认
+  const out2 = buildLoggerChannels(R3, 'zh', 'R3', { front: 'PotF', rear: 'PotR' });
+  assert.match(JSON.parse(out2.ajmc)[0].formula, /"PotR"\[mm\]/);
+});

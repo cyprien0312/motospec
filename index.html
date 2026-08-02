@@ -1916,12 +1916,16 @@ function exportLoggerChannels(i) {
     alert(msg);
     return;
   }
-  const blob = new Blob([out.text], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `motospec-logger-${(bike.name || 'bike').replace(/[^\w一-鿿-]+/g, '_')}.txt`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const base = `motospec-logger-${(bike.name || 'bike').replace(/[^\w一-鿿-]+/g, '_')}`;
+  const dl = (content, filename, mime) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  dl(out.ajmc, `${base}.ajmc`, 'application/json;charset=utf-8');   // RS3 直接 Import
+  dl(out.text, `${base}.txt`, 'text/plain;charset=utf-8');          // 文档 + i2 粘贴用
 }
 // Switch a RESULTS row's display mode (anti-squat / progression /
 // motion ratio). Presentation only — the physics is unchanged; the row
