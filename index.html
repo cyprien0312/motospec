@@ -807,8 +807,9 @@ table.cat-table tr.cat-add-row { background: rgba(0,102,204,0.04); }
 
 <script type="module">
 import { P, INPUT_META, CALC, D2R, R2D, defaultValues, computeAll } from './src/formulas.js';
-import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG, applyCopyScope, COPY_SCOPES, RESULT_MODES, effectiveBikeValues } from './src/data-table.js';
+import { renderDataTable, defaultBikes, blankBike, MAX_BIKES, COMPONENT_TO_CATALOG, applyCopyScope, COPY_SCOPES, RESULT_MODES, effectiveBikeValues, bikeReadyKeys } from './src/data-table.js';
 import { buildLoggerChannels } from './src/logger-export.js';
+import { computeSensitivity, renderSensitivityHtml } from './src/sensitivity.js';
 import { CATALOGS, CATALOG_KEYS, setCatalogEntry, patchCatalogEntry, removeCatalogEntry, getUserOverlay, applyUserOverlay, resetUserOverlay, clearLocalOverlayEntry, applyRemoteCatalogs, hasRemoteCatalogs, setRemoteEntry, removeRemoteEntry, getRemoteCatalogs } from './src/catalog.js';
 import { fetchSharedCatalogs, upsertSharedEntry, softDeleteSharedEntry, bulkUpsertShared } from './src/supabase.js';
 import { renderCatalogEditor } from './src/catalog-editor.js';
@@ -1927,6 +1928,16 @@ function exportLoggerChannels(i) {
   dl(out.ajmc, `${base}.ajmc`, 'application/json;charset=utf-8');   // RS3 直接 Import
   dl(out.text, `${base}.txt`, 'text/plain;charset=utf-8');          // 文档 + i2 粘贴用
 }
+// 灵敏度地图:本车每个旋钮拧一格 → 各指标变多少。在独立窗口渲染,可打印带去围场。
+function showSensitivity(i) {
+  const bike = state.bikes?.[i];
+  if (!bike) return;
+  const sens = computeSensitivity(effectiveBikeValues(bike), state.lang, bikeReadyKeys(bike));
+  const w = window.open('', '_blank');
+  if (!w) { alert(state.lang === 'en' ? 'Popup blocked' : '弹窗被拦截,请允许弹窗'); return; }
+  w.document.write(renderSensitivityHtml(sens, bike.name || `#${i + 1}`, state.lang));
+  w.document.close();
+}
 // Switch a RESULTS row's display mode (anti-squat / progression /
 // motion ratio). Presentation only — the physics is unchanged; the row
 // just reads a different already-computed channel.
@@ -2583,7 +2594,7 @@ function linkageReadoutUp(evt) {
 
 // Expose handlers used by inline onclick/oninput attributes — module scope
 // hides them from the global scope by default.
-Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setDtHighlite, copyBikeFrom, exportLoggerChannels, setResultMode, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, publishLocalToShared, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, setChassisEnum, saveChassisAsPreset, loadChassisFromLibrary, setCgRow, addCgRow, removeCgRow, applyCgResult, openGuide, openGuideForCurrentPage });
+Object.assign(window, { setLang, toggleSidebar, navigateRoot, navigateTo, applyPreset, resetDefaults, setInputValue, resetLinkagePlaceholder, setLinkageMode, setLinkageInputStyle, setLinkageLength, saveLinkageAsPreset, loadLinkageFromLibrary, setBikeInput, setBikeComponent, setBikeName, addBike, removeBike, toggleDtGroup, setDtHighlite, copyBikeFrom, exportLoggerChannels, showSensitivity, setResultMode, setCatalogTab, setCatalogField, addCatalogEntryUI, removeCatalogEntryUI, exportCatalogs, importCatalogs, resetCatalogs, publishLocalToShared, linkageReadoutDown, linkageReadoutMove, linkageReadoutUp, setChassisInput, setChassisEnum, saveChassisAsPreset, loadChassisFromLibrary, setCgRow, addCgRow, removeCgRow, applyCgResult, openGuide, openGuideForCurrentPage });
 
 render();
 initSharedCatalogs();

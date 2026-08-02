@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — setup sensitivity map
+
+"What rake/trail number is good?" is the wrong question — absolute
+targets don't transfer across bikes. The professional tool is a
+per-bike sensitivity map: what one *real-world click* of each adjuster
+(INPUT_META.step) does to every metric, central-differenced through this
+bike's own parameter graph at its current state. New `Δ sens` button on
+each Data Table column opens a printable map (`src/sensitivity.js`):
+eight adjusters + two load-case rows × eight metrics, pinned by analytic
+derivatives in tests (dTrail/dOffset = −1/cos(rake) to machine
+precision). Readiness-gated with the same rule as the table —
+`leafInputsFor`/`bikeReadyKeys` are now exported and the map shows "—"
+for anything whose inputs aren't truly bound (the first draft happily
+computed Anti-Squat from the *default* CG; the gate now stops that).
+
 ## Unreleased — logger math-channel export (MoTeC i2 / AiM RS3)
 
 The commercial MotoSPEC's Data Acquisition feature

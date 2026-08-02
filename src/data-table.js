@@ -29,7 +29,7 @@ function skippedDeps(node, values, ready) {
 }
 
 const _leafCache = new Map();
-function leafInputsFor(id, values = null, ready = null) {
+export function leafInputsFor(id, values = null, ready = null) {
   // Cache only the unconditional walk; the conditional one is cheap and
   // depends on per-bike values.
   const cacheable = !values || !ready;
@@ -174,7 +174,7 @@ export const ALWAYS_READY = new Set([
   'Tire_Rr_Delta',
 ]);
 
-function bikeReadyKeys(bike) {
+export function bikeReadyKeys(bike) {
   const keys = new Set(ALWAYS_READY);
   // Each chosen component contributes its spec keys.
   for (const compKey of Object.keys(COMPONENT_TO_CATALOG)) {
@@ -694,6 +694,9 @@ export function renderDataTable(state) {
       <input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)">
       ${copySelect(i)}
       <button class="dt-logger" title="${escapeHtml(loggerTitle)}" onclick="exportLoggerChannels(${i})">⤓ ${lang === 'en' ? 'logger' : '数采'}</button>
+      <button class="dt-logger" title="${escapeHtml(lang === 'en'
+        ? 'Sensitivity map: what one click of each adjuster does to every metric on THIS bike'
+        : '灵敏度地图:本车每个旋钮拧一格,各指标变多少')}" onclick="showSensitivity(${i})">Δ ${lang === 'en' ? 'sens' : '灵敏度'}</button>
     </th>`
   ).join('');
   const addHeader = bikes.length < MAX_BIKES
