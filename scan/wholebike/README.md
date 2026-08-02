@@ -142,6 +142,36 @@ R3 是**无连杆（linkless）**后避震，按 `src/linkage.js` 的模型只�
 > （本次实测）。而 `fit_cylinder` 在 **3D** 里拟合切好的表面，**完全不受转向角
 > 影响** —— 手工分割那条路没有这个问题。
 
+### `hardpoints_from_segments.py` —— 小 segment 的正确打开方式
+
+第一次真实分割（R3，2026-08）暴露了 `batch_fit` 假设不满足的情形：噪声 ~2mm
+的扫描上，25mm 长的轴头小面片 `fit_cylinder` 的**轴向**误差可达几十度（实测同
+一根后轴左右两段方向差 61°，但轴线**位置**只差 1.8mm）。方向错 → 轴线∩对称面
+的交点飘 → 全链崩。
+
+这个工具的原则：**方向永远不从短圆柱拟合 —— 从物理约束来**：
+
+- 横向轴 = 左右成对 segment 质心连线的共识（三对互洽 0.36°，离群的那对剔除）
+- 轮心 = 轴头段 2D 圆心做种子，轮辋 360° 圆在 ±60mm 内精修（盲搜会锁到别的
+  环形结构，实测偏 379mm）
+- 地面 = 已知胎径的公切线（触地点被架子挡住，"最低可见点"前后偏差不同会把
+  地面线拧歪零点几度，直接偏置 rake）
+- 每个横向销特征只拟合 2D 圆心；左右各解一遍，差值就是不确定度，直接打印
+- 转向轴用 steering_head 全 3D 拟合（弧 358°、长基线，拟合得动），出面外角度
+  是自检（收敛到 0.00°）
+
+R3 实测结果（vs 独立参照）：轴距 1406.1（前一天另一次扫描 1411.2）；rake
+25.77°（官方 25.0°，扫描时避震全伸展会偏大，方向一致）；yoke offset 31.7mm；
+避震眼距 278.7mm；连杆坐标完整导出。位置类不确定度 ±1~2mm（L/R 独立解差
+1.2~2.4mm），前轴稍差（±5mm，左右切在了轴的不同台阶上）。
+
+```bash
+..\.venv\Scripts\python.exe hardpoints_from_segments.py big_cloud.ply segments/ \
+    --front-tyre 297.7 --rear-tyre 314.0 -o out/geometry.json
+..\.venv\Scripts\python.exe ..\motospec_export.py out/geometry.json \
+    --name "Yamaha R3 (scanned)" --mode linkless
+```
+
 **`pipeline.py` 是唯一需要日常跑的** —— 一个文件从头跑到尾，最后强制过 6 条质量门禁：
 
 ```bash
