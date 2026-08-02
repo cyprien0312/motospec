@@ -161,6 +161,18 @@ def build(geo_path: Path, name: str, mode: str, note_extra: str = "",
     need = 10 if mode != "linkless" else 4
     link_ok = len([k for k in link_specs if k.endswith(("_X", "_Y"))]) == need
 
+    # linkless 计算**从不读取** rocker 坐标,但 app 的依赖图无条件列全 10 个键,
+    # readiness 门禁要求它们被绑定 —— 缺了的话 Motion Ratio / Progression 会
+    # 空白(实测踩过)。app 自己保存 linkless profile 时也会把占位 rocker 坐标
+    # 一并存上("carried but never read",模式切换无损)。照抄 app 的
+    # LINKAGE_PLACEHOLDER_LINKLESS 值;只在真实两点齐全时才补,缺点照常报 missing。
+    if mode == "linkless" and link_ok:
+        link_specs.update({
+            "Frame_Rocker_Pivot_X": -60.0, "Frame_Rocker_Pivot_Y": -140.0,
+            "Rocker_To_Shock_X": -185.0,   "Rocker_To_Shock_Y": -100.0,
+            "Rocker_To_Drag_X": -170.0,    "Rocker_To_Drag_Y": -165.0,
+        })
+
     return {
         "checks": checks,
         "missing": missing,
