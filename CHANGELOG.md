@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased — logger math-channel export (MoTeC i2 / AiM RS3)
+
+The commercial MotoSPEC's Data Acquisition feature
+(motospec.ca/data-aq.html) bakes chassis math channels into i2 / Race
+Studio. Ours now does the geometry-honest subset: a `⤓ logger` button on
+each Data Table column exports paste-ready math-channel expressions
+(`src/logger-export.js`, pure) whose constants come from that column's
+chassis + linkage + components. Inputs are the two suspension pots
+($FP fork / $RP shock, mm from full extension — the profile baseline).
+Twelve channels: rear wheel travel (4-bar sampled, polynomial fit with
+the max residual printed in the header), motion ratio (its derivative,
+cross-checked against the solver), shock/wheel, vertical front travel,
+pitch, live rake, ground trail (exact trig), ground-referenced swingarm
+angle, live wheelbase, both wheel rates, spring center — plus a CSV
+lookup table. Deliberately NOT generated: Anti-Squat/CofG (need a
+*measured* CG — materialized values carry INPUT_META defaults and a
+default proves nothing, same rule as readiness) and Wheel Forces (need
+preload/topout/air-spring; the commercial product likewise excludes bump
+rubber). No `.ajmc`/`.xml` proprietary files until we can round-trip a
+real sample — same experimental-format discipline as `.MS1` import.
+
 ## Unreleased — first real scan, and what it taught us
 
 A fully-assembled, faired Yamaha R3 was scanned (Creality Otter Lite) as a

@@ -685,11 +685,15 @@ export function renderDataTable(state) {
       `<option value="">${escapeHtml(copyPlaceholder)}</option>${groups}</select>`;
   };
 
+  const loggerTitle = lang === 'en'
+    ? 'Export MoTeC i2 / AiM RS3 math channels for this bike (needs chassis + linkage + shock stroke)'
+    : '导出本车的 MoTeC i2 / AiM RS3 数学通道(需要车架 profile + 连杆 + 避震行程)';
   const bikeHeaders = bikes.map((b, i) =>
     `<th class="dt-bike-head${hl === i ? ' dt-bike-head-ref' : ''}">
       <button class="dt-col-remove" title="${escapeHtml(removeTitle)}" onclick="removeBike(${i})">×</button>
       <input type="text" class="dt-input dt-bike-name" value="${escapeHtml(b.name)}" onchange="setBikeName(${i}, this.value)">
       ${copySelect(i)}
+      <button class="dt-logger" title="${escapeHtml(loggerTitle)}" onclick="exportLoggerChannels(${i})">⤓ ${lang === 'en' ? 'logger' : '数采'}</button>
     </th>`
   ).join('');
   const addHeader = bikes.length < MAX_BIKES
