@@ -65,7 +65,8 @@ KNOWN_FEATURES = {
     "rocker_pivot":    "摇杆(rocker)支点",
     "rocker_shock":    "摇杆-避震连接点",
     "rocker_link":     "摇杆-拉杆连接点",
-    "link_frame":      "拉杆-车架连接点",
+    "link_frame":      "拉杆-车架连接点(pro-link: 摇杆在摇臂上)",
+    "link_swingarm":   "拉杆-摇臂连接点(linked: 摇杆在车架上)",
     "countershaft":    "输出轴中心(算 anti-squat 必需)",
     "footpeg":         "脚踏支架(只用来定对称面)",
     "engine_mount":    "发动机座(只用来定对称面)",
@@ -400,7 +401,8 @@ def derive_geometry(P: dict[str, np.ndarray], axes_bike: dict[str, Axis],
         g["shock_upper_xyz"] = np.round(su, 2).tolist()
         g["shock_lower_xyz"] = np.round(sl, 2).tolist()
 
-    for k in ("rocker_pivot", "rocker_shock", "rocker_link", "link_frame"):
+    for k in ("rocker_pivot", "rocker_shock", "rocker_link",
+              "link_frame", "link_swingarm"):
         if k in P:
             g[f"{k}_xyz"] = np.round(P[k], 2).tolist()
 
