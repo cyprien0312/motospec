@@ -108,7 +108,7 @@
 
 ### 2.3 没测量的量 → 哪些 RESULTS 会显示 "Need: …"
 
-`bikeReadyKeys(bike)` 是"哪些输入真的被绑定"的唯一真相源（`src/data-table.js`）；
+`bikeReadyKeys(bike)` 是"哪些输入真的被绑定"的唯一权威来源（`src/data-table.js`）；
 材料化后的值带着 `INPUT_META` 默认值，而**默认值证明不了任何事**。
 
 | 缺什么 | 直接变 Need 的 RESULTS |
